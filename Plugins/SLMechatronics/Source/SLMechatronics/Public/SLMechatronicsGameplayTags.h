@@ -1,0 +1,10 @@
+﻿// Copyright Spectrelight Studios, LLC
+
+#pragma once
+
+#include "NativeGameplayTags.h"
+
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SLMechatronics_Domain_Data)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SLMechatronics_Domain_Drivetrain)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SLMechatronics_Domain_Electricity)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SLMechatronics_Domain_Fluids)
