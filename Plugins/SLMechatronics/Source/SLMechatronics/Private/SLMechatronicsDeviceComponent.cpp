@@ -26,48 +26,67 @@ void USLMechatronicsDeviceComponent::PostSimulate(float DeltaTime)
 	OnPostSimulate.Broadcast(DeltaTime);
 }
 
-void USLMechatronicsDeviceComponent::GetLocationData(int32 PortIndex, USceneComponent*& OutSceneComponent, FName& OutSocket, FVector& OutOffset)
+void USLMechatronicsDeviceComponent::SelectClosestPort(FVector WorldLocation, FGameplayTag Domain, bool& Success, FSLMPort& OutPort)
 {
-	const AActor* Owner = GetOwner();
-	check(Ports.IsValidIndex(PortIndex));
-	const FSLMPort Port = Ports[PortIndex];
-	for(UActorComponent* Component : Owner->GetComponents())
+	double DistanceSquared = UE_BIG_NUMBER;
+	Success = false;
+	for (const auto& Port : Ports)
 	{
-		if(Component->GetFName() == Port.ComponentName)
+		const FVector PortLocation = PortToWorldLocation(Port);
+		const double ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
+		if (ThisPortDistanceSquared < DistanceSquared)
 		{
-			OutSceneComponent = Cast<USceneComponent>(Component);
+			DistanceSquared = ThisPortDistanceSquared;
+			OutPort = Port;
+			Success = true;
 		}
 	}
-	if (!OutSceneComponent)
+}
+
+void USLMechatronicsDeviceComponent::UpdatePortLocationData()
+{
+	const AActor* Owner = GetOwner();
+	
+	for (auto& Port : Ports)
 	{
-		OutSceneComponent = Owner->GetRootComponent();
+		USceneComponent* SceneComponent = nullptr;
+		for(UActorComponent* Component : Owner->GetComponents())
+		{
+			if(Component->GetFName() == Port.PortLocationData.ComponentName)
+			{
+				SceneComponent = Cast<USceneComponent>(Component);
+			}
+		}
+		if (!SceneComponent)
+		{
+			SceneComponent = Owner->GetRootComponent();
+		}
+		Port.PortLocationData.SceneComponent = SceneComponent;
 	}
-	OutSocket = Port.SocketName;
-	OutOffset = Port.Offset;
 }
 
-FSLMData USLMechatronicsDeviceComponent::GetNetworkData(int32 PortIndex)
+
+FVector USLMechatronicsDeviceComponent::PortToWorldLocation(FSLMPort Port)
 {
-	return Subsystem->GetNetworkData(Ports[PortIndex].Index);
+	const USceneComponent* SceneComponent = Port.PortLocationData.SceneComponent;
+	const FName SocketName = Port.PortLocationData.SocketName;
+	const FVector Offset = Port.PortLocationData.Offset;
+	const FTransform SocketTransform = SceneComponent->GetSocketTransform(SocketName, RTS_World);
+	const FVector OutLocation = SocketTransform.TransformPosition(Offset);
+	return OutLocation;
 }
-
-void USLMechatronicsDeviceComponent::SetNetworkData(FSLMData Data, int32 PortIndex)
-{
-	Subsystem->SetNetworkData(Data, Ports[PortIndex].Index);
-}
-
-
 
 
 // Called when the game starts
 void USLMechatronicsDeviceComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	UpdatePortLocationData();
 	Subsystem = GetWorld()->GetSubsystem<USLMechatronicsSubsystem>();
 	DeviceIndex = Subsystem->AddDevice(this);
 	for (auto& Port : Ports)
 	{
-		Port.Index = Subsystem->AddPort(Port);
+		Port.PortIndex = Subsystem->AddPort(Port);
 	}
 }
 
@@ -76,7 +95,7 @@ void USLMechatronicsDeviceComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 {
 	for (const auto& Port : Ports)
 	{
-		Subsystem->RemovePort(Port.Index);
+		Subsystem->RemovePort(Port.PortIndex);
 	}
 	Super::EndPlay(EndPlayReason);
 }

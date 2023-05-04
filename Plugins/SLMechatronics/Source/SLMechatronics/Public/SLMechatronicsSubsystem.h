@@ -10,6 +10,10 @@
 class USLMechatronicsDeviceComponent;
 class USLMechatronicsSubsystem;
 
+DECLARE_STATS_GROUP(TEXT("SLMechatronics"), STATGROUP_SLMechatronics, STATCAT_Advanced);
+
+
+
 USTRUCT()
 struct FSLMechatronicsSubsystemTickFunction : public FTickFunction
 {
@@ -45,8 +49,16 @@ public:
 	int32 AddPort(FSLMPort Port);
 	void RemovePort(int32 PortIndex);
 
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
 	FSLMData GetNetworkData(int32 PortIndex);
-	void SetNetworkData(FSLMData NetworkData, int32 PortIndex);
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
+	float GetNetworkValue(int32 PortIndex);
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
+	float GetNetworkCapacity(int32 PortIndex);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SetNetworkValue(int32 PortIndex, float NetworkValue);
+		
+	
 	//BP Callable Stuff
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	void ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
@@ -54,6 +66,7 @@ public:
 	void DisconnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
+
 	//Testing
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	TArray<int32> TestGetAllConnectedPortsMulti(TArray<int32> Roots);
@@ -62,12 +75,12 @@ public:
 
 private:
 	//Properties
-	UPROPERTY(EditDefaultsOnly, Category = "Tick")
 	FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
 
 	TSparseArray<USLMechatronicsDeviceComponent*> DeviceComponents;
 	TSparseArray<FSLMPort> Ports;
 	TMultiMap<int32, int32> Adjacencies;
+	TSparseArray<int32> PortIndexToNetworkIndex;
 	TSparseArray<FSLMData> Networks;
 	
 	bool bNeedsCleanup = false;
@@ -77,7 +90,7 @@ private:
 	
 	//Functions
 	void CleanUpGraph();
-	TArray<int32> GetConnectedPorts(TArray<int32> Roots) const;
+	TArray<int32> GetConnectedPorts(const TArray<int32>& Roots) const;
 	void CreateNetworkForPorts(TArray<int32> Ports);
 	void CreateNetworkForPort(int32 Port);
 };

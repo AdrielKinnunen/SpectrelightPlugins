@@ -15,7 +15,6 @@ class SLMECHATRONICS_API USLMechatronicsDeviceComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
 	USLMechatronicsDeviceComponent();
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulateSignature, float, DeltaTime);
@@ -24,35 +23,27 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnSimulateSignature OnSimulate;
 	UPROPERTY(BlueprintAssignable)
-	FOnSimulateSignature OnPostSimulate;	
+	FOnSimulateSignature OnPostSimulate;
 	
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 DeviceIndex;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	TArray<FSLMPort> Ports;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	USLMechatronicsSubsystem* Subsystem;
-
-
-
-	//UFUNCTION(Category = "SLMechatronics")
-	void PreSimulate(float DeltaTime);
-	void Simulate(float DeltaTime);
-	void PostSimulate(float DeltaTime);
-
-
-
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 DeviceIndex;
 	
+	virtual void PreSimulate(float DeltaTime);
+	virtual void Simulate(float DeltaTime);
+	virtual void PostSimulate(float DeltaTime);
+	
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SelectClosestPort(FVector WorldLocation, FGameplayTag Domain, bool& Success, FSLMPort& OutPort);
 	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	void GetLocationData(int32 PortIndex, USceneComponent*& OutSceneComponent, FName& OutSocket, FVector& OutOffset);
-	//FVector GetWorldLocationForPort(int32 PortIndex);
+	static FVector PortToWorldLocation(FSLMPort Port);
 
-	
-	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	FSLMData GetNetworkData(int32 PortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	void SetNetworkData(FSLMData Data, int32 PortIndex);
-	
+
+	void UpdatePortLocationData();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
