@@ -22,7 +22,6 @@ public:
 	int32 InputShaftIndex;
 	int32 LeftShaftIndex;
 	int32 RightShaftIndex;
-	
 
 	virtual void Simulate(float DeltaTime) override;
 

@@ -22,19 +22,19 @@ USLMDeviceDifferential::USLMDeviceDifferential()
 
 void USLMDeviceDifferential::Simulate(float DeltaTime)
 {
-	const auto [ISV,ISM] = Subsystem->GetNetworkData(InputShaftIndex);
-	const auto [LSV,LSM] = Subsystem->GetNetworkData(LeftShaftIndex);
-	const auto [RSV,RSM] = Subsystem->GetNetworkData(RightShaftIndex);
+	const auto [B,M] = Subsystem->GetNetworkData(InputShaftIndex);
+	const auto [C,N] = Subsystem->GetNetworkData(LeftShaftIndex);
+	const auto [D,O] = Subsystem->GetNetworkData(RightShaftIndex);
 	
-	const float Divisor = ISM*LSM + ISM*RSM + 4*LSM*RSM;
+	const float Divisor = M*N + M*O + 4*N*O;
 
-	const float InputShaftVel_Out = (ISV*ISM*LSM + ISV*ISM*RSM + 2*LSV*LSM*RSM + 2*RSV*LSM*RSM) / Divisor;
-	const float LeftShaftVel_Out = (2*ISV*ISM*RSM + LSV*ISM*LSM + 4*LSV*LSM*RSM - RSV*ISM*RSM) / Divisor;
-	const float RightShaftVel_Out = (2*ISV*ISM*LSM - LSV*ISM*LSM + 4*RSV*LSM*RSM + RSV*ISM*RSM) / Divisor;
+	const float LeftShaftVel_Out = (-2*B*M*O + C*M*N + 4*C*N*O + D*M*O) / Divisor;
+	const float RightShaftVel_Out = (2*B*M*N + C*M*N + D*M*O + 4*D*N*O) / Divisor;
+	const float InputShaftVel_Out = 0.5 * (RightShaftVel_Out - LeftShaftVel_Out);
 
-	Subsystem->SetNetworkValue(InputShaftIndex, InputShaftVel_Out);
 	Subsystem->SetNetworkValue(LeftShaftIndex, LeftShaftVel_Out);
 	Subsystem->SetNetworkValue(RightShaftIndex, RightShaftVel_Out);
+	Subsystem->SetNetworkValue(InputShaftIndex, InputShaftVel_Out);
 	
 	Super::Simulate(DeltaTime);
 }

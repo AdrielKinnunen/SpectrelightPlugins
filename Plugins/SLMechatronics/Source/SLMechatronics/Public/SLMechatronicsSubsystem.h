@@ -39,6 +39,8 @@ public:
 	//Properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	int32 StepCount = 1;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	//bool bOnlyConnectMatchingDomains = true;
 	
 	//Functions
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;

@@ -4,26 +4,27 @@
 
 #include "CoreMinimal.h"
 #include "SLMechatronicsDeviceComponent.h"
-#include "SLMDeviceEngine.generated.h"
+#include "SLMDeviceDoubleDifferential.generated.h"
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class SLMECHATRONICS_API USLMDeviceEngine : public USLMechatronicsDeviceComponent
+class SLMECHATRONICS_API USLMDeviceDoubleDifferential : public USLMechatronicsDeviceComponent
 {
 	GENERATED_BODY()
 
 public:
-	USLMDeviceEngine();
+	// Sets default values for this component's properties
+	USLMDeviceDoubleDifferential();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MaxTorque = 100;
+	float DriveRatio;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Throttle = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MaxRPM = 1000;
-	
-	int32 CrankIndex;
-	
+	float SteerRatio;
+
+	int32 DriveShaftIndex;
+	int32 SteerShaftIndex;
+	int32 LeftShaftIndex;
+	int32 RightShaftIndex;
 
 	virtual void Simulate(float DeltaTime) override;
 
