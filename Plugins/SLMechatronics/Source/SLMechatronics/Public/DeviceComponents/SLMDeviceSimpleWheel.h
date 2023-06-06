@@ -16,21 +16,15 @@ public:
 	USLMDeviceSimpleWheel();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float FrictionCoefficient = 1.0;
+	float WheelRadiuscm = 50;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	bool bIsTouching = false;
+	float FrictionCoefficient = 1.0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FName WheelColliderComponentName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	UPrimitiveComponent* WheelColliderComponent = nullptr;
 	
-	
-	int32 DrivetrainIndex;
-	int32 SteerIndex;
-	int32 BrakeIndex;
-	
-
 	virtual void PreSimulate(float DeltaTime) override;
 	virtual void Simulate(float DeltaTime) override;
 	virtual void PostSimulate(float DeltaTime) override;
@@ -41,4 +35,27 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+private:
+	int32 DrivetrainIndex;
+	int32 SteerIndex;
+	int32 BrakeIndex;
+
+	bool bIsTouching = false;
+	FVector ContactPatchLocation;
+	FVector ContactPatchNormal;
+	float NormalImpulseMagnitude;
+
+	float WheelMass;
+	float ImpulseBudget;
+
+	FVector DirectionWheelAxis;
+	FVector DirectionLong;
+	FVector DirectionLat;
+
+	FVector WheelVelocity;
+	FVector SlipVelocityWorld;
+	FVector SlipVelocityLocal;
+
+	FRotator ContactPatchOrientation;
 };
