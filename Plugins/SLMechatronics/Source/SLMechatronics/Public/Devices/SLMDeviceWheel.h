@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "SLMTypes.h"
+#include "Domains/SLMDomainMech.h"
 #include "SLMDeviceWheel.generated.h"
 
 
@@ -37,12 +37,8 @@ struct FSLMDeviceModelWheel
 	FRotator ContactPatchOrientation;
 	
 	int32 Index_Mech_Drive = -1;
-	int32 Index_Signal_Steer = -1;
-	int32 Index_Signal_Brake = -1;
-	
-	void PreSimulate(USLMechatronicsSubsystem* Subsystem, float DeltaTime);
-	void Simulate(USLMechatronicsSubsystem* Subsystem, float DeltaTime);
-	void PostSimulate(USLMechatronicsSubsystem* Subsystem, float DeltaTime);
+	//int32 Index_Signal_Steer = -1;
+	//int32 Index_Signal_Brake = -1;
 };
 
 UCLASS()
@@ -50,12 +46,16 @@ class SLMECHATRONICS_API USLMDeviceSubsystemWheel : public USLMDeviceSubsystemBa
 {
 	GENERATED_BODY()
 public:
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(float DeltaTime) override;
 	virtual void Simulate(float DeltaTime) override;
 	virtual void PostSimulate(float DeltaTime) override;
-	void AddInstance(FSLMDeviceModelWheel Instance);
+	void AddInstance(const FSLMDeviceModelWheel& Instance);
 private:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;
 	TArray<FSLMDeviceModelWheel> Instances;
+
 }; 
 
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
@@ -67,11 +67,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceModelWheel DeviceModel = FSLMDeviceModelWheel();
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Mech_Drive;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Signal_Steer;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Signal_Brake;
+	FSLMPortMech Port_Mech_Drive;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	//FSLMPort Port_Signal_Steer;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	//FSLMPort Port_Signal_Brake;
 
 	/*
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -84,6 +84,9 @@ public:
 	*/
 	
 protected:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;
+	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

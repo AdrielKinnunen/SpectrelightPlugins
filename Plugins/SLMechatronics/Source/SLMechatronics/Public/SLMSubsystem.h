@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SLMTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMSubsystem.generated.h"
 
-class USLMDeviceSubsystemBase;
-class USLMDeviceComponentBase;
 class USLMechatronicsSubsystem;
+class USLMDeviceComponentBase;
+class USLMDeviceSubsystemBase;
+class USLMDomainSubsystemBase;
 
 DECLARE_STATS_GROUP(TEXT("SLMechatronics"), STATGROUP_SLMechatronics, STATCAT_Advanced);
 
@@ -40,65 +40,80 @@ public:
 	//Properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	int32 StepCount = 1;
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	//bool bOnlyConnectMatchingDomains = true;
 	
 	//Functions
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	void Tick(float DeltaTime);
-	
-	int32 AddDevice(USLMDeviceComponentBase* DeviceComponent);
-	void RemoveDevice(int32 DeviceIndex);
-	int32 AddPort(FSLMPort Port);
-	void RemovePort(int32 PortIndex);
-
-	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	FSLMData GetNetworkData(int32 PortIndex);
-	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	float GetNetworkValue(int32 PortIndex);
-	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	float GetNetworkCapacity(int32 PortIndex);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void SetNetworkValue(int32 PortIndex, float NetworkValue);
-		
-	
-	//BP Callable Stuff
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	void ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	void DisconnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
-
-	//Testing
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	TArray<int32> TestGetAllConnectedPortsMulti(TArray<int32> Roots);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	void TestPrintALlPortData();
+	void Tick(float DeltaTime);	
 
 private:
 	//Properties
 	FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
-
-	TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
 	TSparseArray<USLMDeviceComponentBase*> DeviceComponents;
-	TSparseArray<FSLMPort> Ports;
-	TMultiMap<int32, int32> Adjacencies;
-	TSparseArray<int32> PortIndexToNetworkIndex;
-	TSparseArray<FSLMData> Networks;
-	
-	bool bNeedsCleanup = false;
-	TArray<int32> PortsToAdd;
-	TArray<int32> PortsToRemove;
-	TArray<int32> PortsDirty;
-	
-	//Functions
-	void CleanUpGraph();
-	TArray<int32> GetConnectedPorts(const TArray<int32>& Roots) const;
-	void CreateNetworkForPorts(TArray<int32> Ports);
-	void CreateNetworkForPort(int32 Port);
+	TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
+	TArray<USLMDomainSubsystemBase*> DomainSubsystems;
 };
+
+
+
+/*
+TSparseArray<FSLMPort> Ports;
+TMultiMap<int32, int32> Adjacencies;
+TSparseArray<int32> PortIndexToNetworkIndex;
+TSparseArray<FSLMData> Networks;
+
+bool bNeedsCleanup = false;
+TArray<int32> PortsToAdd;
+TArray<int32> PortsToRemove;
+TArray<int32> PortsDirty;
+
+//Functions
+void CleanUpGraph();
+TArray<int32> GetConnectedPorts(const TArray<int32>& Roots) const;
+void CreateNetworkForPorts(TArray<int32> Ports);
+void CreateNetworkForPort(int32 Port);
+*/
+
+
+
+
+
+
+	
+/*
+int32 AddDeviceComponent(USLMDeviceComponentBase* DeviceComponent);
+void RemoveDevice(int32 DeviceIndex);
+int32 AddPort(FSLMPort Port);
+void RemovePort(int32 PortIndex);
+*/
+	
+/*
+//BP Callable Stuff
+UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+void ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
+UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+void DisconnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
+UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
+*/
+
+/*
+//Testing
+UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+TArray<int32> TestGetAllConnectedPortsMulti(TArray<int32> Roots);
+UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+void TestPrintALlPortData();
+*/
+	
+
+
+
+
+
+
+
+
+
 
 //UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 //void BulkAddConnections(TArray<FSLMConnection> Connections);

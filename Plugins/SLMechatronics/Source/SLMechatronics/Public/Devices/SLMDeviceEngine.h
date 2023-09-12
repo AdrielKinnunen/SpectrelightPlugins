@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "SLMTypes.h"
+#include "Domains/SLMDomainMech.h"
 #include "SLMDeviceEngine.generated.h"
 
 
@@ -18,7 +18,7 @@ struct FSLMDeviceModelEngine
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float MaxRPM = 1.0;
 	int32 Index_Mech_Crankshaft = -1;
-	int32 Index_Signal_Throttle = -1;
+	//int32 Index_Signal_Throttle = -1;
 };
 
 UCLASS()
@@ -26,11 +26,14 @@ class SLMECHATRONICS_API USLMDeviceSubsystemEngine : public USLMDeviceSubsystemB
 {
 	GENERATED_BODY()
 public:
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(float DeltaTime) override;
 	virtual void Simulate(float DeltaTime) override;
 	virtual void PostSimulate(float DeltaTime) override;
 	void AddInstance(FSLMDeviceModelEngine Instance);
 private:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;
 	TArray<FSLMDeviceModelEngine> Instances;
 }; 
 
@@ -43,10 +46,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceModelEngine DeviceModel = FSLMDeviceModelEngine();
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Mech_Crankshaft;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Signal_Throttle;
+	FSLMPortMech Port_Mech_Crankshaft;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	//FSLMPort Port_Signal_Throttle;
 protected:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;
+
+	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

@@ -1,71 +1,61 @@
 ﻿// Copyright Spectrelight Studios, LLC
 
 #include "Devices/SLMDeviceWheel.h"
-#include "SLMSubsystem.h"
 
 
-void FSLMDeviceModelWheel::PreSimulate(USLMechatronicsSubsystem* Subsystem, float DeltaTime)
+void USLMDeviceSubsystemWheel::OnWorldBeginPlay(UWorld& InWorld)
 {
-	ImpulseBudget = NormalImpulseMagnitude * FrictionCoefficient;
-	//Wheel.DirectionWheelAxis = Wheel.WheelColliderComponent->GetRightVector();
-	DirectionWheelAxis = FVector(0,1,0);
-	DirectionLong = FVector::CrossProduct(DirectionWheelAxis, ContactPatchNormal);
-	DirectionLat = FVector::CrossProduct(ContactPatchNormal, DirectionLong);
-	//WheelVelocity = WheelColliderComponent->GetComponentVelocity();
-	WheelVelocity = FVector(100,0,0);
-}
-
-void FSLMDeviceModelWheel::Simulate(USLMechatronicsSubsystem* Subsystem, float DeltaTime)
-{
-	const auto [WheelRPM,WheelMOI] = Subsystem->GetNetworkData(Index_Mech_Drive);
-	//const auto SteerSignal = Subsystem->GetNetworkData(SteerIndex).Capacity;
-	//const auto BrakeSignal = Subsystem->GetNetworkData(BrakeIndex).Capacity;
-	//const float WheelRPM = 20;
-		
-	//Velocities
-	SlipVelocityWorld = FVector::VectorPlaneProject((DirectionLong * WheelRadiuscm * WheelRPM - WheelVelocity), ContactPatchNormal);
-	const FVector DesiredImpulse = SlipVelocityWorld * WheelMass;
-	const FVector OutputImpulse = DesiredImpulse.GetClampedToMaxSize(ImpulseBudget);
-	DirectionWheelAxis = OutputImpulse;
-	//WheelColliderComponent->AddImpulse(OutputImpulse);
-
-	//DrawDebugLine(GetWorld(), ContactPatchLocation, ContactPatchLocation + SlipVelocityWorld, FColor::Green, false, -1, 0, 5);
-	//DrawDebugLine(GetWorld(), ContactPatchLocation, ContactPatchLocation + ContactPatchNormal * 300, FColor::Blue, false, -1, 0, 5);
-	//DrawDebugLine(GetWorld(), ContactPatchLocation, ContactPatchLocation + OutputImpulse, FColor::Red, false, -1, 0, 5);
-	
-	const float WheelRPMOut = WheelRPM;
-	Subsystem->SetNetworkValue(Index_Mech_Drive, WheelRPMOut);
-}
-
-void FSLMDeviceModelWheel::PostSimulate(USLMechatronicsSubsystem* Subsystem, float DeltaTime)
-{
+	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
+	Super::OnWorldBeginPlay(InWorld);
 }
 
 void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
 {
-	for (auto& Wheel :Instances)
+	for (auto& [WheelRadiuscm, FrictionCoefficient, ContactPatchLocation, ContactPatchNormal, NormalImpulseMagnitude, WheelMass, ImpulseBudget, DirectionWheelAxis, DirectionLong, DirectionLat, WheelVelocity, SlipVelocityWorld, SlipVelocityLocal, ContactPatchOrientation, Index_Mech_Drive] :Instances)
 	{
-		Wheel.PreSimulate(Subsystem, DeltaTime);
+		ImpulseBudget = NormalImpulseMagnitude * FrictionCoefficient;
+		//Wheel.DirectionWheelAxis = Wheel.WheelColliderComponent->GetRightVector();
+		DirectionWheelAxis = FVector(0,1,0);
+		DirectionLong = FVector::CrossProduct(DirectionWheelAxis, ContactPatchNormal);
+		DirectionLat = FVector::CrossProduct(ContactPatchNormal, DirectionLong);
+		//WheelVelocity = WheelColliderComponent->GetComponentVelocity();
+		WheelVelocity = FVector(100,0,0);
 	}
 }
 
 void USLMDeviceSubsystemWheel::Simulate(float DeltaTime)
 {
-	for (auto& Wheel :Instances)
+	for (auto& [WheelRadiuscm, FrictionCoefficient, ContactPatchLocation, ContactPatchNormal, NormalImpulseMagnitude, WheelMass, ImpulseBudget, DirectionWheelAxis, DirectionLong, DirectionLat, WheelVelocity, SlipVelocityWorld, SlipVelocityLocal, ContactPatchOrientation, Index_Mech_Drive] :Instances)
 	{
-		Wheel.Simulate(Subsystem, DeltaTime);
+		const auto [WheelRPM,WheelMOI] = DomainMech->GetNetworkData(Index_Mech_Drive);
+		//const auto SteerSignal = Subsystem->GetNetworkData(SteerIndex).Capacity;
+		//const auto BrakeSignal = Subsystem->GetNetworkData(BrakeIndex).Capacity;
+		//const float WheelRPM = 20;
+		
+		//Velocities
+		SlipVelocityWorld = FVector::VectorPlaneProject((DirectionLong * WheelRadiuscm * WheelRPM - WheelVelocity), ContactPatchNormal);
+		const FVector DesiredImpulse = SlipVelocityWorld * WheelMass;
+		const FVector OutputImpulse = DesiredImpulse.GetClampedToMaxSize(ImpulseBudget);
+		DirectionWheelAxis = OutputImpulse;
+		//WheelColliderComponent->AddImpulse(OutputImpulse);
+
+		//DrawDebugLine(GetWorld(), ContactPatchLocation, ContactPatchLocation + SlipVelocityWorld, FColor::Green, false, -1, 0, 5);
+		//DrawDebugLine(GetWorld(), ContactPatchLocation, ContactPatchLocation + ContactPatchNormal * 300, FColor::Blue, false, -1, 0, 5);
+		//DrawDebugLine(GetWorld(), ContactPatchLocation, ContactPatchLocation + OutputImpulse, FColor::Red, false, -1, 0, 5);
+	
+		const float WheelRPMOut = WheelRPM;
+
+		const FSLMDataMech Shaft1 = FSLMDataMech(WheelRPMOut, WheelMOI);
+		
+		DomainMech->SetNetworkData(Index_Mech_Drive, Shaft1);
 	}
 }
 
 void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
 {
-	for (auto& Wheel :Instances)
-	{
-		Wheel.PostSimulate(Subsystem, DeltaTime);
-	}
 }
 
-void USLMDeviceSubsystemWheel::AddInstance(const FSLMDeviceModelWheel Instance)
+void USLMDeviceSubsystemWheel::AddInstance(const FSLMDeviceModelWheel& Instance)
 {
 	Instances.Add(Instance);
 }
@@ -73,14 +63,16 @@ void USLMDeviceSubsystemWheel::AddInstance(const FSLMDeviceModelWheel Instance)
 USLMDeviceComponentWheel::USLMDeviceComponentWheel()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	DomainMech = nullptr;
 }
 
 void USLMDeviceComponentWheel::BeginPlay()
 {
 	Super::BeginPlay();
-	DeviceModel.Index_Mech_Drive = Subsystem->AddPort(Port_Mech_Drive);
-	DeviceModel.Index_Signal_Steer = Subsystem->AddPort(Port_Signal_Steer);
-	DeviceModel.Index_Signal_Brake = Subsystem->AddPort(Port_Signal_Brake);
+	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
+	DeviceModel.Index_Mech_Drive = DomainMech->AddPort(Port_Mech_Drive);
+	//DeviceModel.Index_Signal_Steer = Subsystem->AddPort(Port_Signal_Steer);
+	//DeviceModel.Index_Signal_Brake = Subsystem->AddPort(Port_Signal_Brake);
 	GetWorld()->GetSubsystem<USLMDeviceSubsystemWheel>()->AddInstance(DeviceModel);
 }
 

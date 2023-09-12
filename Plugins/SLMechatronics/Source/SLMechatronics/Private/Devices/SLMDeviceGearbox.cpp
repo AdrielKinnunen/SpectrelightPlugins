@@ -2,8 +2,13 @@
 
 
 #include "Devices/SLMDeviceGearbox.h"
-#include "SLMSubsystem.h"
 
+
+void USLMDeviceSubsystemGearbox::OnWorldBeginPlay(UWorld& InWorld)
+{
+	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
+	Super::OnWorldBeginPlay(InWorld);
+}
 
 void USLMDeviceSubsystemGearbox::PreSimulate(float DeltaTime)
 {
@@ -11,18 +16,21 @@ void USLMDeviceSubsystemGearbox::PreSimulate(float DeltaTime)
 
 void USLMDeviceSubsystemGearbox::Simulate(float DeltaTime)
 {
-	for (auto& [GearRatio, IndexShaft1, IndexShaft2] :Instances)
+	for (auto& [GearRatio, Index_Mech_Input, Index_Mech_Output] :Instances)
 	{
-		const auto [AngVelShaftInput,MOIShaftInput] = Subsystem->GetNetworkData(IndexShaft1);
-		const auto [AngVelShaftOutput,MOIShaftOutput] = Subsystem->GetNetworkData(IndexShaft2);
+		const auto [AngVelShaftInput,MOIShaftInput] = DomainMech->GetNetworkData(Index_Mech_Input);
+		const auto [AngVelShaftOutput,MOIShaftOutput] = DomainMech->GetNetworkData(Index_Mech_Output);
 		
 		const float MOIShaftInputEffective = GearRatio * GearRatio * MOIShaftInput;
 		const float AngVelShaftInputEffective = AngVelShaftInput / GearRatio;
 		const float AngVelShaftOutput_Out = (AngVelShaftInputEffective * MOIShaftInputEffective + AngVelShaftOutput * MOIShaftOutput) / (MOIShaftInputEffective + MOIShaftOutput);
 		const float AngVelShaftInput_Out = AngVelShaftOutput_Out * GearRatio;
 
-		Subsystem->SetNetworkValue(IndexShaft1, AngVelShaftInput_Out);
-		Subsystem->SetNetworkValue(IndexShaft2, AngVelShaftOutput_Out);
+		const FSLMDataMech Shaft1 = FSLMDataMech(AngVelShaftInput_Out, MOIShaftInput);
+		const FSLMDataMech Shaft2 = FSLMDataMech(AngVelShaftOutput_Out, MOIShaftOutput);
+		
+		DomainMech->SetNetworkData(Index_Mech_Input, Shaft1);
+		DomainMech->SetNetworkData(Index_Mech_Output, Shaft2);
 	}
 }
 
@@ -38,13 +46,15 @@ void USLMDeviceSubsystemGearbox::AddInstance(const FSLMDeviceModelGearbox Instan
 USLMDeviceComponentGearbox::USLMDeviceComponentGearbox()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	DomainMech = nullptr;
 }
 
 void USLMDeviceComponentGearbox::BeginPlay()
 {
 	Super::BeginPlay();
-	DeviceModel.IndexShaftInput = Subsystem->AddPort(PortShaftInput);
-	DeviceModel.IndexShaftOutput = Subsystem->AddPort(PortShaftOutput);
+	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
+	DeviceModel.Index_Mech_Input = DomainMech->AddPort(Port_Mech_Input);
+	DeviceModel.Index_Mech_Output = DomainMech->AddPort(Port_Mech_Output);
 	GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>()->AddInstance(DeviceModel);
 }
 

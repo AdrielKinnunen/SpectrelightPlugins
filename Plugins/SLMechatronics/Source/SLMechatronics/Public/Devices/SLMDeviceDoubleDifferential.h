@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "SLMTypes.h"
+#include "Domains/SLMDomainMech.h"
 #include "SLMDeviceDoubleDifferential.generated.h"
 
 
@@ -29,12 +29,16 @@ class SLMECHATRONICS_API USLMDeviceSubsystemDoubleDifferential : public USLMDevi
 {
 	GENERATED_BODY()
 public:
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(float DeltaTime) override;
 	virtual void Simulate(float DeltaTime) override;
 	virtual void PostSimulate(float DeltaTime) override;
-	void AddInstance(FSLMDeviceModelDoubleDifferential Instance);
+	void AddInstance(const FSLMDeviceModelDoubleDifferential& Instance);
 private:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;
 	TArray<FSLMDeviceModelDoubleDifferential> Instances;
+
 }; 
 
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
@@ -46,15 +50,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceModelDoubleDifferential DeviceModel = FSLMDeviceModelDoubleDifferential();
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Mech_Drive;
+	FSLMPortMech Port_Mech_Drive;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Mech_Steer;
+	FSLMPortMech Port_Mech_Steer;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Mech_Left;
+	FSLMPortMech Port_Mech_Left;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort Port_Mech_Right;
+	FSLMPortMech Port_Mech_Right;
 	
 protected:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

@@ -1,0 +1,65 @@
+﻿// Copyright Spectrelight Studios, LLC
+
+
+#include "Domains/SLMDomainSignal.h"
+
+int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)
+{
+	const int32 Index = Ports.Add(Port);
+	PortIndexToNetworkIndex.Add(-1);
+	CreateNetworkForPort(Index);
+	return Index;
+}
+
+void USLMDomainSignal::RemovePort(const int32 PortIndex)
+{
+	PortsToRemove.Add(PortIndex);
+	bNeedsCleanup = true;
+}
+
+float USLMDomainSignal::ReadData(const int32 PortIndex)
+{
+	check(PortIndex >= 0);
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(NetworkIndex >= 0);
+	return Networks[NetworkIndex].Read;
+}
+
+void USLMDomainSignal::WriteData(const int32 PortIndex, const float Data)
+{
+	check(PortIndex >= 0);
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(NetworkIndex >= 0);
+	Networks[NetworkIndex].Write = Data;
+}
+
+
+void USLMDomainSignal::CreateNetworkForPorts(const TArray<int32> PortIndices)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Creating network for %i ports"), PortIndices.Num());
+	const int32 NetworkIndex = Networks.Add(FSLMDataSignal());
+	for (const auto& PortIndex : PortIndices)
+	{
+		PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
+	}
+}
+
+void USLMDomainSignal::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
+{
+	Ports[PortIndex].DefaultData = FSLMDataSignal();
+}
+
+void USLMDomainSignal::RemovePortAtIndex(const int32 PortIndex)
+{
+	Ports.RemoveAt(PortIndex);
+}
+
+void USLMDomainSignal::RemoveNetworkAtIndex(const int32 NetworkIndex)
+{
+	Networks.RemoveAt(NetworkIndex);
+}
+
+void USLMDomainSignal::CreateNetworkForPort(const int32 Port)
+{
+	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);;
+}

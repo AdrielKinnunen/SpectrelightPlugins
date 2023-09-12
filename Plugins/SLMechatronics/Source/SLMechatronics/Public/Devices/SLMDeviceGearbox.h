@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "SLMTypes.h"
+#include "Domains/SLMDomainMech.h"
 #include "SLMDeviceGearbox.generated.h"
 
 
@@ -15,8 +15,8 @@ struct FSLMDeviceModelGearbox
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float GearRatio = 1.0;
-	int32 IndexShaftInput = -1;
-	int32 IndexShaftOutput = -1;
+	int32 Index_Mech_Input = -1;
+	int32 Index_Mech_Output = -1;
 };
 
 UCLASS()
@@ -24,11 +24,14 @@ class SLMECHATRONICS_API USLMDeviceSubsystemGearbox : public USLMDeviceSubsystem
 {
 	GENERATED_BODY()
 public:
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(float DeltaTime) override;
 	virtual void Simulate(float DeltaTime) override;
 	virtual void PostSimulate(float DeltaTime) override;
 	void AddInstance(FSLMDeviceModelGearbox Instance);
 private:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;
 	TArray<FSLMDeviceModelGearbox> Instances;
 }; 
 
@@ -41,10 +44,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceModelGearbox DeviceModel = FSLMDeviceModelGearbox();
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort PortShaftInput;
+	FSLMPortMech Port_Mech_Input;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPort PortShaftOutput;
+	FSLMPortMech Port_Mech_Output;
 protected:
+	UPROPERTY()
+	USLMDomainMech* DomainMech;	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

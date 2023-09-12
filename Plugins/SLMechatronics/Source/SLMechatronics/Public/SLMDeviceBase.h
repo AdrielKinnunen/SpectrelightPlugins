@@ -13,9 +13,6 @@ class SLMECHATRONICS_API USLMDeviceSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	USLMechatronicsSubsystem* Subsystem;
-	
 	virtual void PreSimulate(float DeltaTime);
 	virtual void Simulate(float DeltaTime);
 	virtual void PostSimulate(float DeltaTime);
@@ -29,16 +26,14 @@ class SLMECHATRONICS_API USLMDeviceComponentBase : public UActorComponent
 public:
 	USLMDeviceComponentBase();
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulateSignature, float, DeltaTime);
-	UPROPERTY(BlueprintAssignable)
-	FOnSimulateSignature OnPreSimulate;
-	UPROPERTY(BlueprintAssignable)
-	FOnSimulateSignature OnSimulate;
-	UPROPERTY(BlueprintAssignable)
-	FOnSimulateSignature OnPostSimulate;
+	//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulateSignature, float, DeltaTime);
+	//UPROPERTY(BlueprintAssignable)
+	//FOnSimulateSignature OnPreSimulate;
+	//UPROPERTY(BlueprintAssignable)
+	//FOnSimulateSignature OnSimulate;
+	//UPROPERTY(BlueprintAssignable)
+	//FOnSimulateSignature OnPostSimulate;
 	
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	USLMechatronicsSubsystem* Subsystem;
 	//UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	//int32 DeviceIndex;
 	

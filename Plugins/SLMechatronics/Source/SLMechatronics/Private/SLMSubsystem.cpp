@@ -4,6 +4,7 @@
 #include "SLMSubsystem.h"
 
 #include "SLMDeviceBase.h"
+#include "SLMDomainBase.h"
 
 
 void FSLMechatronicsSubsystemTickFunction::ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph)
@@ -41,10 +42,6 @@ void USLMechatronicsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DeviceSubsystems = GetWorld()->GetSubsystemArray<USLMDeviceSubsystemBase>();
-	for (const auto DeviceSubsystem:DeviceSubsystems)
-	{
-		DeviceSubsystem->Subsystem = this;
-	}
 	Super::OnWorldBeginPlay(InWorld);
 }
 
@@ -52,23 +49,15 @@ void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 void USLMechatronicsSubsystem::Tick(float DeltaTime)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Entire Tick"), STAT_EntireTick, STATGROUP_SLMechatronics)
-
-	//Graph Maintenance
-	if (bNeedsCleanup)
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Cleanup"), STAT_Cleanup, STATGROUP_SLMechatronics)
-		CleanUpGraph();
-		bNeedsCleanup = false;
+		for(const auto DomainSubsystem:DomainSubsystems)
+		{
+			DomainSubsystem->CheckForCleanUp();
+		}
 	}
 	
-	//Sanity checks
-	check(PortsToAdd.Num() == 0);
-	check(PortsToRemove.Num() == 0);
-	check(PortsDirty.Num() == 0);
-
-
 	UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems"), DeviceSubsystems.Num());
-	//Tick steps
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("PreSimulate"), STAT_PreSimulate, STATGROUP_SLMechatronics)
 		for (const auto& DeviceSubsystem : DeviceSubsystems)
@@ -95,7 +84,8 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 	}
 }
 
-int32 USLMechatronicsSubsystem::AddDevice(USLMDeviceComponentBase* DeviceComponent)
+/*
+int32 USLMechatronicsSubsystem::AddDeviceComponent(USLMDeviceComponentBase* DeviceComponent)
 {
 	return DeviceComponents.Add(DeviceComponent);
 }
@@ -145,38 +135,6 @@ void USLMechatronicsSubsystem::DisconnectPorts(const int32 FirstPortIndex, const
 bool USLMechatronicsSubsystem::ArePortsConnected(const int32 FirstPortIndex, const int32 SecondPortIndex)
 {
 	return Adjacencies.FindPair(FirstPortIndex, SecondPortIndex) || Adjacencies.FindPair(SecondPortIndex, FirstPortIndex);
-}
-
-FSLMData USLMechatronicsSubsystem::GetNetworkData(const int32 PortIndex)
-{
-	check(PortIndex >= 0);
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
-	return Networks[NetworkIndex];
-}
-
-float USLMechatronicsSubsystem::GetNetworkValue(const int32 PortIndex)
-{
-	check(PortIndex >= 0);
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
-	return Networks[NetworkIndex].Value;
-}
-
-float USLMechatronicsSubsystem::GetNetworkCapacity(const int32 PortIndex)
-{
-	check(PortIndex >= 0);
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
-	return Networks[NetworkIndex].Capacity;
-}
-
-void USLMechatronicsSubsystem::SetNetworkValue(const int32 PortIndex, const float NetworkValue)
-{
-	check(PortIndex >= 0);
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
-	Networks[NetworkIndex].Value = NetworkValue;
 }
 
 void USLMechatronicsSubsystem::CleanUpGraph()
@@ -305,4 +263,5 @@ void USLMechatronicsSubsystem::CreateNetworkForPort(int32 Port)
 {
 	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);;
 }
+*/
 

@@ -23,7 +23,6 @@ USLMDeviceComponentBase::USLMDeviceComponentBase()
 void USLMDeviceComponentBase::BeginPlay()
 {
 	Super::BeginPlay();
-	Subsystem = GetWorld()->GetSubsystem<USLMechatronicsSubsystem>();
 }
 
 void USLMDeviceComponentBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
