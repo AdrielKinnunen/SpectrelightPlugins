@@ -34,8 +34,8 @@ public:
 	//UPROPERTY(BlueprintAssignable)
 	//FOnSimulateSignature OnPostSimulate;
 	
-	//UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	//int32 DeviceIndex;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 DeviceIndex = -1;
 	
 	//UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	//void SelectClosestPort(FVector WorldLocation, FGameplayTag Domain, bool& Success, FSLMPort& OutPort);

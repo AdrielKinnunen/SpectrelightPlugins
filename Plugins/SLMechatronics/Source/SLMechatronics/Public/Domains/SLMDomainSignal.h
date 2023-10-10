@@ -22,15 +22,16 @@ struct FSLMDataSignal
 	float Write = 0;
 };
 
+
 USTRUCT(BlueprintType)
-struct FSLMPortSignal : public FSLMPortBase
+struct FSLMPortSignal
 {
 	GENERATED_BODY()
 	
-	//FSLMPortSignal(){}
-	//FSLMPortSignal(const FSLMDataSignal Data): DefaultData(Data){}
-	
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLSignalatronics", meta=(ShowOnlyInnerProperties))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	FName PortName;	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMPortLocationData PortLocationData;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDataSignal DefaultData;
 };

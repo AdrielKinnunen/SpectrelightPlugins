@@ -6,7 +6,8 @@
 int32 USLMDomainMech::AddPort(const FSLMPortMech& Port)
 {
 	const int32 PortIndex = Ports.Add(Port);
-	PortsDirty.Add(PortIndex);
+	PortsRecentlyAdded.Add(PortIndex);
+	PortIndexToNetworkIndex.Add(-1);
 	bNeedsCleanup = true;
 	return PortIndex;
 }
@@ -19,24 +20,19 @@ void USLMDomainMech::RemovePort(const int32 PortIndex)
 
 FSLMDataMech USLMDomainMech::GetNetworkData(const int32 PortIndex)
 {
-	check(PortIndex >= 0);
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
 	return Networks[NetworkIndex];
 }
 
-void USLMDomainMech::SetNetworkData(const int32 PortIndex, const FSLMDataMech Data)
+void USLMDomainMech::SetNetworkAngVel(const int32 PortIndex, const float NewAngVel)
 {
-	check(PortIndex >= 0);
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
-	Networks[NetworkIndex] = Data;
+	Networks[NetworkIndex].AngVel = NewAngVel;
 }
-
 
 void USLMDomainMech::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Creating network for %i ports"), PortIndices.Num());
+	//UE_LOG(LogTemp, Warning, TEXT("Creating network for %i ports"), PortIndices.Num());
 	const int32 NetworkIndex = Networks.Add(FSLMDataMech());
 	float SumProduct = 0;
 	float SumMOI = 0;
@@ -68,5 +64,5 @@ void USLMDomainMech::RemoveNetworkAtIndex(const int32 NetworkIndex)
 
 void USLMDomainMech::CreateNetworkForPort(const int32 Port)
 {
-	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);;
+	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);
 }

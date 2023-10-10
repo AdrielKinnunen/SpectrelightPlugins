@@ -42,6 +42,7 @@ void USLMechatronicsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DeviceSubsystems = GetWorld()->GetSubsystemArray<USLMDeviceSubsystemBase>();
+	DomainSubsystems = GetWorld()->GetSubsystemArray<USLMDomainSubsystemBase>();
 	Super::OnWorldBeginPlay(InWorld);
 }
 
@@ -57,7 +58,7 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 		}
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems"), DeviceSubsystems.Num());
+	//UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems"), DeviceSubsystems.Num());
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("PreSimulate"), STAT_PreSimulate, STATGROUP_SLMechatronics)
 		for (const auto& DeviceSubsystem : DeviceSubsystems)

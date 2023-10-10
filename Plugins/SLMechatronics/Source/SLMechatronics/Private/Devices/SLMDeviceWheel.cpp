@@ -3,6 +3,7 @@
 #include "Devices/SLMDeviceWheel.h"
 
 
+/*
 void USLMDeviceSubsystemWheel::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
@@ -78,6 +79,8 @@ void USLMDeviceComponentWheel::BeginPlay()
 
 void USLMDeviceComponentWheel::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	DomainMech->RemovePort(DeviceModel.Index_Mech_Drive);
+	//GetWorld()->GetSubsystem<USLMDeviceSubsystemWheel>()
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -172,5 +175,6 @@ void USLMDeviceSimpleWheel::BeginPlay()
 		WheelMass = WheelColliderComponent->GetMass();
 	}
 }
+#1#
 */
 

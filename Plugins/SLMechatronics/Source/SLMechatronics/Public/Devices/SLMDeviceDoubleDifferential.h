@@ -2,6 +2,7 @@
 
 #pragma once
 
+/*
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
 #include "Domains/SLMDomainMech.h"
@@ -63,4 +64,4 @@ protected:
 	USLMDomainMech* DomainMech;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-};
+};*/

@@ -5,10 +5,11 @@
 
 int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)
 {
-	const int32 Index = Ports.Add(Port);
+	const int32 PortIndex = Ports.Add(Port);
+	PortsRecentlyAdded.Add(PortIndex);
 	PortIndexToNetworkIndex.Add(-1);
-	CreateNetworkForPort(Index);
-	return Index;
+	bNeedsCleanup = true;
+	return PortIndex;
 }
 
 void USLMDomainSignal::RemovePort(const int32 PortIndex)

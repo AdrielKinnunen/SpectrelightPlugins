@@ -24,14 +24,14 @@ struct FSLMDataMech
 
 
 USTRUCT(BlueprintType)
-struct FSLMPortMech : public FSLMPortBase
+struct FSLMPortMech
 {
 	GENERATED_BODY()
 	
-	//FSLMPortMech(){}
-	//FSLMPortMech(const FSLMDataMech Data): DefaultData(Data){}
-	
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics", meta=(ShowOnlyInnerProperties))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	FName PortName;	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMPortLocationData PortLocationData;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDataMech DefaultData;
 };
@@ -45,8 +45,12 @@ class SLMECHATRONICS_API USLMDomainMech : public USLMDomainSubsystemBase
 public:
 	int32 AddPort(const FSLMPortMech& Port);
 	void RemovePort(const int32 PortIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDataMech GetNetworkData(const int32 PortIndex);
-	void SetNetworkData(const int32 PortIndex, const FSLMDataMech Data);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SetNetworkAngVel(int32 PortIndex, float NewAngVel);
+	
 
 private:
 	TSparseArray<FSLMPortMech> Ports;

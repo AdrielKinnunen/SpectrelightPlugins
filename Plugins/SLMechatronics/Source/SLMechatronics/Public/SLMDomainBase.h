@@ -19,21 +19,23 @@ struct FSLMPortLocationData
 	FName SocketName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	FVector Offset;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	USceneComponent* SceneComponent = nullptr;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	//USceneComponent* SceneComponent = nullptr;
 };
 
+
 USTRUCT(BlueprintType)
-struct FSLMPortBase
+struct FSLMConnection
 {
+	FSLMConnection(){}
+	FSLMConnection(const int32 FirstIndex, const int32 SecondIndex):FirstIndex(FirstIndex),SecondIndex(SecondIndex){}
+
 	GENERATED_BODY()
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	FName PortName;	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPortLocationData PortLocationData;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 PortIndex = -1;
+	int32 FirstIndex = -1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 SecondIndex = -1;
 };
 
 
@@ -45,7 +47,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	USLMechatronicsSubsystem* Subsystem;
 	
-	virtual void CheckForCleanUp();
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void TestPrintAllData();
 
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	void ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
@@ -54,24 +57,25 @@ public:
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
 
-protected:
+	virtual void CheckForCleanUp();
 
+
+protected:
 	TMultiMap<int32, int32> Adjacencies;
 	TSparseArray<int32> PortIndexToNetworkIndex;
 	
 	bool bNeedsCleanup = false;
-	TArray<int32> PortsToAdd;
-	TArray<int32> PortsToRemove;
-	TArray<int32> PortsDirty;
+	TSet<int32> PortsRecentlyAdded;
+	TSet<int32> PortsToRemove;
+	TArray<FSLMConnection> ConnectionsToAdd;
+	TArray<FSLMConnection> ConnectionsToRemove;
 
 	virtual void CreateNetworkForPorts(TArray<int32> PortIndices);
 	virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
 	virtual void RemovePortAtIndex(int32 PortIndex);
 	virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
 
-	
 private:
 	void CleanUpGraph();
-	TArray<int32> GetConnectedPorts(const TArray<int32>& Roots) const;
-
+	TSet<int32> GetConnectedPorts(const TSet<int32>& Roots) const;
 };

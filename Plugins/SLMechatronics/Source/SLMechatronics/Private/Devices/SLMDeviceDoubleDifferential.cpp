@@ -4,6 +4,7 @@
 #include "Devices/SLMDeviceDoubleDifferential.h"
 
 
+/*
 void USLMDeviceSubsystemDoubleDifferential::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
@@ -72,4 +73,5 @@ void USLMDeviceComponentDoubleDifferential::EndPlay(const EEndPlayReason::Type E
 {
 	Super::EndPlay(EndPlayReason);
 }
+*/
 

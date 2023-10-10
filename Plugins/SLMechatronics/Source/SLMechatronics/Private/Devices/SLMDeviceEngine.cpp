@@ -3,6 +3,7 @@
 #include "Devices/SLMDeviceEngine.h"
 
 
+/*
 void USLMDeviceSubsystemEngine::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
@@ -60,4 +61,5 @@ void USLMDeviceComponentEngine::EndPlay(const EEndPlayReason::Type EndPlayReason
 {
 	Super::EndPlay(EndPlayReason);
 }
+*/
 

@@ -1,5 +1,6 @@
 ﻿// Copyright Spectrelight Studios, LLC
 
+/*
 #pragma once
 
 #include "CoreMinimal.h"
@@ -73,7 +74,7 @@ public:
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	//FSLMPort Port_Signal_Brake;
 
-	/*
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FName WheelColliderComponentName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -81,8 +82,9 @@ public:
 
 	UFUNCTION(Category = "SLMechatronics")
 	void OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-	*/
 	
+	
+
 protected:
 	UPROPERTY()
 	USLMDomainMech* DomainMech;
@@ -93,7 +95,7 @@ protected:
 
 
 
-/*
+
 #include "CoreMinimal.h"
 #include "SLMechatronicsDeviceComponent.h"
 #include "SLMDeviceSimpleWheel.generated.h"

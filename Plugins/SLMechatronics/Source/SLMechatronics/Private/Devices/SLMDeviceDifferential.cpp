@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
+/*
 #include "Devices/SLMDeviceDifferential.h"
 
 
@@ -67,4 +68,5 @@ void USLMDeviceComponentDifferential::EndPlay(const EEndPlayReason::Type EndPlay
 {
 	Super::EndPlay(EndPlayReason);
 }
+*/
 
