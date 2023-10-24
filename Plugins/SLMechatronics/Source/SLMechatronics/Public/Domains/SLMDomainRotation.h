@@ -1,59 +1,67 @@
 ﻿// Copyright Spectrelight Studios, LLC
+
 #pragma once
+
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
 #include "UObject/Object.h"
-#include "SLMDomainSignal.generated.h"
+#include "SLMDomainRotation.generated.h"
 
 
 USTRUCT(BlueprintType)
-struct FSLMDataSignal
+struct FSLMDataRotation
 {
 	GENERATED_BODY()
-	FSLMDataSignal()
+
+	FSLMDataRotation()
 	{
 	}
 
-	FSLMDataSignal(const float Read, const float Write): Read(Read), Write(Write)
+	FSLMDataRotation(const float AngVel, const float MOI): AngVel(AngVel), MOI(MOI)
 	{
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Read = 0;
+	float AngVel = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Write = 0;
+	float MOI = 1;
 };
 
 
 USTRUCT(BlueprintType)
-struct FSLMPortSignal
+struct FSLMPortRotation
 {
 	GENERATED_BODY()
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	FName PortName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMPortLocationData PortLocationData;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDataSignal DefaultData;
+	FSLMDataRotation DefaultData;
 };
 
 
 UCLASS()
-class SLMECHATRONICS_API USLMDomainSignal : public USLMDomainSubsystemBase
+class SLMECHATRONICS_API USLMDomainRotation : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
-	int32 AddPort(const FSLMPortSignal& Port);
+	int32 AddPort(const FSLMPortRotation& Port);
 	void RemovePort(const int32 PortIndex);
-	float ReadData(const int32 PortIndex);
-	void WriteData(const int32 PortIndex, const float Data);
-	virtual void PostSimulate(const float DeltaTime) override;
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDataRotation GetNetworkData(const int32 PortIndex);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SetNetworkAngVel(int32 PortIndex, float NewAngVel);
 private:
-	TSparseArray<FSLMPortSignal> Ports;
-	TSparseArray<FSLMDataSignal> Networks;
+	TSparseArray<FSLMPortRotation> Ports;
+	TSparseArray<FSLMDataRotation> Networks;
+
 	void CreateNetworkForPort(const int32 Port);
+
 	virtual void CreateNetworkForPorts(const TArray<int32> PortIndices) override;
-	virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, int32 PortIndex) override;
+	virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex) override;
 	virtual void RemovePortAtIndex(const int32 PortIndex) override;
 	virtual void RemoveNetworkAtIndex(const int32 NetworkIndex) override;
 };

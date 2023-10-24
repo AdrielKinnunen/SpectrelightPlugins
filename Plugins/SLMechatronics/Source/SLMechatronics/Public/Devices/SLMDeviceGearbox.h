@@ -4,10 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "Domains/SLMDomainMech.h"
+#include "Domains/SLMDomainRotation.h"
+#include "Domains/SLMDomainSignal.h"
 #include "SLMDeviceGearbox.generated.h"
 
-class USLMDeviceComponentGearbox;
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelGearbox
@@ -17,9 +17,9 @@ struct FSLMDeviceModelGearbox
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float GearRatio = 1.0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Mech_Input = -1;
+	int32 Index_Rotation_Input = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Mech_Output = -1;
+	int32 Index_Rotation_Output = -1;
 };
 
 
@@ -31,9 +31,23 @@ struct FSLMDeviceGearbox
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMDeviceModelGearbox DeviceModel;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortMech Port_Mech_Input;
+	FSLMPortRotation Port_Rotation_Input;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortMech Port_Mech_Output;
+	FSLMPortRotation Port_Rotation_Output;
+};
+
+
+UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
+class SLMECHATRONICS_API USLMDeviceComponentGearbox : public USLMDeviceComponentBase
+{
+	GENERATED_BODY()
+public:
+	USLMDeviceComponentGearbox();
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMDeviceGearbox DeviceSettings;
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };
 
 
@@ -41,7 +55,6 @@ UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemGearbox : public USLMDeviceSubsystemBase
 {
 	GENERATED_BODY()
-
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(const float DeltaTime) override;
@@ -57,28 +70,9 @@ public:
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDeviceModelGearbox GetDeviceState(const int32 DeviceIndex);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void SetGearRatio(const int32 DeviceIndex, const float GearRatio);
-
 private:
-	UPROPERTY()
-	USLMDomainMech* DomainMech;
+	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
+	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
 	TSparseArray<FSLMDeviceModelGearbox> DeviceModels;
 	TSparseArray<USLMDeviceComponentGearbox*> DeviceComponents;
-};
-
-
-UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
-class SLMECHATRONICS_API USLMDeviceComponentGearbox : public USLMDeviceComponentBase
-{
-	GENERATED_BODY()
-
-public:
-	USLMDeviceComponentGearbox();
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDeviceGearbox DeviceSettings;
-
-protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

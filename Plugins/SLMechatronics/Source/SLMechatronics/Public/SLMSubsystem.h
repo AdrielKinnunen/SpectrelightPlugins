@@ -25,6 +25,7 @@ struct FSLMechatronicsSubsystemTickFunction : public FTickFunction
 	SLMECHATRONICS_API virtual FName DiagnosticContext(bool bDetailed) override;
 };
 
+
 template <>
 struct TStructOpsTypeTraits<FSLMechatronicsSubsystemTickFunction> : public TStructOpsTypeTraitsBase2<FSLMechatronicsSubsystemTickFunction>
 {
@@ -36,7 +37,6 @@ UCLASS()
 class SLMECHATRONICS_API USLMechatronicsSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
-
 public:
 	//Properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
@@ -46,7 +46,6 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	void Tick(float DeltaTime);
-
 private:
 	//Properties
 	FSLMechatronicsSubsystemTickFunction PrimarySystemTick;

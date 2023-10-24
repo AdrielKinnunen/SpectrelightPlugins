@@ -131,7 +131,7 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	int32 DrivetrainIndex;
+	int32 RotationIndex;
 	int32 SteerIndex;
 	int32 BrakeIndex;
 

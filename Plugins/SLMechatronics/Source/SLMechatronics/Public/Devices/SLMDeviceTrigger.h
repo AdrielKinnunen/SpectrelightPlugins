@@ -7,7 +7,6 @@
 #include "Domains/SLMDomainSignal.h"
 #include "SLMDeviceTrigger.generated.h"
 
-class USLMDeviceComponentTrigger;
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelTrigger
@@ -35,11 +34,26 @@ struct FSLMDeviceTrigger
 };
 
 
+UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
+class SLMECHATRONICS_API USLMDeviceComponentTrigger : public USLMDeviceComponentBase
+{
+	GENERATED_BODY()
+public:
+	USLMDeviceComponentTrigger();
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMDeviceTrigger DeviceSettings;
+	UPROPERTY(BlueprintAssignable)
+	FSLMEventSignature OnTrigger;
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+};
+
+
 UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemTrigger : public USLMDeviceSubsystemBase
 {
 	GENERATED_BODY()
-
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(const float DeltaTime) override;
@@ -57,28 +71,8 @@ public:
 	FSLMDeviceModelTrigger GetDeviceState(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void SetSignal(const int32 DeviceIndex, const float NewSignal);
-
 private:
-	UPROPERTY()
-	USLMDomainSignal* DomainSignal;
+	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
 	TSparseArray<FSLMDeviceModelTrigger> DeviceModels;
 	TSparseArray<USLMDeviceComponentTrigger*> DeviceComponents;
-};
-
-
-UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
-class SLMECHATRONICS_API USLMDeviceComponentTrigger : public USLMDeviceComponentBase
-{
-	GENERATED_BODY()
-
-public:
-	USLMDeviceComponentTrigger();
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDeviceTrigger DeviceSettings;
-	UPROPERTY(BlueprintAssignable)
-	FSLMEventSignature OnTrigger;
-
-protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

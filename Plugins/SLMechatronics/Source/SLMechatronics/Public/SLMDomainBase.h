@@ -8,6 +8,7 @@
 
 class USLMechatronicsSubsystem;
 
+
 USTRUCT(BlueprintType)
 struct FSLMPortLocationData
 {
@@ -48,7 +49,6 @@ UCLASS(Abstract)
 class SLMECHATRONICS_API USLMDomainSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
-
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	USLMechatronicsSubsystem* Subsystem;
@@ -67,7 +67,6 @@ public:
 	virtual void PreSimulate(const float DeltaTime);
 	virtual void Simulate(const float DeltaTime);
 	virtual void PostSimulate(const float DeltaTime);
-
 protected:
 	TMultiMap<int32, int32> Adjacencies;
 	TSparseArray<int32> PortIndexToNetworkIndex;
@@ -82,7 +81,6 @@ protected:
 	virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
 	virtual void RemovePortAtIndex(int32 PortIndex);
 	virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
-
 private:
 	void CleanUpGraph();
 	TSet<int32> GetConnectedPorts(const TSet<int32>& Roots) const;

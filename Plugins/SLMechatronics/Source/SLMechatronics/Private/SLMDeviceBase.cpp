@@ -1,19 +1,6 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿// Copyright Spectrelight Studios, LLC
 
 #include "SLMDeviceBase.h"
-
-void USLMDeviceSubsystemBase::PreSimulate(const float DeltaTime)
-{
-}
-
-void USLMDeviceSubsystemBase::Simulate(const float DeltaTime)
-{
-}
-
-void USLMDeviceSubsystemBase::PostSimulate(const float DeltaTime)
-{
-}
 
 USLMDeviceComponentBase::USLMDeviceComponentBase()
 {
@@ -30,6 +17,17 @@ void USLMDeviceComponentBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void USLMDeviceSubsystemBase::PreSimulate(const float DeltaTime)
+{
+}
+
+void USLMDeviceSubsystemBase::Simulate(const float DeltaTime)
+{
+}
+
+void USLMDeviceSubsystemBase::PostSimulate(const float DeltaTime)
+{
+}
 
 /*
 // Sets default values for this component's properties

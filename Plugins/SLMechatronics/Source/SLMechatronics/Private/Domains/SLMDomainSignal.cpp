@@ -1,6 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
 
-
 #include "Domains/SLMDomainSignal.h"
 
 int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)
@@ -41,7 +40,6 @@ void USLMDomainSignal::PostSimulate(const float DeltaTime)
 		Network.Read = Network.Write;
 	}
 }
-
 
 void USLMDomainSignal::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {

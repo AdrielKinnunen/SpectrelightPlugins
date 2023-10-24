@@ -1,11 +1,9 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿// Copyright Spectrelight Studios, LLC
 
 #include "SLMSubsystem.h"
 
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
-
 
 void FSLMechatronicsSubsystemTickFunction::ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph)
 {
@@ -46,7 +44,6 @@ void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems and %i Domain Subsystems"), DeviceSubsystems.Num(), DomainSubsystems.Num());
 	Super::OnWorldBeginPlay(InWorld);
 }
-
 
 void USLMechatronicsSubsystem::Tick(float DeltaTime)
 {

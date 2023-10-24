@@ -1,6 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
 
-
 #include "SLMDomainBase.h"
 
 void USLMDomainSubsystemBase::CheckForCleanUp()
@@ -115,7 +114,6 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 	TSet<int32> PortsDirty;
 	//UE_LOG(LogTemp, Warning, TEXT("%i ports are dirty at beginning of cleanup"), PortsDirty.Num());
 
-
 	//Handle ConnectionsToAdd
 	for (const auto& [FirstIndex, SecondIndex] : ConnectionsToAdd)
 	{
@@ -125,7 +123,6 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 		PortsDirty.Add(SecondIndex);
 	}
 	ConnectionsToAdd.Empty();
-
 
 	//Handle ConnectionsToRemove
 	for (const auto& [FirstIndex, SecondIndex] : ConnectionsToRemove)
@@ -137,11 +134,9 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 	}
 	ConnectionsToRemove.Empty();
 
-
 	//Handle PortsRecentlyAdded
 	PortsDirty.Append(PortsRecentlyAdded);
 	PortsRecentlyAdded.Empty();
-
 
 	//Handle PortsToRemove
 	PortsDirty.Append(GetConnectedPorts(PortsToRemove).Difference(PortsToRemove));
@@ -159,10 +154,8 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 	}
 	PortsToRemove.Empty();
 
-
 	//Dirty all of PortsDirty's connected neighbors
 	PortsDirty = GetConnectedPorts(PortsDirty);
-
 
 	//Dissolve all network values back into port data
 	TSet<int32> NetworkIndicesToRemove;
@@ -176,13 +169,11 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 		}
 	}
 
-
 	//Remove all dirty port's Networks
 	for (const auto& Index : NetworkIndicesToRemove)
 	{
 		RemoveNetworkAtIndex(Index);
 	}
-
 
 	//Create network for each set of connected dirty ports
 	TSet<int32> Visited;

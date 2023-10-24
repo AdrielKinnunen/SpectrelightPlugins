@@ -4,9 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "Domains/SLMDomainMech.h"
+#include "../Domains/SLMDomainRotation.h"
 #include "SLMDeviceDifferential.generated.h"
-
 
 /*
 USTRUCT(BlueprintType)

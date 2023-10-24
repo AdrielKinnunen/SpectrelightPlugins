@@ -3,30 +3,36 @@
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
 #include "UObject/Object.h"
-#include "SLMDomainSignal.generated.h"
+#include "SLMDomainAir.generated.h"
 
 
 USTRUCT(BlueprintType)
-struct FSLMDataSignal
+struct FSLMDataAir
 {
 	GENERATED_BODY()
-	FSLMDataSignal()
+	FSLMDataAir()
 	{
 	}
 
-	FSLMDataSignal(const float Read, const float Write): Read(Read), Write(Write)
+	FSLMDataAir(const float Pressure_atm, const float Volume_l, const float Temp_K, const float Oxygen): Pressure_atm(Pressure_atm), Volume_l(Volume_l), Temp_K(Temp_K), Oxygen(Oxygen)
 	{
 	}
 
+	const float kgPerLiterAtSSL = 0.00129;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Read = 0;
+	float Pressure_atm = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Write = 0;
+	float Volume_l = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float Temp_K = 288.15;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float Oxygen = 0.21;
 };
 
 
 USTRUCT(BlueprintType)
-struct FSLMPortSignal
+struct FSLMPortAir
 {
 	GENERATED_BODY()
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
@@ -34,23 +40,23 @@ struct FSLMPortSignal
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMPortLocationData PortLocationData;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDataSignal DefaultData;
+	FSLMDataAir DefaultData;
 };
 
 
 UCLASS()
-class SLMECHATRONICS_API USLMDomainSignal : public USLMDomainSubsystemBase
+class SLMECHATRONICS_API USLMDomainAir : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
-	int32 AddPort(const FSLMPortSignal& Port);
+	int32 AddPort(const FSLMPortAir& Port);
 	void RemovePort(const int32 PortIndex);
-	float ReadData(const int32 PortIndex);
-	void WriteData(const int32 PortIndex, const float Data);
-	virtual void PostSimulate(const float DeltaTime) override;
+	FSLMDataAir GetNetworkData(const int32 PortIndex);
+	//void WriteData(const int32 PortIndex, const float Data);
+	//virtual void PostSimulate(const float DeltaTime) override;
 private:
-	TSparseArray<FSLMPortSignal> Ports;
-	TSparseArray<FSLMDataSignal> Networks;
+	TSparseArray<FSLMPortAir> Ports;
+	TSparseArray<FSLMDataAir> Networks;
 	void CreateNetworkForPort(const int32 Port);
 	virtual void CreateNetworkForPorts(const TArray<int32> PortIndices) override;
 	virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, int32 PortIndex) override;

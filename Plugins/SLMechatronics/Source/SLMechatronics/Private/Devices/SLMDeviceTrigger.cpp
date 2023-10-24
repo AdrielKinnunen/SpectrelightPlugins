@@ -1,8 +1,23 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿// Copyright Spectrelight Studios, LLC
 
 #include "Devices/SLMDeviceTrigger.h"
 
+USLMDeviceComponentTrigger::USLMDeviceComponentTrigger()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void USLMDeviceComponentTrigger::BeginPlay()
+{
+	Super::BeginPlay();
+	GetWorld()->GetSubsystem<USLMDeviceSubsystemTrigger>()->RegisterDeviceComponent(this);
+}
+
+void USLMDeviceComponentTrigger::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetSubsystem<USLMDeviceSubsystemTrigger>()->DeRegisterDeviceComponent(this);
+	Super::EndPlay(EndPlayReason);
+}
 
 void USLMDeviceSubsystemTrigger::OnWorldBeginPlay(UWorld& InWorld)
 {
@@ -68,21 +83,4 @@ void USLMDeviceSubsystemTrigger::SetSignal(const int32 DeviceIndex, const float 
 {
 	const auto PortIndex = DeviceModels[DeviceIndex].Index_Signal_Input;
 	DomainSignal->WriteData(PortIndex, NewSignal);
-}
-
-USLMDeviceComponentTrigger::USLMDeviceComponentTrigger()
-{
-	PrimaryComponentTick.bCanEverTick = false;
-}
-
-void USLMDeviceComponentTrigger::BeginPlay()
-{
-	Super::BeginPlay();
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemTrigger>()->RegisterDeviceComponent(this);
-}
-
-void USLMDeviceComponentTrigger::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemTrigger>()->DeRegisterDeviceComponent(this);
-	Super::EndPlay(EndPlayReason);
 }
