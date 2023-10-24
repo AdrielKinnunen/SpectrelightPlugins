@@ -4,41 +4,39 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "Domains/SLMDomainMech.h"
-#include "SLMDeviceGearbox.generated.h"
+#include "Domains/SLMDomainSignal.h"
+#include "SLMDeviceTrigger.generated.h"
 
-class USLMDeviceComponentGearbox;
+class USLMDeviceComponentTrigger;
 
 USTRUCT(BlueprintType)
-struct FSLMDeviceModelGearbox
+struct FSLMDeviceModelTrigger
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float GearRatio = 1.0;
+	float TriggerValue = 1.0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Mech_Input = -1;
+	float OldValue = 0.0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Mech_Output = -1;
+	int32 Index_Signal_Input = -1;
 };
 
 
 USTRUCT(BlueprintType)
-struct FSLMDeviceGearbox
+struct FSLMDeviceTrigger
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMDeviceModelGearbox DeviceModel;
+	FSLMDeviceModelTrigger DeviceModel;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortMech Port_Mech_Input;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortMech Port_Mech_Output;
+	FSLMPortSignal Port_Signal_Input;
 };
 
 
 UCLASS()
-class SLMECHATRONICS_API USLMDeviceSubsystemGearbox : public USLMDeviceSubsystemBase
+class SLMECHATRONICS_API USLMDeviceSubsystemTrigger : public USLMDeviceSubsystemBase
 {
 	GENERATED_BODY()
 
@@ -48,35 +46,37 @@ public:
 	virtual void Simulate(const float DeltaTime) override;
 	virtual void PostSimulate(const float DeltaTime) override;
 
-	void RegisterDeviceComponent(USLMDeviceComponentGearbox* DeviceComponent);
-	void DeRegisterDeviceComponent(const USLMDeviceComponentGearbox* DeviceComponent);
+	void RegisterDeviceComponent(USLMDeviceComponentTrigger* DeviceComponent);
+	void DeRegisterDeviceComponent(const USLMDeviceComponentTrigger* DeviceComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	int32 AddDevice(FSLMDeviceGearbox Device);
+	int32 AddDevice(FSLMDeviceTrigger Device);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelGearbox GetDeviceState(const int32 DeviceIndex);
+	FSLMDeviceModelTrigger GetDeviceState(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void SetGearRatio(const int32 DeviceIndex, const float GearRatio);
+	void SetSignal(const int32 DeviceIndex, const float NewSignal);
 
 private:
 	UPROPERTY()
-	USLMDomainMech* DomainMech;
-	TSparseArray<FSLMDeviceModelGearbox> DeviceModels;
-	TSparseArray<USLMDeviceComponentGearbox*> DeviceComponents;
+	USLMDomainSignal* DomainSignal;
+	TSparseArray<FSLMDeviceModelTrigger> DeviceModels;
+	TSparseArray<USLMDeviceComponentTrigger*> DeviceComponents;
 };
 
 
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
-class SLMECHATRONICS_API USLMDeviceComponentGearbox : public USLMDeviceComponentBase
+class SLMECHATRONICS_API USLMDeviceComponentTrigger : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	USLMDeviceComponentGearbox();
+	USLMDeviceComponentTrigger();
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDeviceGearbox DeviceSettings;
+	FSLMDeviceTrigger DeviceSettings;
+	UPROPERTY(BlueprintAssignable)
+	FSLMEventSignature OnTrigger;
 
 protected:
 	virtual void BeginPlay() override;

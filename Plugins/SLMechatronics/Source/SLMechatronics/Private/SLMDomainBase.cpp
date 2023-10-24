@@ -17,6 +17,18 @@ void USLMDomainSubsystemBase::CheckForCleanUp()
 	check(ConnectionsToRemove.Num() == 0);
 }
 
+void USLMDomainSubsystemBase::PreSimulate(const float DeltaTime)
+{
+}
+
+void USLMDomainSubsystemBase::Simulate(const float DeltaTime)
+{
+}
+
+void USLMDomainSubsystemBase::PostSimulate(const float DeltaTime)
+{
+}
+
 void USLMDomainSubsystemBase::TestPrintAllData()
 {
 	UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------"));
@@ -24,11 +36,11 @@ void USLMDomainSubsystemBase::TestPrintAllData()
 	TArray<int32> AdjacencyKeys;
 	Adjacencies.GetKeys(AdjacencyKeys);
 	UE_LOG(LogTemp, Warning, TEXT("Adjacency List:"));
-	for (const auto Key:AdjacencyKeys)
+	for (const auto Key : AdjacencyKeys)
 	{
 		TArray<int32> Values;
 		Adjacencies.MultiFind(Key, Values);
-		for (const auto Value:Values)
+		for (const auto Value : Values)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("    Port %i is adjacent to port %i"), Key, Value);
 		}
@@ -50,7 +62,7 @@ void USLMDomainSubsystemBase::ConnectPorts(int32 FirstPortIndex, int32 SecondPor
 {
 	ConnectionsToAdd.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
 	bNeedsCleanup = true;
-	
+
 	/*if (FirstPortIndex != SecondPortIndex)
 	{
 		Adjacencies.Add(FirstPortIndex, SecondPortIndex);
@@ -66,7 +78,7 @@ void USLMDomainSubsystemBase::DisconnectPorts(int32 FirstPortIndex, int32 Second
 {
 	ConnectionsToRemove.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
 	bNeedsCleanup = true;
-	
+
 	/*
 	Adjacencies.Remove(FirstPortIndex, SecondPortIndex);
 	Adjacencies.Remove(SecondPortIndex, FirstPortIndex);
@@ -75,7 +87,6 @@ void USLMDomainSubsystemBase::DisconnectPorts(int32 FirstPortIndex, int32 Second
 	bNeedsCleanup = true;
 	UE_LOG(LogTemp, Warning, TEXT("Disonnecting Port %i from Port %i"), FirstPortIndex, SecondPortIndex);
 	*/
-	
 }
 
 bool USLMDomainSubsystemBase::ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex)
@@ -126,12 +137,12 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 	}
 	ConnectionsToRemove.Empty();
 
-	
+
 	//Handle PortsRecentlyAdded
 	PortsDirty.Append(PortsRecentlyAdded);
 	PortsRecentlyAdded.Empty();
-	
-	
+
+
 	//Handle PortsToRemove
 	PortsDirty.Append(GetConnectedPorts(PortsToRemove).Difference(PortsToRemove));
 	for (const auto& PortIndex : PortsToRemove)
@@ -148,7 +159,7 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 	}
 	PortsToRemove.Empty();
 
-	
+
 	//Dirty all of PortsDirty's connected neighbors
 	PortsDirty = GetConnectedPorts(PortsDirty);
 
@@ -165,14 +176,14 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 		}
 	}
 
-	
+
 	//Remove all dirty port's Networks
 	for (const auto& Index : NetworkIndicesToRemove)
 	{
 		RemoveNetworkAtIndex(Index);
 	}
 
-	
+
 	//Create network for each set of connected dirty ports
 	TSet<int32> Visited;
 	for (const auto& Port : PortsDirty)

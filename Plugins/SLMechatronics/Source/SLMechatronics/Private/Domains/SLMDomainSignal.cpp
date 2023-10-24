@@ -34,6 +34,14 @@ void USLMDomainSignal::WriteData(const int32 PortIndex, const float Data)
 	Networks[NetworkIndex].Write = Data;
 }
 
+void USLMDomainSignal::PostSimulate(const float DeltaTime)
+{
+	for (auto& Network : Networks)
+	{
+		Network.Read = Network.Write;
+	}
+}
+
 
 void USLMDomainSignal::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
@@ -62,5 +70,5 @@ void USLMDomainSignal::RemoveNetworkAtIndex(const int32 NetworkIndex)
 
 void USLMDomainSignal::CreateNetworkForPort(const int32 Port)
 {
-	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);;
+	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);
 }

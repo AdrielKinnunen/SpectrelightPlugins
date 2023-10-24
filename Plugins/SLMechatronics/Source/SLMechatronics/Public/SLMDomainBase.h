@@ -12,7 +12,7 @@ USTRUCT(BlueprintType)
 struct FSLMPortLocationData
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	FName ComponentName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
@@ -27,8 +27,13 @@ struct FSLMPortLocationData
 USTRUCT(BlueprintType)
 struct FSLMConnection
 {
-	FSLMConnection(){}
-	FSLMConnection(const int32 FirstIndex, const int32 SecondIndex):FirstIndex(FirstIndex),SecondIndex(SecondIndex){}
+	FSLMConnection()
+	{
+	}
+
+	FSLMConnection(const int32 FirstIndex, const int32 SecondIndex): FirstIndex(FirstIndex), SecondIndex(SecondIndex)
+	{
+	}
 
 	GENERATED_BODY()
 
@@ -43,10 +48,11 @@ UCLASS(Abstract)
 class SLMECHATRONICS_API USLMDomainSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
+
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	USLMechatronicsSubsystem* Subsystem;
-	
+
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	virtual void TestPrintAllData();
 
@@ -58,12 +64,14 @@ public:
 	bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
 
 	virtual void CheckForCleanUp();
-
+	virtual void PreSimulate(const float DeltaTime);
+	virtual void Simulate(const float DeltaTime);
+	virtual void PostSimulate(const float DeltaTime);
 
 protected:
 	TMultiMap<int32, int32> Adjacencies;
 	TSparseArray<int32> PortIndexToNetworkIndex;
-	
+
 	bool bNeedsCleanup = false;
 	TSet<int32> PortsRecentlyAdded;
 	TSet<int32> PortsToRemove;

@@ -16,5 +16,5 @@ void FSLMechatronicsModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FSLMechatronicsModule, SLMechatronics)

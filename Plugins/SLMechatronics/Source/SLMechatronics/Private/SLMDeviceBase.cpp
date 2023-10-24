@@ -3,15 +3,15 @@
 
 #include "SLMDeviceBase.h"
 
-void USLMDeviceSubsystemBase::PreSimulate(float DeltaTime)
+void USLMDeviceSubsystemBase::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemBase::Simulate(float DeltaTime)
+void USLMDeviceSubsystemBase::Simulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemBase::PostSimulate(float DeltaTime)
+void USLMDeviceSubsystemBase::PostSimulate(const float DeltaTime)
 {
 }
 
@@ -127,4 +127,3 @@ void USLMechatronicsDeviceComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	Super::EndPlay(EndPlayReason);
 }
 */
-

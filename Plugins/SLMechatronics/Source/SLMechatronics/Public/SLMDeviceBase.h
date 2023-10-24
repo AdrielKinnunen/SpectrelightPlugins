@@ -12,10 +12,11 @@ UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
+
 public:
-	virtual void PreSimulate(float DeltaTime);
-	virtual void Simulate(float DeltaTime);
-	virtual void PostSimulate(float DeltaTime);
+	virtual void PreSimulate(const float DeltaTime);
+	virtual void Simulate(const float DeltaTime);
+	virtual void PostSimulate(const float DeltaTime);
 };
 
 UCLASS(Abstract)
@@ -26,17 +27,18 @@ class SLMECHATRONICS_API USLMDeviceComponentBase : public UActorComponent
 public:
 	USLMDeviceComponentBase();
 
-	//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulateSignature, float, DeltaTime);
-	//UPROPERTY(BlueprintAssignable)
-	//FOnSimulateSignature OnPreSimulate;
-	//UPROPERTY(BlueprintAssignable)
-	//FOnSimulateSignature OnSimulate;
-	//UPROPERTY(BlueprintAssignable)
-	//FOnSimulateSignature OnPostSimulate;
-	
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSLMEventSignature, float, DeltaTime);
+
+	UPROPERTY(BlueprintAssignable)
+	FSLMEventSignature OnPreSimulate;
+	UPROPERTY(BlueprintAssignable)
+	FSLMEventSignature OnSimulate;
+	UPROPERTY(BlueprintAssignable)
+	FSLMEventSignature OnPostSimulate;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 DeviceIndex = -1;
-	
+
 	//UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	//void SelectClosestPort(FVector WorldLocation, FGameplayTag Domain, bool& Success, FSLMPort& OutPort);
 	//UFUNCTION(BlueprintPure, Category = "SLMechatronics")
@@ -47,4 +49,3 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };
-

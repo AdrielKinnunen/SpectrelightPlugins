@@ -10,17 +10,17 @@ void USLMDeviceSubsystemGearbox::OnWorldBeginPlay(UWorld& InWorld)
 	Super::OnWorldBeginPlay(InWorld);
 }
 
-void USLMDeviceSubsystemGearbox::PreSimulate(float DeltaTime)
+void USLMDeviceSubsystemGearbox::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemGearbox::Simulate(float DeltaTime)
+void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime)
 {
-	for (auto& [GearRatio, Index_Mech_Input, Index_Mech_Output] :DeviceModels)
+	for (auto& [GearRatio, Index_Mech_Input, Index_Mech_Output] : DeviceModels)
 	{
 		const FSLMDataMech In = DomainMech->GetNetworkData(Index_Mech_Input);
 		const FSLMDataMech Out = DomainMech->GetNetworkData(Index_Mech_Output);
-		
+
 		const float MOIShaftInputEffective = GearRatio * GearRatio * In.MOI;
 		const float AngVelShaftInputEffective = In.AngVel / GearRatio;
 
@@ -32,9 +32,26 @@ void USLMDeviceSubsystemGearbox::Simulate(float DeltaTime)
 	}
 }
 
-void USLMDeviceSubsystemGearbox::PostSimulate(float DeltaTime)
+
+void USLMDeviceSubsystemGearbox::PostSimulate(const float DeltaTime)
 {
 }
+
+
+void USLMDeviceSubsystemGearbox::RegisterDeviceComponent(USLMDeviceComponentGearbox* DeviceComponent)
+{
+	const auto Index = AddDevice(DeviceComponent->DeviceSettings);
+	DeviceComponent->DeviceIndex = Index;
+	DeviceComponents.Insert(Index, DeviceComponent);
+}
+
+void USLMDeviceSubsystemGearbox::DeRegisterDeviceComponent(const USLMDeviceComponentGearbox* DeviceComponent)
+{
+	const auto Index = DeviceComponent->DeviceIndex;
+	RemoveDevice(Index);
+	DeviceComponents.RemoveAt(Index);
+}
+
 
 int32 USLMDeviceSubsystemGearbox::AddDevice(FSLMDeviceGearbox Device)
 {
@@ -69,11 +86,11 @@ USLMDeviceComponentGearbox::USLMDeviceComponentGearbox()
 void USLMDeviceComponentGearbox::BeginPlay()
 {
 	Super::BeginPlay();
-	DeviceIndex = GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>()->AddDevice(DeviceSettings);
+	GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>()->RegisterDeviceComponent(this);
 }
 
 void USLMDeviceComponentGearbox::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>()->RemoveDevice(DeviceIndex);
+	GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>()->DeRegisterDeviceComponent(this);
 	Super::EndPlay(EndPlayReason);
 }
