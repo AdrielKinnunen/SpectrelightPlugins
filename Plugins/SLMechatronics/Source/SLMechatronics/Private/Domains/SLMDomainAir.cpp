@@ -60,8 +60,8 @@ void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 		
 		PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
 	}
-	Networks[NetworkIndex].AngVel = SumProduct / Volume;
-	Networks[NetworkIndex].MOI = Volume;
+	//Networks[NetworkIndex].AngVel = SumProduct / Volume;
+	//Networks[NetworkIndex].MOI = Volume;
 }
 
 void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)

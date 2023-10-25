@@ -18,7 +18,7 @@ struct FSLMDataAir
 	{
 	}
 
-	const float kgPerLiterAtSSL = 0.00129;
+	//const float kgPerLiterAtSSL = 0.00129;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Pressure_atm = 1.0;
@@ -26,8 +26,8 @@ struct FSLMDataAir
 	float Volume_l = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Temp_K = 288.15;
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	//float Oxygen = 0.21;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float Oxygen = 0.21;
 };
 
 
