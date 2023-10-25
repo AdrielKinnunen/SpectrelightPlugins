@@ -50,12 +50,13 @@ void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 	float Pressure = 0.0;
 	float SumVolume = 0.0;
 	float Temp = 0.0;
-	float Oxygen = 0.0;
+	//float Oxygen = 0.0;
 	for (const auto& PortIndex : PortIndices)
 	{
 		const auto Data = Ports[PortIndex].DefaultData;
 		
-		Volume += Data.Volume_l;
+		SumVolume += Data.Volume_l;
+		
 		
 		PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
 	}
@@ -70,7 +71,7 @@ void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int3
 	
 	PortData.Pressure_atm = NetworkData.Pressure_atm;
 	PortData.Temp_K = NetworkData.Temp_K;
-	PortData.Oxygen = NetworkData.Oxygen;
+	//PortData.Oxygen = NetworkData.Oxygen;
 }
 
 void USLMDomainAir::RemovePortAtIndex(const int32 PortIndex)

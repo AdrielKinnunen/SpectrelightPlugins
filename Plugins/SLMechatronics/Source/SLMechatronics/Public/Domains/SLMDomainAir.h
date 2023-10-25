@@ -26,8 +26,8 @@ struct FSLMDataAir
 	float Volume_l = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Temp_K = 288.15;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Oxygen = 0.21;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	//float Oxygen = 0.21;
 };
 
 
