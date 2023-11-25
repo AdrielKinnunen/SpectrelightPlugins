@@ -45,7 +45,7 @@ class SLMECHATRONICS_API USLMDomainSignal : public USLMDomainSubsystemBase
 public:
 	int32 AddPort(const FSLMPortSignal& Port);
 	void RemovePort(const int32 PortIndex);
-	float ReadData(const int32 PortIndex);
+	float ReadByPortIndex(const int32 PortIndex);
 	void WriteData(const int32 PortIndex, const float Data);
 	virtual void PostSimulate(const float DeltaTime) override;
 private:

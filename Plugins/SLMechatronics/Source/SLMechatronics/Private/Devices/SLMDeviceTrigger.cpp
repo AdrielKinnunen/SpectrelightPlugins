@@ -34,7 +34,7 @@ void USLMDeviceSubsystemTrigger::Simulate(const float DeltaTime)
 	for (int32 i = 0; i < DeviceModels.Num(); i++)
 	{
 		auto& [TriggerValue, OldValue, Index_Signal_Input] = DeviceModels[i];
-		const float NewValue = DomainSignal->ReadData(Index_Signal_Input);
+		const float NewValue = DomainSignal->ReadByPortIndex(Index_Signal_Input);
 		if (NewValue >= TriggerValue && OldValue < TriggerValue)
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("!!!!!!!TRIGGERED!!!!!!!"));

@@ -31,18 +31,29 @@ void USLMDeviceSubsystemEngine::PreSimulate(const float DeltaTime)
 
 void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 {
-	for (const auto& Model : DeviceModels)
+	for (const auto& Engine : DeviceModels)
 	{
-		const auto [CrankRPM,CrankMOI] = DomainRotation->GetNetworkData(Model.Index_Rotation_Crankshaft);
-		const auto Throttle = DomainSignal->ReadData(Model.Index_Signal_Throttle);
+		//Get
+		const FSLMDataRotation Crank = DomainRotation->GetByPortIndex(Engine.Index_Rotation_Crankshaft);
+		const float Throttle = DomainSignal->ReadByPortIndex(Engine.Index_Signal_Throttle);
+		
+		//Thermodynamics
+		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Engine.DisplacementPerRev * Crank.RPS * DeltaTime;
+		FSLMDataAir Charge = DomainAir->RemoveAir(Engine.Index_Air_Intake, LitersIngested);
+		const float OxygenGrams = Charge.GetMassGrams() * Charge.OxygenRatio;
+		const float FuelGrams = OxygenGrams * 0.32393909944;
+		const float CombustionEnergy = 45000 * FuelGrams;
+		const float Work = CombustionEnergy * Engine.Efficiency;
+		Charge.AddHeatJoules(CombustionEnergy - Work);
 
-		const float CrankMomentum = CrankRPM * CrankMOI;
-		const float Torque = Model.MaxTorque * Throttle * (CrankRPM < Model.MaxRPM) - 0.2 * CrankRPM;
+		//Mechanics
+		const float CrankMomentum = Crank.RPS * Crank.MOI;
+		const float CrankMomentum_Out = CrankMomentum + Work / Crank.RPS * DeltaTime;
+		const float CrankRPM_Out = CrankMomentum_Out / Crank.MOI;
 
-		const float CrankMomentum_Out = CrankMomentum + Torque * DeltaTime;
-		const float CrankRPM_Out = CrankMomentum_Out / CrankMOI;
-
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Crankshaft, CrankRPM_Out);
+		//Set
+		DomainRotation->SetNetworkAngVel(Engine.Index_Rotation_Crankshaft, CrankRPM_Out);
+		DomainAir->AddAir(Engine.Index_Air_Exhaust, Charge);
 	}
 }
 

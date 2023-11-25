@@ -17,7 +17,7 @@ void USLMDomainRotation::RemovePort(const int32 PortIndex)
 	bNeedsCleanup = true;
 }
 
-FSLMDataRotation USLMDomainRotation::GetNetworkData(const int32 PortIndex)
+FSLMDataRotation USLMDomainRotation::GetByPortIndex(const int32 PortIndex)
 {
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
 	return Networks[NetworkIndex];
@@ -26,7 +26,7 @@ FSLMDataRotation USLMDomainRotation::GetNetworkData(const int32 PortIndex)
 void USLMDomainRotation::SetNetworkAngVel(const int32 PortIndex, const float NewAngVel)
 {
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	Networks[NetworkIndex].AngVel = NewAngVel;
+	Networks[NetworkIndex].RPS = NewAngVel;
 }
 
 void USLMDomainRotation::CreateNetworkForPorts(const TArray<int32> PortIndices)
@@ -37,18 +37,18 @@ void USLMDomainRotation::CreateNetworkForPorts(const TArray<int32> PortIndices)
 	float SumMOI = 0;
 	for (const auto& PortIndex : PortIndices)
 	{
-		SumProduct += Ports[PortIndex].DefaultData.AngVel * Ports[PortIndex].DefaultData.MOI;
+		SumProduct += Ports[PortIndex].DefaultData.RPS * Ports[PortIndex].DefaultData.MOI;
 		SumMOI += Ports[PortIndex].DefaultData.MOI;
 		PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
 	}
-	Networks[NetworkIndex].AngVel = SumProduct / SumMOI;
+	Networks[NetworkIndex].RPS = SumProduct / SumMOI;
 	Networks[NetworkIndex].MOI = SumMOI;
 }
 
 void USLMDomainRotation::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
 {
 	const FSLMDataRotation Network = Networks[NetworkIndex];
-	Ports[PortIndex].DefaultData.AngVel = Network.AngVel;
+	Ports[PortIndex].DefaultData.RPS = Network.RPS;
 }
 
 void USLMDomainRotation::RemovePortAtIndex(const int32 PortIndex)

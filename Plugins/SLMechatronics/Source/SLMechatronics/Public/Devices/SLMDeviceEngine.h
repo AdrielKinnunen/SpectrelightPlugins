@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
+#include "Domains/SLMDomainAir.h"
 #include "Domains/SLMDomainRotation.h"
 #include "Domains/SLMDomainSignal.h"
 #include "SLMDeviceEngine.generated.h"
@@ -13,15 +14,19 @@ USTRUCT(BlueprintType)
 struct FSLMDeviceModelEngine
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MaxTorque = 1.0;
+	float DisplacementPerRev = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MaxRPM = 1.0;
+	float Efficiency = 0.35;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Rotation_Crankshaft = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Signal_Throttle = -1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Air_Intake = -1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Air_Exhaust = -1;
 };
 
 
@@ -36,6 +41,10 @@ struct FSLMDeviceEngine
 	FSLMPortRotation Port_Rotation_Crankshaft;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortSignal Port_Signal_Throttle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortAir Port_Air_Intake;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortAir Port_Air_Exhaust;
 };
 
 
@@ -72,9 +81,12 @@ public:
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDeviceModelEngine GetDeviceState(const int32 DeviceIndex);
+	
 private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
+	TWeakObjectPtr<USLMDomainAir> DomainAir;
+
 	TSparseArray<FSLMDeviceModelEngine> DeviceModels;
 	TSparseArray<USLMDeviceComponentEngine*> DeviceComponents;
 };

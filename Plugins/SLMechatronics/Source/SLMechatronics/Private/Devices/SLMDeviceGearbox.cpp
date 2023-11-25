@@ -32,13 +32,13 @@ void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime)
 {
 	for (auto& [GearRatio, Index_Rotation_Input, Index_Rotation_Output] : DeviceModels)
 	{
-		const FSLMDataRotation In = DomainRotation->GetNetworkData(Index_Rotation_Input);
-		const FSLMDataRotation Out = DomainRotation->GetNetworkData(Index_Rotation_Output);
+		const FSLMDataRotation In = DomainRotation->GetByPortIndex(Index_Rotation_Input);
+		const FSLMDataRotation Out = DomainRotation->GetByPortIndex(Index_Rotation_Output);
 
 		const float MOIShaftInputEffective = GearRatio * GearRatio * In.MOI;
-		const float AngVelShaftInputEffective = In.AngVel / GearRatio;
+		const float AngVelShaftInputEffective = In.RPS / GearRatio;
 
-		const float OutAngVel = (AngVelShaftInputEffective * MOIShaftInputEffective + Out.AngVel * Out.MOI) / (MOIShaftInputEffective + Out.MOI);
+		const float OutAngVel = (AngVelShaftInputEffective * MOIShaftInputEffective + Out.RPS * Out.MOI) / (MOIShaftInputEffective + Out.MOI);
 		const float InAngVel = OutAngVel * GearRatio;
 
 		DomainRotation->SetNetworkAngVel(Index_Rotation_Input, InAngVel);

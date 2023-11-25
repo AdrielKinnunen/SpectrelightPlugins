@@ -17,12 +17,12 @@ struct FSLMDataRotation
 	{
 	}
 
-	FSLMDataRotation(const float AngVel, const float MOI): AngVel(AngVel), MOI(MOI)
+	FSLMDataRotation(const float RPS, const float MOI): RPS(RPS), MOI(MOI)
 	{
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float AngVel = 0;
+	float RPS = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float MOI = 1;
 };
@@ -47,13 +47,29 @@ class SLMECHATRONICS_API USLMDomainRotation : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
+	static constexpr float RADS_TO_RPM = 9.54929658551372;
+	
 	int32 AddPort(const FSLMPortRotation& Port);
 	void RemovePort(const int32 PortIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDataRotation GetNetworkData(const int32 PortIndex);
+	FSLMDataRotation GetByPortIndex(const int32 PortIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void SetNetworkAngVel(int32 PortIndex, float NewAngVel);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	static float ConvertRPMtoRads(const float RPM)
+	{
+		return RPM / RADS_TO_RPM;
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	static float ConvertRadsToRPM(const float RPM)
+	{
+		return RPM * RADS_TO_RPM;
+	}
+
+	
 private:
 	TSparseArray<FSLMPortRotation> Ports;
 	TSparseArray<FSLMDataRotation> Networks;

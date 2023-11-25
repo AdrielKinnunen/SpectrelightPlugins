@@ -2,6 +2,11 @@
 
 #include "Domains/SLMDomainAir.h"
 
+//constexpr float GammaAir = 1.4;				//Specific heat ratio for air
+//constexpr float IdealGasConstant = 0.0821;	//Ideal gas constant for atm*L/(mol*K)
+//constexpr float MolarMassAir = 28.97;		//Molar mass of air in g/mol
+
+
 int32 USLMDomainAir::AddPort(const FSLMPortAir& Port)
 {
 	const int32 PortIndex = Ports.Add(Port);
@@ -17,7 +22,7 @@ void USLMDomainAir::RemovePort(const int32 PortIndex)
 	bNeedsCleanup = true;
 }
 
-FSLMDataAir USLMDomainAir::GetNetworkData(const int32 PortIndex)
+FSLMDataAir USLMDomainAir::GetCopy(const int32 PortIndex)
 {
 	check(PortIndex >= 0);
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
@@ -25,6 +30,22 @@ FSLMDataAir USLMDomainAir::GetNetworkData(const int32 PortIndex)
 	return Networks[NetworkIndex];
 }
 
+FSLMDataAir& USLMDomainAir::GetRef(const int32 PortIndex)
+{
+	check(PortIndex >= 0);
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(NetworkIndex >= 0);
+	return Networks[NetworkIndex];
+}
+
+FSLMDataAir USLMDomainAir::RemoveAir(const int32 PortIndex, const float VolumeLiters)
+{
+	return FSLMDataAir();
+}
+
+void USLMDomainAir::AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd)
+{
+}
 
 /*
 void USLMDomainAir::WriteData(const int32 PortIndex, const float Data)
@@ -46,17 +67,15 @@ void USLMDomainAir::PostSimulate(const float DeltaTime)
 void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
 	const int32 NetworkIndex = Networks.Add(FSLMDataAir());
-	float SumMass = 0.0;
-	float Pressure = 0.0;
 	float SumVolume = 0.0;
-	float Temp = 0.0;
-	//float Oxygen = 0.0;
+	float SumTemp = 0.0;
+	//float Oxygen = kgPerLiterAtSSL;
 	for (const auto& PortIndex : PortIndices)
 	{
 		const auto Data = Ports[PortIndex].DefaultData;
 		
 		SumVolume += Data.Volume_l;
-		
+		SumTemp += Data.Temp_K;
 		
 		PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
 	}

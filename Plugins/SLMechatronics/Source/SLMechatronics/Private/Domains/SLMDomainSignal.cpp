@@ -17,7 +17,7 @@ void USLMDomainSignal::RemovePort(const int32 PortIndex)
 	bNeedsCleanup = true;
 }
 
-float USLMDomainSignal::ReadData(const int32 PortIndex)
+float USLMDomainSignal::ReadByPortIndex(const int32 PortIndex)
 {
 	check(PortIndex >= 0);
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];

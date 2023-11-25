@@ -2,9 +2,11 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
-#include "UObject/Object.h"
 #include "SLMDomainAir.generated.h"
 
+//constexpr float GammaAir = 1.4;				//Specific heat ratio for air
+//constexpr float IdealGasConstant = 0.0821;	//Ideal gas constant for atm*L/(mol*K)
+//constexpr float MolarMassAir = 28.97;			//Molar mass of air in g/mol
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -14,12 +16,14 @@ struct FSLMDataAir
 	{
 	}
 
-	FSLMDataAir(const float Pressure_atm, const float Volume_l, const float Temp_K, const float Oxygen): Pressure_atm(Pressure_atm), Volume_l(Volume_l), Temp_K(Temp_K), Oxygen(Oxygen)
+	FSLMDataAir(const float Pressure_atm, const float Volume_l, const float Temp_K, const float Oxygen): Pressure_atm(Pressure_atm), Volume_l(Volume_l), Temp_K(Temp_K), OxygenRatio(Oxygen)
 	{
 	}
 
-	//const float kgPerLiterAtSSL = 0.00129;
-	
+	static constexpr float GammaAir = 1.4;						//Specific heat ratio for air
+	static constexpr float IdealGasConstant = 0.0821;			//Ideal gas constant for atm*L/(mol*K)
+	static constexpr float MolarMassAir = 28.97;				//Molar mass of air in g/mol
+		
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Pressure_atm = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
@@ -27,7 +31,20 @@ struct FSLMDataAir
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Temp_K = 288.15;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Oxygen = 0.21;
+	float OxygenRatio = 0.21;
+
+	float GetMassGrams()
+	{
+		// PV = NrT		->		N = PV/rT
+		const float Moles = (Pressure_atm * Volume_l) / (IdealGasConstant * Temp_K);
+		const float Mass = Moles * MolarMassAir;
+		return Mass;
+	}
+
+	void AddHeatJoules(const float Joules)
+	{
+		Temp_K += Joules / (Volume_l * GammaAir);
+	}	
 };
 
 
@@ -51,9 +68,20 @@ class SLMECHATRONICS_API USLMDomainAir : public USLMDomainSubsystemBase
 public:
 	int32 AddPort(const FSLMPortAir& Port);
 	void RemovePort(const int32 PortIndex);
-	FSLMDataAir GetNetworkData(const int32 PortIndex);
+	FSLMDataAir GetCopy(const int32 PortIndex);
+	FSLMDataAir& GetRef(const int32 PortIndex);
+	
+	FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
+	void AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd);
+
+
+
+
+	
 	//void WriteData(const int32 PortIndex, const float Data);
 	//virtual void PostSimulate(const float DeltaTime) override;
+	
+	
 private:
 	TSparseArray<FSLMPortAir> Ports;
 	TSparseArray<FSLMDataAir> Networks;
