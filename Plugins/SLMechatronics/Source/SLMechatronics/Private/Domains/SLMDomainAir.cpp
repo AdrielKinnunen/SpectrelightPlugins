@@ -2,10 +2,6 @@
 
 #include "Domains/SLMDomainAir.h"
 
-//constexpr float GammaAir = 1.4;				//Specific heat ratio for air
-//constexpr float IdealGasConstant = 0.0821;	//Ideal gas constant for atm*L/(mol*K)
-//constexpr float MolarMassAir = 28.97;		//Molar mass of air in g/mol
-
 
 int32 USLMDomainAir::AddPort(const FSLMPortAir& Port)
 {
@@ -45,7 +41,9 @@ FSLMDataAir USLMDomainAir::RemoveAir(const int32 PortIndex, const float VolumeLi
 
 void USLMDomainAir::AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd)
 {
+	
 }
+
 
 /*
 void USLMDomainAir::WriteData(const int32 PortIndex, const float Data)

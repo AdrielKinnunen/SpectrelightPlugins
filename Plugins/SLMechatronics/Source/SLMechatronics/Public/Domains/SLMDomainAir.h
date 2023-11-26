@@ -4,9 +4,6 @@
 #include "SLMDomainBase.h"
 #include "SLMDomainAir.generated.h"
 
-//constexpr float GammaAir = 1.4;				//Specific heat ratio for air
-//constexpr float IdealGasConstant = 0.0821;	//Ideal gas constant for atm*L/(mol*K)
-//constexpr float MolarMassAir = 28.97;			//Molar mass of air in g/mol
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -32,19 +29,50 @@ struct FSLMDataAir
 	float Temp_K = 288.15;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float OxygenRatio = 0.21;
-
-	float GetMassGrams()
+	
+	float GetMoles() const
 	{
-		// PV = NrT		->		N = PV/rT
-		const float Moles = (Pressure_atm * Volume_l) / (IdealGasConstant * Temp_K);
-		const float Mass = Moles * MolarMassAir;
+		return (Pressure_atm * Volume_l) / (IdealGasConstant * Temp_K);											// PV = NrT		->		N = PV/rT
+	}
+
+	float GetMassGrams() const
+	{
+		const float Mass = GetMoles() * MolarMassAir;
 		return Mass;
 	}
 
 	void AddHeatJoules(const float Joules)
 	{
 		Temp_K += Joules / (Volume_l * GammaAir);
-	}	
+	}
+
+	void ChangeVolumeIsentropically(const float NewVolume)
+	{
+		const float NewTemp = Temp_K * FMath::Pow(Volume_l / NewVolume, GammaAir - 1.0);
+		const float NewPressure = Pressure_atm * FMath::Pow(NewVolume / Volume_l, GammaAir * -1.0);
+
+		Temp_K = NewTemp;
+		Pressure_atm = NewPressure;
+		Volume_l = NewVolume;
+	}
+	
+	
+	static FSLMDataAir Mix(const FSLMDataAir First, const FSLMDataAir Second)
+	{
+		const float FirstN = First.GetMoles();
+		const float SecondN = Second.GetMoles();
+		const float FinalN = FirstN + SecondN;
+
+		const float FinalOxygen = (FirstN * First.OxygenRatio + SecondN * Second.OxygenRatio) / FinalN;
+		const float FinalVolume = First.Volume_l + Second.Volume_l;
+		const float FinalPressure = (First.Pressure_atm * First.Volume_l + Second.Pressure_atm * Second.Volume_l) / FinalVolume;
+		const float FinalTemp = (FinalPressure * FinalVolume) / (FinalN * IdealGasConstant);					// PV = NrT		->		T = PV/Nr
+		//const float FinalTemp = (FirstN * First.Temp_K + SecondN * Second.Temp_K) / FinalN;
+		
+		return FSLMDataAir(FinalPressure, FinalVolume, FinalTemp, FinalOxygen);
+	}
+
+	
 };
 
 
@@ -73,14 +101,9 @@ public:
 	
 	FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
 	void AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd);
-
-
-
-
-	
+		
 	//void WriteData(const int32 PortIndex, const float Data);
 	//virtual void PostSimulate(const float DeltaTime) override;
-	
 	
 private:
 	TSparseArray<FSLMPortAir> Ports;
