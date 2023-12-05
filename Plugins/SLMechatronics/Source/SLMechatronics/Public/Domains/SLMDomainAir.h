@@ -4,6 +4,13 @@
 #include "SLMDomainBase.h"
 #include "SLMDomainAir.generated.h"
 
+constexpr float GammaAir			= 1.4;							//Specific heat ratio for air
+constexpr float IdealGasConstant	= 0.0813144;					//Ideal gas constant for atm*L/(mol*K)
+constexpr float MolarMassAir		= 28.97;						//Molar mass of air in g/mol
+constexpr float CvAir				= 250 * IdealGasConstant;		//Molar heat capacity at constant volume
+constexpr float FuelPerAirGrams		= 0.32393909944;				//Grams of fuel per gram of air for stochiometric combustion
+constexpr float FuelJoulesPerGram	= 45000;						//Combustion Energy per gram of fuel
+constexpr float OneOverTwoPi		= 0.15915494309;
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -17,9 +24,10 @@ struct FSLMDataAir
 	{
 	}
 
-	static constexpr float GammaAir = 1.4;						//Specific heat ratio for air
-	static constexpr float IdealGasConstant = 0.0821;			//Ideal gas constant for atm*L/(mol*K)
-	static constexpr float MolarMassAir = 28.97;				//Molar mass of air in g/mol
+	//static constexpr float GammaAir = 1.4;						//Specific heat ratio for air
+	//static constexpr float IdealGasConstant = 0.0813144;		//Ideal gas constant for atm*L/(mol*K)
+	//static constexpr float MolarMassAir = 28.97;				//Molar mass of air in g/mol
+	//static constexpr float CvAir = 250 * IdealGasConstant;		//Molar heat capacity at constant volume
 		
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Pressure_atm = 1.0;
@@ -32,7 +40,8 @@ struct FSLMDataAir
 	
 	float GetMoles() const
 	{
-		return (Pressure_atm * Volume_l) / (IdealGasConstant * Temp_K);											// PV = NrT		->		N = PV/rT
+		// PV = NrT		->		N = PV/rT
+		return (Pressure_atm * Volume_l) / (IdealGasConstant * Temp_K);
 	}
 
 	float GetMassGrams() const
@@ -43,7 +52,7 @@ struct FSLMDataAir
 
 	void AddHeatJoules(const float Joules)
 	{
-		Temp_K += Joules / (Volume_l * GammaAir);
+		Temp_K += Joules / (GetMassGrams() * CvAir);
 	}
 
 	void ChangeVolumeIsentropically(const float NewVolume)
@@ -71,8 +80,6 @@ struct FSLMDataAir
 		
 		return FSLMDataAir(FinalPressure, FinalVolume, FinalTemp, FinalOxygen);
 	}
-
-	
 };
 
 
@@ -96,8 +103,8 @@ class SLMECHATRONICS_API USLMDomainAir : public USLMDomainSubsystemBase
 public:
 	int32 AddPort(const FSLMPortAir& Port);
 	void RemovePort(const int32 PortIndex);
-	FSLMDataAir GetCopy(const int32 PortIndex);
-	FSLMDataAir& GetRef(const int32 PortIndex);
+	
+	FSLMDataAir GetByPortIndex(const int32 PortIndex);
 	
 	FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
 	void AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd);

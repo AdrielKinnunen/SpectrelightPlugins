@@ -40,9 +40,9 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 		//Thermodynamics
 		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Engine.DisplacementPerRev * Crank.RPS * DeltaTime;
 		FSLMDataAir Charge = DomainAir->RemoveAir(Engine.Index_Air_Intake, LitersIngested);
-		const float OxygenGrams = Charge.GetMoles() * Charge.OxygenRatio;
-		const float FuelGrams = OxygenGrams * 0.32393909944;
-		const float CombustionEnergy = 45000 * FuelGrams;
+		const float OxygenGrams = Charge.GetMassGrams() * Charge.OxygenRatio;
+		const float FuelGrams = OxygenGrams * FuelPerAirGrams;
+		const float CombustionEnergy = FuelJoulesPerGram * FuelGrams;
 		const float Work = CombustionEnergy * Engine.Efficiency;
 		Charge.AddHeatJoules(CombustionEnergy - Work);
 
@@ -54,6 +54,8 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 		//Set
 		DomainRotation->SetNetworkAngVel(Engine.Index_Rotation_Crankshaft, CrankRPM_Out);
 		DomainAir->AddAir(Engine.Index_Air_Exhaust, Charge);
+
+		//torque = pressure x volume / 2pi
 	}
 }
 

@@ -18,15 +18,7 @@ void USLMDomainAir::RemovePort(const int32 PortIndex)
 	bNeedsCleanup = true;
 }
 
-FSLMDataAir USLMDomainAir::GetCopy(const int32 PortIndex)
-{
-	check(PortIndex >= 0);
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
-	return Networks[NetworkIndex];
-}
-
-FSLMDataAir& USLMDomainAir::GetRef(const int32 PortIndex)
+FSLMDataAir USLMDomainAir::GetByPortIndex(const int32 PortIndex)
 {
 	check(PortIndex >= 0);
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
