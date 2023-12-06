@@ -78,7 +78,7 @@ void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int3
 	const FSLMDataAir NetworkData = Networks[NetworkIndex];
 	FSLMDataAir& PortData = Ports[PortIndex].DefaultData;
 	
-	PortData.Pressure_atm = NetworkData.Pressure_atm;
+	PortData.Pressure_bar = NetworkData.Pressure_bar;
 	PortData.Temp_K = NetworkData.Temp_K;
 	//PortData.Oxygen = NetworkData.Oxygen;
 }

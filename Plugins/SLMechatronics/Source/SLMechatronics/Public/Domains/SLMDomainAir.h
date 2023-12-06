@@ -5,12 +5,12 @@
 #include "SLMDomainAir.generated.h"
 
 constexpr float GammaAir			= 1.4;							//Specific heat ratio for air
-constexpr float IdealGasConstant	= 0.0813144;					//Ideal gas constant for atm*L/(mol*K)
+constexpr float IdealGasConstant	= 0.0831446;					//Ideal gas constant for atm*L/(mol*K)
 constexpr float MolarMassAir		= 28.97;						//Molar mass of air in g/mol
 constexpr float CvAir				= 250 * IdealGasConstant;		//Molar heat capacity at constant volume
-constexpr float FuelPerAirGrams		= 0.32393909944;				//Grams of fuel per gram of air for stochiometric combustion
+constexpr float FuelPerAirGrams		= 0.323939;						//Grams of fuel per gram of air for stochiometric combustion
 constexpr float FuelJoulesPerGram	= 45000;						//Combustion Energy per gram of fuel
-constexpr float OneOverTwoPi		= 0.15915494309;
+constexpr float OneOverTwoPi		= 0.159155;						//Used in pressure to torque calculation for a pump
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -20,17 +20,17 @@ struct FSLMDataAir
 	{
 	}
 
-	FSLMDataAir(const float Pressure_atm, const float Volume_l, const float Temp_K, const float Oxygen): Pressure_atm(Pressure_atm), Volume_l(Volume_l), Temp_K(Temp_K), OxygenRatio(Oxygen)
+	FSLMDataAir(const float Pressure_atm, const float Volume_l, const float Temp_K, const float Oxygen): Pressure_bar(Pressure_atm), Volume_l(Volume_l), Temp_K(Temp_K), OxygenRatio(Oxygen)
 	{
 	}
 
-	//static constexpr float GammaAir = 1.4;						//Specific heat ratio for air
-	//static constexpr float IdealGasConstant = 0.0813144;		//Ideal gas constant for atm*L/(mol*K)
-	//static constexpr float MolarMassAir = 28.97;				//Molar mass of air in g/mol
-	//static constexpr float CvAir = 250 * IdealGasConstant;		//Molar heat capacity at constant volume
+	//static constexpr float GammaAir = 1.4;							//Specific heat ratio for air
+	//static constexpr float IdealGasConstant = 0.0813144;				//Ideal gas constant for atm*L/(mol*K)
+	//static constexpr float MolarMassAir = 28.97;						//Molar mass of air in g/mol
+	//static constexpr float CvAir = 250 * IdealGasConstant;			//Molar heat capacity at constant volume
 		
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Pressure_atm = 1.0;
+	float Pressure_bar = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Volume_l = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
@@ -41,7 +41,7 @@ struct FSLMDataAir
 	float GetMoles() const
 	{
 		// PV = NrT		->		N = PV/rT
-		return (Pressure_atm * Volume_l) / (IdealGasConstant * Temp_K);
+		return (Pressure_bar * Volume_l) / (IdealGasConstant * Temp_K);
 	}
 
 	float GetMassGrams() const
@@ -58,10 +58,10 @@ struct FSLMDataAir
 	void ChangeVolumeIsentropically(const float NewVolume)
 	{
 		const float NewTemp = Temp_K * FMath::Pow(Volume_l / NewVolume, GammaAir - 1.0);
-		const float NewPressure = Pressure_atm * FMath::Pow(NewVolume / Volume_l, GammaAir * -1.0);
+		const float NewPressure = Pressure_bar * FMath::Pow(NewVolume / Volume_l, GammaAir * -1.0);
 
 		Temp_K = NewTemp;
-		Pressure_atm = NewPressure;
+		Pressure_bar = NewPressure;
 		Volume_l = NewVolume;
 	}
 	
@@ -74,7 +74,7 @@ struct FSLMDataAir
 
 		const float FinalOxygen = (FirstN * First.OxygenRatio + SecondN * Second.OxygenRatio) / FinalN;
 		const float FinalVolume = First.Volume_l + Second.Volume_l;
-		const float FinalPressure = (First.Pressure_atm * First.Volume_l + Second.Pressure_atm * Second.Volume_l) / FinalVolume;
+		const float FinalPressure = (First.Pressure_bar * First.Volume_l + Second.Pressure_bar * Second.Volume_l) / FinalVolume;
 		const float FinalTemp = (FinalPressure * FinalVolume) / (FinalN * IdealGasConstant);					// PV = NrT		->		T = PV/Nr
 		//const float FinalTemp = (FirstN * First.Temp_K + SecondN * Second.Temp_K) / FinalN;
 		

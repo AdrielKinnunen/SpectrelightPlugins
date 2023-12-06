@@ -31,31 +31,34 @@ void USLMDeviceSubsystemEngine::PreSimulate(const float DeltaTime)
 
 void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 {
-	for (const auto& Engine : DeviceModels)
+	for (const auto& Model : DeviceModels)
 	{
-		//Get
-		const FSLMDataRotation Crank = DomainRotation->GetByPortIndex(Engine.Index_Rotation_Crankshaft);
-		const float Throttle = DomainSignal->ReadByPortIndex(Engine.Index_Signal_Throttle);
+		const FSLMDataRotation Crank = DomainRotation->GetByPortIndex(Model.Index_Rotation_Crankshaft);
+		const FSLMDataAir Intake = DomainAir->GetByPortIndex(Model.Index_Air_Intake);
+		const FSLMDataAir Exhaust = DomainAir->GetByPortIndex(Model.Index_Air_Exhaust);
+		const float Throttle = DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle);
 		
-		//Thermodynamics
-		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Engine.DisplacementPerRev * Crank.RPS * DeltaTime;
-		FSLMDataAir Charge = DomainAir->RemoveAir(Engine.Index_Air_Intake, LitersIngested);
+		const float PressureDifference = Intake.Pressure_bar - Exhaust.Pressure_bar;
+		const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * OneOverTwoPi;
+
+		const float RotationDelta = Crank.RPS * DeltaTime;
+		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Model.DisplacementPerRev * FMath::Abs(RotationDelta);
+		const bool bIsNormalDirection = Crank.RPS >= 0.0;
+		const int32 FromPort = bIsNormalDirection ? Model.Index_Air_Intake : Model.Index_Air_Exhaust;
+		const int32 ToPort = bIsNormalDirection ? Model.Index_Air_Exhaust : Model.Index_Air_Intake;
+		
+		FSLMDataAir Charge = DomainAir->RemoveAir(FromPort, LitersIngested);
 		const float OxygenGrams = Charge.GetMassGrams() * Charge.OxygenRatio;
-		const float FuelGrams = OxygenGrams * FuelPerAirGrams;
+		const float FuelGrams = OxygenGrams * FuelPerAirGrams;																			//TODO Add fuel consumption
 		const float CombustionEnergy = FuelJoulesPerGram * FuelGrams;
-		const float Work = CombustionEnergy * Engine.Efficiency;
-		Charge.AddHeatJoules(CombustionEnergy - Work);
+		const float CombustionWork = CombustionEnergy * Model.Efficiency;
+		const float CombustionTorque = CombustionWork / RotationDelta;
+		Charge.AddHeatJoules(CombustionEnergy - CombustionWork);
+		DomainAir->AddAir(ToPort, Charge);
 
-		//Mechanics
-		const float CrankMomentum = Crank.RPS * Crank.MOI;
-		const float CrankMomentum_Out = CrankMomentum + Work / Crank.RPS * DeltaTime;
-		const float CrankRPM_Out = CrankMomentum_Out / Crank.MOI;
-
-		//Set
-		DomainRotation->SetNetworkAngVel(Engine.Index_Rotation_Crankshaft, CrankRPM_Out);
-		DomainAir->AddAir(Engine.Index_Air_Exhaust, Charge);
-
-		//torque = pressure x volume / 2pi
+		const float TotalTorque = PumpingTorque + CombustionTorque;
+		const float CrankRPS_Out = Crank.RPS + (TotalTorque * DeltaTime) / Crank.MOI;
+		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
 	}
 }
 

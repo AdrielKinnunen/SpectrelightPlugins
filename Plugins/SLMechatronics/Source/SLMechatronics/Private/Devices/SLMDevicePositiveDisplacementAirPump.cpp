@@ -37,20 +37,18 @@ void USLMDeviceSubsystemPositiveDisplacementAirPump::Simulate(const float DeltaT
 		const FSLMDataAir Intake = DomainAir->GetByPortIndex(Model.Index_Air_Intake);
 		const FSLMDataAir Exhaust = DomainAir->GetByPortIndex(Model.Index_Air_Exhaust);
 		
-		const float IntakePressure = Intake.Pressure_atm;
-		const float ExhaustPressure = Exhaust.Pressure_atm;
-		const float PressureDifference = IntakePressure - ExhaustPressure;
+		const float PressureDifference = Intake.Pressure_bar - Exhaust.Pressure_bar;
 		const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * OneOverTwoPi;
-		const float LitersMoved = Model.DisplacementPerRev * Crank.RPS * DeltaTime;
-
-		const bool bIsNormalDirection = LitersMoved >= 0.0;
+		
+		const float LitersMoved = Model.DisplacementPerRev * FMath::Abs(Crank.RPS) * DeltaTime;
+		const bool bIsNormalDirection = Crank.RPS >= 0.0;
 		const int32 FromPort = bIsNormalDirection ? Model.Index_Air_Intake : Model.Index_Air_Exhaust;
 		const int32 ToPort = bIsNormalDirection ? Model.Index_Air_Exhaust : Model.Index_Air_Intake;
 		const FSLMDataAir Charge = DomainAir->RemoveAir(FromPort, LitersMoved);
 		DomainAir->AddAir(ToPort, Charge);
 		
-		const float CrankRPM_Out = (Crank.RPS * Crank.MOI + PumpingTorque * DeltaTime) / Crank.MOI;
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Crankshaft, CrankRPM_Out);
+		const float CrankRPS_Out = Crank.RPS + (PumpingTorque * DeltaTime) / Crank.MOI;
+		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
 	}
 }
 
