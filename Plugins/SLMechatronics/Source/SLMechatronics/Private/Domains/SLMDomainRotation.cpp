@@ -4,7 +4,8 @@
 
 int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port)
 {
-	const int32 PortIndex = Ports.Add(Port);
+	const int32 PortIndex = PortsData.Add(Port.PortData);
+	PortsMetaData.Add(Port.PortMetaData);
 	PortsRecentlyAdded.Add(PortIndex);
 	PortIndexToNetworkIndex.Add(-1);
 	bNeedsCleanup = true;
@@ -37,8 +38,8 @@ void USLMDomainRotation::CreateNetworkForPorts(const TArray<int32> PortIndices)
 	float SumMOI = 0;
 	for (const auto& PortIndex : PortIndices)
 	{
-		SumProduct += Ports[PortIndex].DefaultData.RPS * Ports[PortIndex].DefaultData.MOI;
-		SumMOI += Ports[PortIndex].DefaultData.MOI;
+		SumProduct += PortsData[PortIndex].RPS * PortsData[PortIndex].MOI;
+		SumMOI += PortsData[PortIndex].MOI;
 		PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
 	}
 	Networks[NetworkIndex].RPS = SumProduct / SumMOI;
@@ -48,12 +49,12 @@ void USLMDomainRotation::CreateNetworkForPorts(const TArray<int32> PortIndices)
 void USLMDomainRotation::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
 {
 	const FSLMDataRotation Network = Networks[NetworkIndex];
-	Ports[PortIndex].DefaultData.RPS = Network.RPS;
+	PortsData[PortIndex].RPS = Network.RPS;
 }
 
 void USLMDomainRotation::RemovePortAtIndex(const int32 PortIndex)
 {
-	Ports.RemoveAt(PortIndex);
+	PortsData.RemoveAt(PortIndex);
 }
 
 void USLMDomainRotation::RemoveNetworkAtIndex(const int32 NetworkIndex)
@@ -63,5 +64,5 @@ void USLMDomainRotation::RemoveNetworkAtIndex(const int32 NetworkIndex)
 
 void USLMDomainRotation::CreateNetworkForPort(const int32 Port)
 {
-	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);
+	PortIndexToNetworkIndex[Port] = Networks.Add(PortsData[Port]);
 }

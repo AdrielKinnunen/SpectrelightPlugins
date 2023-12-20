@@ -7,6 +7,31 @@ USLMDeviceComponentBase::USLMDeviceComponentBase()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+
+/*
+USceneComponent* USLMDeviceComponentBase::PortLocationDataToSceneComponent(FSLMPortLocationEditorData LocationData)
+{
+	const AActor* Owner = GetOwner();
+	USceneComponent* SceneComponent = nullptr;
+	for(UActorComponent* Component : Owner->GetComponents())
+	{
+		if(Component->GetFName() == LocationData.SceneComponentName)
+		{
+			SceneComponent = Cast<USceneComponent>(Component);
+		}
+	}
+	if (!SceneComponent)
+	{
+		SceneComponent = Owner->GetRootComponent();
+	}
+	return SceneComponent;
+}
+
+FVector USLMDeviceComponentBase::PortLocationDataToWorldLocation(FSLMPortLocationEditorData LocationData)
+{
+	return FVector();
+}
+*/
 void USLMDeviceComponentBase::BeginPlay()
 {
 	Super::BeginPlay();

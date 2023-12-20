@@ -1,26 +1,40 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-/*
+﻿// Copyright Spectrelight Studios, LLC
 #include "Devices/SLMDeviceDifferential.h"
 
+USLMDeviceComponentDifferential::USLMDeviceComponentDifferential()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void USLMDeviceComponentDifferential::BeginPlay()
+{
+	Super::BeginPlay();
+	GetWorld()->GetSubsystem<USLMDeviceSubsystemDifferential>()->RegisterDeviceComponent(this);
+}
+
+void USLMDeviceComponentDifferential::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetSubsystem<USLMDeviceSubsystemDifferential>()->DeRegisterDeviceComponent(this);
+	Super::EndPlay(EndPlayReason);
+}
 
 void USLMDeviceSubsystemDifferential::OnWorldBeginPlay(UWorld& InWorld)
 {
-	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
+	DomainRotation = GetWorld()->GetSubsystem<USLMDomainRotation>();
 	Super::OnWorldBeginPlay(InWorld);
 }
 
-void USLMDeviceSubsystemDifferential::PreSimulate(float DeltaTime)
+void USLMDeviceSubsystemDifferential::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemDifferential::Simulate(float DeltaTime)
+void USLMDeviceSubsystemDifferential::Simulate(const float DeltaTime)
 {
-	for (auto& [IndexShaftInput, IndexShaftLeft, IndexShaftRight] :Instances)
+	for (const auto Model : DeviceModels)
 	{
-		const auto [B,M] = DomainMech->GetNetworkData(IndexShaftInput);
-		const auto [C,N] = DomainMech->GetNetworkData(IndexShaftLeft);
-		const auto [D,O] = DomainMech->GetNetworkData(IndexShaftRight);
+		const auto [B,M] = DomainRotation->GetByPortIndex(Model.Index_Rotation_Input);
+		const auto [C,N] = DomainRotation->GetByPortIndex(Model.Index_Rotation_Left);
+		const auto [D,O] = DomainRotation->GetByPortIndex(Model.Index_Rotation_Right);
 	
 		const float Divisor = M*N + M*O + 4*N*O;
 
@@ -28,43 +42,47 @@ void USLMDeviceSubsystemDifferential::Simulate(float DeltaTime)
 		const float RightShaftVel_Out = (2*B*M*N + C*M*N + D*M*O + 4*D*N*O) / Divisor;
 		const float InputShaftVel_Out = 0.5 * (RightShaftVel_Out - LeftShaftVel_Out);
 
-		const FSLMDataMech Data_Input = FSLMDataMech(InputShaftVel_Out, M);
-		const FSLMDataMech Data_Left = FSLMDataMech(LeftShaftVel_Out, N);
-		const FSLMDataMech Data_Right = FSLMDataMech(RightShaftVel_Out, O);
-		
-		DomainMech->SetNetworkData(IndexShaftInput, Data_Input);
-		DomainMech->SetNetworkData(IndexShaftLeft, Data_Left);
-		DomainMech->SetNetworkData(IndexShaftRight, Data_Right);
+		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Input, InputShaftVel_Out);
+		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Left, LeftShaftVel_Out);
+		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Right, RightShaftVel_Out);
 	}
 }
 
-void USLMDeviceSubsystemDifferential::PostSimulate(float DeltaTime)
+void USLMDeviceSubsystemDifferential::PostSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemDifferential::AddInstance(const FSLMDeviceModelDifferential Instance)
+void USLMDeviceSubsystemDifferential::RegisterDeviceComponent(USLMDeviceComponentDifferential* DeviceComponent)
 {
-	Instances.Add(Instance);
+	const auto Index = AddDevice(DeviceComponent->DeviceSettings);
+	DeviceComponent->DeviceIndex = Index;
+	DeviceComponents.Insert(Index, DeviceComponent);
 }
 
-USLMDeviceComponentDifferential::USLMDeviceComponentDifferential()
+void USLMDeviceSubsystemDifferential::DeRegisterDeviceComponent(const USLMDeviceComponentDifferential* DeviceComponent)
 {
-	PrimaryComponentTick.bCanEverTick = false;
-	DomainMech = nullptr;
+	const auto Index = DeviceComponent->DeviceIndex;
+	RemoveDevice(Index);
+	DeviceComponents.RemoveAt(Index);
 }
 
-void USLMDeviceComponentDifferential::BeginPlay()
+int32 USLMDeviceSubsystemDifferential::AddDevice(FSLMDeviceDifferential Device)
 {
-	Super::BeginPlay();
-	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();
-	DeviceModel.IndexShaftInput = DomainMech->AddPort(PortShaftInput);
-	DeviceModel.IndexShaftLeft = DomainMech->AddPort(PortShaftLeft);
-	DeviceModel.IndexShaftRight = DomainMech->AddPort(PortShaftRight);
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemDifferential>()->AddInstance(DeviceModel);
+	Device.DeviceModel.Index_Rotation_Input = DomainRotation->AddPort(Device.Port_Rotation_Input);
+	Device.DeviceModel.Index_Rotation_Left = DomainRotation->AddPort(Device.Port_Rotation_Left);
+	Device.DeviceModel.Index_Rotation_Right = DomainRotation->AddPort(Device.Port_Rotation_Right);
+	return DeviceModels.Add(Device.DeviceModel);
 }
 
-void USLMDeviceComponentDifferential::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void USLMDeviceSubsystemDifferential::RemoveDevice(const int32 DeviceIndex)
 {
-	Super::EndPlay(EndPlayReason);
+	DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Rotation_Input);
+	DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Rotation_Left);
+	DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Rotation_Right);
+	DeviceModels.RemoveAt(DeviceIndex);
 }
-*/
+
+FSLMDeviceModelDifferential USLMDeviceSubsystemDifferential::GetDeviceState(const int32 DeviceIndex)
+{
+	return DeviceModels[DeviceIndex];
+}

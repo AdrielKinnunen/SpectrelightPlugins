@@ -2,10 +2,9 @@
 
 #include "Domains/SLMDomainAir.h"
 
-
 int32 USLMDomainAir::AddPort(const FSLMPortAir& Port)
 {
-	const int32 PortIndex = Ports.Add(Port);
+	const int32 PortIndex = PortsData.Add(Port.PortData);
 	PortsRecentlyAdded.Add(PortIndex);
 	PortIndexToNetworkIndex.Add(-1);
 	bNeedsCleanup = true;
@@ -62,7 +61,7 @@ void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 	//float Oxygen = kgPerLiterAtSSL;
 	for (const auto& PortIndex : PortIndices)
 	{
-		const auto Data = Ports[PortIndex].DefaultData;
+		const auto Data = PortsData[PortIndex];
 		
 		SumVolume += Data.Volume_l;
 		SumTemp += Data.Temp_K;
@@ -76,7 +75,7 @@ void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
 {
 	const FSLMDataAir NetworkData = Networks[NetworkIndex];
-	FSLMDataAir& PortData = Ports[PortIndex].DefaultData;
+	FSLMDataAir& PortData = PortsData[PortIndex];
 	
 	PortData.Pressure_bar = NetworkData.Pressure_bar;
 	PortData.Temp_K = NetworkData.Temp_K;
@@ -85,7 +84,7 @@ void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int3
 
 void USLMDomainAir::RemovePortAtIndex(const int32 PortIndex)
 {
-	Ports.RemoveAt(PortIndex);
+	PortsData.RemoveAt(PortIndex);
 }
 
 void USLMDomainAir::RemoveNetworkAtIndex(const int32 NetworkIndex)
@@ -95,5 +94,5 @@ void USLMDomainAir::RemoveNetworkAtIndex(const int32 NetworkIndex)
 
 void USLMDomainAir::CreateNetworkForPort(const int32 Port)
 {
-	PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port].DefaultData);
+	PortIndexToNetworkIndex[Port] = Networks.Add(PortsData[Port]);
 }

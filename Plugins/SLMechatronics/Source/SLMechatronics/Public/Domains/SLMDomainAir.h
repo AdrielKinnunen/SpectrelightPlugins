@@ -87,16 +87,15 @@ USTRUCT(BlueprintType)
 struct FSLMPortAir
 {
 	GENERATED_BODY()
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	FName PortName;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPortLocationData PortLocationData;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDataAir DefaultData;
+	FSLMDataAir PortData;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMPortMetaData PortMetaData;
 };
 
 
-UCLASS()
+UCLASS(BlueprintType)
 class SLMECHATRONICS_API USLMDomainAir : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
@@ -113,9 +112,11 @@ public:
 	//virtual void PostSimulate(const float DeltaTime) override;
 	
 private:
-	TSparseArray<FSLMPortAir> Ports;
+	TSparseArray<FSLMDataAir> PortsData;
 	TSparseArray<FSLMDataAir> Networks;
+	
 	void CreateNetworkForPort(const int32 Port);
+	
 	virtual void CreateNetworkForPorts(const TArray<int32> PortIndices) override;
 	virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, int32 PortIndex) override;
 	virtual void RemovePortAtIndex(const int32 PortIndex) override;

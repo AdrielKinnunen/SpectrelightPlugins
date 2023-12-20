@@ -4,56 +4,54 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
+#include "Domains/SLMDomainElectricity.h"
 #include "Domains/SLMDomainRotation.h"
-#include "SLMDeviceDoubleDifferential.generated.h"
+#include "Domains/SLMDomainSignal.h"
+#include "SLMDeviceMotor.generated.h"
 
 
 USTRUCT(BlueprintType)
-struct FSLMDeviceModelDoubleDifferential
+struct FSLMDeviceModelMotor
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float DriveRatio = 1.0;
+	float MaxPowerkW = 100;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float SteerRatio = 1.0;
+	float ConstantTorqueRPS = 60;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Drive = -1;
+	int32 Index_Rotation_Crankshaft = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Steer = -1;
+	int32 Index_Signal_Throttle = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Left = -1;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Right = -1;
+	int32 Index_Electricity = -1;
 };
 
 
 USTRUCT(BlueprintType)
-struct FSLMDeviceDoubleDifferential
+struct FSLMDeviceMotor
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMDeviceModelDoubleDifferential DeviceModel;
+	FSLMDeviceModelMotor DeviceModel;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Drive;
+	FSLMPortRotation Port_Rotation_Crankshaft;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Steer;
+	FSLMPortSignal Port_Signal_Throttle;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Left;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Right;
+	FSLMPortElectricity Port_Electricity;
 };
 
 
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
-class SLMECHATRONICS_API USLMDeviceComponentDoubleDifferential : public USLMDeviceComponentBase
+class SLMECHATRONICS_API USLMDeviceComponentMotor : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
 public:
-	USLMDeviceComponentDoubleDifferential();
+	USLMDeviceComponentMotor();
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDeviceDoubleDifferential DeviceSettings;
+	FSLMDeviceMotor DeviceSettings;
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -61,27 +59,30 @@ protected:
 
 
 UCLASS()
-class SLMECHATRONICS_API USLMDeviceSubsystemDoubleDifferential : public USLMDeviceSubsystemBase
+class SLMECHATRONICS_API USLMDeviceSubsystemMotor : public USLMDeviceSubsystemBase
 {
 	GENERATED_BODY()
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	virtual void PreSimulate(const float DeltaTime) override;
-	virtual void Simulate(const float DeltaTime) override;
-	virtual void PostSimulate(const float DeltaTime) override;
+	virtual void PreSimulate(float DeltaTime) override;
+	virtual void Simulate(float DeltaTime) override;
+	virtual void PostSimulate(float DeltaTime) override;
 
-	void RegisterDeviceComponent(USLMDeviceComponentDoubleDifferential* DeviceComponent);
-	void DeRegisterDeviceComponent(const USLMDeviceComponentDoubleDifferential* DeviceComponent);
+	void RegisterDeviceComponent(USLMDeviceComponentMotor* DeviceComponent);
+	void DeRegisterDeviceComponent(const USLMDeviceComponentMotor* DeviceComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	int32 AddDevice(FSLMDeviceDoubleDifferential Device);
+	int32 AddDevice(FSLMDeviceMotor Device);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelDoubleDifferential GetDeviceState(const int32 DeviceIndex);
+	FSLMDeviceModelMotor GetDeviceState(const int32 DeviceIndex);
+	
 private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
+	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
+	TWeakObjectPtr<USLMDomainElectricity> DomainElectricity;
 
-	TSparseArray<FSLMDeviceModelDoubleDifferential> DeviceModels;
-	TSparseArray<USLMDeviceComponentDoubleDifferential*> DeviceComponents;
+	TSparseArray<FSLMDeviceModelMotor> DeviceModels;
+	TSparseArray<USLMDeviceComponentMotor*> DeviceComponents;
 };

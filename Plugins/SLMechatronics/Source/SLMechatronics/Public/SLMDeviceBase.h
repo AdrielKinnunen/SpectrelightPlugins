@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SLMDomainBase.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMDeviceBase.generated.h"
 
+class USLMDomainSubsystemBase;
 
 UCLASS(Abstract)
 class SLMECHATRONICS_API USLMDeviceComponentBase : public UActorComponent
@@ -27,12 +29,7 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 DeviceIndex = -1;
 
-	//UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	//void SelectClosestPort(FVector WorldLocation, FGameplayTag Domain, bool& Success, FSLMPort& OutPort);
-	//UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	//static FVector PortToWorldLocation(FSLMPort Port);
-	//void UpdatePortLocationData();
-
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

@@ -5,72 +5,57 @@
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
 #include "UObject/Object.h"
-#include "SLMDomainRotation.generated.h"
+#include "SLMDomainElectricity.generated.h"
 
 
 USTRUCT(BlueprintType)
-struct FSLMDataRotation
+struct FSLMDataElectricity
 {
 	GENERATED_BODY()
 
-	FSLMDataRotation()
+	FSLMDataElectricity()
 	{
 	}
 
-	FSLMDataRotation(const float RPS, const float MOI): RPS(RPS), MOI(MOI)
+	FSLMDataElectricity(const float StoredJoules, const float CapacityJoules): StoredJoules(StoredJoules), CapacityJoules(CapacityJoules)
 	{
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float RPS = 0;
+	float StoredJoules = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MOI = 1;
+	float CapacityJoules = 1;
 };
 
 
 USTRUCT(BlueprintType)
-struct FSLMPortRotation
+struct FSLMPortElectricity
 {
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDataRotation PortData;
+	FSLMDataElectricity PortData;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMPortMetaData PortMetaData;
 };
 
 
 UCLASS(BlueprintType)
-class SLMECHATRONICS_API USLMDomainRotation : public USLMDomainSubsystemBase
+class SLMECHATRONICS_API USLMDomainElectricity : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
-	static constexpr float RADS_TO_RPM = 9.54929658551372;
-	
-	int32 AddPort(const FSLMPortRotation& Port);
+	int32 AddPort(const FSLMPortElectricity& Port);
 	void RemovePort(const int32 PortIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDataRotation GetByPortIndex(const int32 PortIndex);
+	FSLMDataElectricity GetByPortIndex(const int32 PortIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void SetNetworkAngVel(int32 PortIndex, float NewAngVel);
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	static float ConvertRPMtoRads(const float RPM)
-	{
-		return RPM / RADS_TO_RPM;
-	}
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	static float ConvertRadsToRPM(const float RPM)
-	{
-		return RPM * RADS_TO_RPM;
-	}
-
+	void SetJoulesByPortIndex(int32 PortIndex, float NewJoules);
 	
 private:
-	TSparseArray<FSLMDataRotation> PortsData;
-	TSparseArray<FSLMDataRotation> Networks;
+	TSparseArray<FSLMDataElectricity> PortsData;
+	TSparseArray<FSLMDataElectricity> Networks;
 
 	void CreateNetworkForPort(const int32 Port);
 

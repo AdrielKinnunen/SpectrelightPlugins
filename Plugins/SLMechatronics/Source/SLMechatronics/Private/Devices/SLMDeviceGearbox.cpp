@@ -9,6 +9,9 @@ USLMDeviceComponentGearbox::USLMDeviceComponentGearbox()
 void USLMDeviceComponentGearbox::BeginPlay()
 {
 	Super::BeginPlay();
+	const TWeakObjectPtr<AActor> OwningActor = GetOwner();
+	DeviceSettings.Port_Rotation_Input.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Rotation_Output.PortMetaData.AssociatedActor = OwningActor;
 	GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>()->RegisterDeviceComponent(this);
 }
 
@@ -54,14 +57,14 @@ void USLMDeviceSubsystemGearbox::RegisterDeviceComponent(USLMDeviceComponentGear
 {
 	const auto Index = AddDevice(DeviceComponent->DeviceSettings);
 	DeviceComponent->DeviceIndex = Index;
-	DeviceComponents.Insert(Index, DeviceComponent);
+	//DeviceComponents.Insert(Index, DeviceComponent);
 }
 
 void USLMDeviceSubsystemGearbox::DeRegisterDeviceComponent(const USLMDeviceComponentGearbox* DeviceComponent)
 {
 	const auto Index = DeviceComponent->DeviceIndex;
 	RemoveDevice(Index);
-	DeviceComponents.RemoveAt(Index);
+	//DeviceComponents.RemoveAt(Index);
 }
 
 int32 USLMDeviceSubsystemGearbox::AddDevice(FSLMDeviceGearbox Device)

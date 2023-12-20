@@ -57,35 +57,54 @@ void USLMDomainSubsystemBase::TestPrintAllData()
 	UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------"));
 }
 
+void USLMDomainSubsystemBase::PortDrawDebug()
+{
+	const auto Max = PortsMetaData.GetMaxIndex();
+	for (int32 i = 0; i < Max; i++)
+	{
+		if (PortsMetaData.IsValidIndex(i))
+		{
+			const auto MetaData = PortsMetaData[i];
+			const auto Transform = PortMetaDataToWorldTransform(MetaData);
+			const auto Location = Transform.GetLocation();
+			const FRotator Rotation = Transform.Rotator();
+			DrawDebugCoordinateSystem(GetWorld(), Location, Rotation, 200);
+		}
+	}
+}
+
+FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData)
+{
+	FTransform Result;
+
+	const TWeakObjectPtr<USceneComponent> Scene = MetaData.AssociatedSceneComponent;
+	if (Scene.IsValid())
+	{
+		Result = Scene->GetSocketTransform(MetaData.SocketName);
+		Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
+		return Result;
+	}
+	const TWeakObjectPtr<AActor> Actor = MetaData.AssociatedActor;
+	if (Actor.IsValid())
+	{
+		Result = Actor->GetTransform();
+		Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
+		return Result;
+	}
+	Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
+	return Result;
+}
+
 void USLMDomainSubsystemBase::ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex)
 {
 	ConnectionsToAdd.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
 	bNeedsCleanup = true;
-
-	/*if (FirstPortIndex != SecondPortIndex)
-	{
-		Adjacencies.Add(FirstPortIndex, SecondPortIndex);
-		Adjacencies.Add(SecondPortIndex, FirstPortIndex);
-		PortsDirty.Add(FirstPortIndex);
-		PortsDirty.Add(SecondPortIndex);
-		bNeedsCleanup = true;
-		UE_LOG(LogTemp, Warning, TEXT("Connecting Port %i to Port %i"), FirstPortIndex, SecondPortIndex);
-	}*/
 }
 
 void USLMDomainSubsystemBase::DisconnectPorts(int32 FirstPortIndex, int32 SecondPortIndex)
 {
 	ConnectionsToRemove.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
 	bNeedsCleanup = true;
-
-	/*
-	Adjacencies.Remove(FirstPortIndex, SecondPortIndex);
-	Adjacencies.Remove(SecondPortIndex, FirstPortIndex);
-	PortsDirty.Add(FirstPortIndex);
-	PortsDirty.Add(SecondPortIndex);
-	bNeedsCleanup = true;
-	UE_LOG(LogTemp, Warning, TEXT("Disonnecting Port %i from Port %i"), FirstPortIndex, SecondPortIndex);
-	*/
 }
 
 bool USLMDomainSubsystemBase::ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex)

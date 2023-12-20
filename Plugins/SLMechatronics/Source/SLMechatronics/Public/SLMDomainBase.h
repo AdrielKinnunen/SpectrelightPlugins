@@ -6,23 +6,26 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMDomainBase.generated.h"
 
-class USLMechatronicsSubsystem;
-
 
 USTRUCT(BlueprintType)
-struct FSLMPortLocationData
+struct FSLMPortMetaData
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FName PortName;
+	UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
+	TWeakObjectPtr<AActor> AssociatedActor;
+	UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
+	TWeakObjectPtr<USceneComponent> AssociatedSceneComponent;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	FName ComponentName;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	FName SceneComponentName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FName SocketName;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	FVector Offset;
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	//USceneComponent* SceneComponent = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FVector OffsetLocal;
 };
+
 
 
 USTRUCT(BlueprintType)
@@ -45,24 +48,33 @@ struct FSLMConnection
 };
 
 
-UCLASS(Abstract)
+UCLASS(Abstract, BlueprintType)
 class SLMECHATRONICS_API USLMDomainSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	USLMechatronicsSubsystem* Subsystem;
-
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void TestPrintAllData();
-
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	//USLMechatronicsSubsystem* Subsystem;
+	
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	void ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	void DisconnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void TestPrintAllData();
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void PortDrawDebug();
 
+	//UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	//FVector PortIndexToWorldLocation(int32 PortIndex);
+	//UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	//int32 LocationToPortIndex(FVector Location);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
+
+	
 	virtual void CheckForCleanUp();
 	virtual void PreSimulate(const float DeltaTime);
 	virtual void Simulate(const float DeltaTime);
@@ -77,11 +89,43 @@ protected:
 	TArray<FSLMConnection> ConnectionsToAdd;
 	TArray<FSLMConnection> ConnectionsToRemove;
 
+	TMultiMap<TWeakObjectPtr<AActor>, int32> ActorToPorts;
+	TSparseArray<FSLMPortMetaData> PortsMetaData;
+
 	virtual void CreateNetworkForPorts(TArray<int32> PortIndices);
 	virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
 	virtual void RemovePortAtIndex(int32 PortIndex);
 	virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
+	
 private:
 	void CleanUpGraph();
 	TSet<int32> GetConnectedPorts(const TSet<int32>& Roots) const;
 };
+
+/*
+{
+	double DistanceSquared = UE_BIG_NUMBER;
+	int32 PortIndex = -1;
+
+	if (Cast<USLMDomainRotation>(Domain))
+	{
+		//DeviceSettings.Port_Rotation_Input.PortLocationData.
+	}
+
+	
+
+	for (const auto& Port : Ports)
+	{
+		const FVector PortLocation = PortToWorldLocation(Port);
+		const double ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
+		if (ThisPortDistanceSquared < DistanceSquared)
+		{
+			DistanceSquared = ThisPortDistanceSquared;
+			OutPort = Port;
+			Success = true;
+		}
+	}
+	
+	return PortIndex;
+}
+*/

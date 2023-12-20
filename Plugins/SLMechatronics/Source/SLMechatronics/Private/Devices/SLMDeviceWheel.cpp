@@ -1,8 +1,7 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+/*
 #include "Devices/SLMDeviceWheel.h"
 
-/*
 void USLMDeviceSubsystemWheel::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DomainMech = GetWorld()->GetSubsystem<USLMDomainMech>();

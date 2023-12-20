@@ -45,6 +45,7 @@ public:
 	USLMDeviceComponentGearbox();
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceGearbox DeviceSettings;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -74,5 +75,5 @@ private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
 	TSparseArray<FSLMDeviceModelGearbox> DeviceModels;
-	TSparseArray<USLMDeviceComponentGearbox*> DeviceComponents;
+	//TSparseArray<TWeakObjectPtr<USLMDeviceComponentGearbox>> DeviceComponents;
 };
