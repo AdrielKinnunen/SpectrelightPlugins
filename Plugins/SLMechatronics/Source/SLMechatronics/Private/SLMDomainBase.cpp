@@ -73,6 +73,38 @@ void USLMDomainSubsystemBase::PortDrawDebug()
 	}
 }
 
+FVector USLMDomainSubsystemBase::PortIndexToWorldLocation(int32 PortIndex)
+{
+	if (PortsMetaData.IsValidIndex(PortIndex))
+	{
+		return PortMetaDataToWorldTransform(PortsMetaData[PortIndex]).GetLocation();
+	}
+	return FVector();
+}
+
+int32 USLMDomainSubsystemBase::WorldLocationToPortIndex(const FVector WorldLocation)
+{
+	float DistanceSquared = UE_BIG_NUMBER;
+	int32 PortIndex = -1;
+	
+	const auto Max = PortsMetaData.GetMaxIndex();
+	for (int32 i = 0; i < Max; i++)
+	{
+		if (PortsMetaData.IsValidIndex(i))
+		{
+			const FVector PortLocation = PortMetaDataToWorldTransform(PortsMetaData[i]).GetLocation();
+			const float ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
+			DrawDebugDirectionalArrow(GetWorld(), PortLocation, WorldLocation, 10, FColor::Purple);
+			if (ThisPortDistanceSquared < DistanceSquared)
+			{
+				DistanceSquared = ThisPortDistanceSquared;
+				PortIndex = i;
+			}
+		}
+	}
+	return PortIndex;
+}
+
 FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData)
 {
 	FTransform Result;
@@ -111,6 +143,28 @@ bool USLMDomainSubsystemBase::ArePortsConnected(int32 FirstPortIndex, int32 Seco
 {
 	return Adjacencies.FindPair(FirstPortIndex, SecondPortIndex) || Adjacencies.FindPair(SecondPortIndex, FirstPortIndex);
 }
+
+void USLMDomainSubsystemBase::AddPortMetaData(FSLMPortMetaData MetaData)
+{
+	TWeakObjectPtr<AActor> Actor = MetaData.AssociatedActor;
+	//TWeakObjectPtr<USceneComponent> SceneComp;
+	USceneComponent* SceneComp = nullptr;
+	for(UActorComponent* Component : MetaData.AssociatedActor->GetComponents())
+	{
+		if(Component->GetFName() == MetaData.SceneComponentName)
+		{
+			SceneComp = Cast<USceneComponent>(Component);
+		}
+	}
+
+	if (SceneComp)
+	{
+		MetaData.AssociatedSceneComponent = SceneComp;
+	}
+	const int32 Index = PortsMetaData.Add(MetaData);
+	ActorToPorts.Add(Actor, Index);
+}
+
 
 void USLMDomainSubsystemBase::CreateNetworkForPorts(TArray<int32> PortIndices)
 {
@@ -169,6 +223,9 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 		}
 		Adjacencies.Remove(PortIndex);
 		RemovePortAtIndex(PortIndex);
+		const auto Actor = PortsMetaData[PortIndex].AssociatedActor;
+		ActorToPorts.Remove(Actor, PortIndex);
+		PortsMetaData.RemoveAt(PortIndex);
 		PortIndexToNetworkIndex.RemoveAt(PortIndex);
 	}
 	PortsToRemove.Empty();

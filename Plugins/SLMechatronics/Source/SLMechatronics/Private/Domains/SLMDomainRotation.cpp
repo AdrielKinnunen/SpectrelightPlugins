@@ -5,7 +5,7 @@
 int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port)
 {
 	const int32 PortIndex = PortsData.Add(Port.PortData);
-	PortsMetaData.Add(Port.PortMetaData);
+	AddPortMetaData(Port.PortMetaData);
 	PortsRecentlyAdded.Add(PortIndex);
 	PortIndexToNetworkIndex.Add(-1);
 	bNeedsCleanup = true;

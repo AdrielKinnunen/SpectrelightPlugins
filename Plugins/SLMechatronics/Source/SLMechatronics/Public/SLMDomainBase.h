@@ -67,10 +67,10 @@ public:
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	virtual void PortDrawDebug();
 
-	//UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	//FVector PortIndexToWorldLocation(int32 PortIndex);
-	//UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	//int32 LocationToPortIndex(FVector Location);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	FVector PortIndexToWorldLocation(int32 PortIndex);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	int32 WorldLocationToPortIndex(const FVector WorldLocation);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
 
@@ -91,6 +91,9 @@ protected:
 
 	TMultiMap<TWeakObjectPtr<AActor>, int32> ActorToPorts;
 	TSparseArray<FSLMPortMetaData> PortsMetaData;
+	
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void AddPortMetaData(FSLMPortMetaData MetaData);
 
 	virtual void CreateNetworkForPorts(TArray<int32> PortIndices);
 	virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
