@@ -28,36 +28,40 @@ void USLMDomainSubsystemBase::PostSimulate(const float DeltaTime)
 {
 }
 
-void USLMDomainSubsystemBase::TestPrintAllData()
+void USLMDomainSubsystemBase::DebugPrint()
 {
-	UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------"));
-	UE_LOG(LogTemp, Warning, TEXT("    Printing all data for SLDomainBase"));
+	//GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, TEXT("-----------------------------------------------"));
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, TEXT("-----------------------------------------------"), false);
+	const auto ObjectName = this->GetName();
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, ObjectName, false);
 	TArray<int32> AdjacencyKeys;
 	Adjacencies.GetKeys(AdjacencyKeys);
-	UE_LOG(LogTemp, Warning, TEXT("Adjacency List:"));
 	for (const auto Key : AdjacencyKeys)
 	{
 		TArray<int32> Values;
 		Adjacencies.MultiFind(Key, Values);
 		for (const auto Value : Values)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("    Port %i is adjacent to port %i"), Key, Value);
+			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT(
+			"Port %i is adjacent to port %i"
+			), Key, Value), false);
 		}
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Port to Network mapping:"));
 	const auto Max = PortIndexToNetworkIndex.GetMaxIndex();
 	for (int32 i = 0; i < Max; i++)
 	{
 		if (PortIndexToNetworkIndex.IsValidIndex(i))
 		{
 			const auto Network = PortIndexToNetworkIndex[i];
-			UE_LOG(LogTemp, Warning, TEXT("    Port %i maps to network %i"), i, Network);
+			//UE_LOG(LogTemp, Warning, TEXT("    Port %i maps to network %i"), i, Network);
+			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT(
+			"Port %i maps to network %i"
+			), i, Network), false);
 		}
 	}
-	UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------"));
 }
 
-void USLMDomainSubsystemBase::PortDrawDebug()
+void USLMDomainSubsystemBase::DebugDraw()
 {
 	const auto Max = PortsMetaData.GetMaxIndex();
 	for (int32 i = 0; i < Max; i++)
@@ -82,7 +86,7 @@ FVector USLMDomainSubsystemBase::PortIndexToWorldLocation(int32 PortIndex)
 	return FVector();
 }
 
-int32 USLMDomainSubsystemBase::WorldLocationToPortIndex(const FVector WorldLocation)
+int32 USLMDomainSubsystemBase::GetClosestPortIndexGlobal(const FVector WorldLocation)
 {
 	float DistanceSquared = UE_BIG_NUMBER;
 	int32 PortIndex = -1;
@@ -94,7 +98,30 @@ int32 USLMDomainSubsystemBase::WorldLocationToPortIndex(const FVector WorldLocat
 		{
 			const FVector PortLocation = PortMetaDataToWorldTransform(PortsMetaData[i]).GetLocation();
 			const float ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
-			DrawDebugDirectionalArrow(GetWorld(), PortLocation, WorldLocation, 10, FColor::Purple);
+			if (ThisPortDistanceSquared < DistanceSquared)
+			{
+				DistanceSquared = ThisPortDistanceSquared;
+				PortIndex = i;
+			}
+		}
+	}
+	return PortIndex;
+}
+
+int32 USLMDomainSubsystemBase::GetClosestPortIndexActor(const FVector WorldLocation, const AActor* Actor)
+{
+	float DistanceSquared = UE_BIG_NUMBER;
+	int32 PortIndex = -1;
+
+	TArray<int32> Indices;
+	ActorToPorts.MultiFind(Actor, Indices);
+	
+	for (const auto i:Indices)
+	{
+		if (PortsMetaData.IsValidIndex(i))
+		{
+			const FVector PortLocation = PortMetaDataToWorldTransform(PortsMetaData[i]).GetLocation();
+			const float ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
 			if (ThisPortDistanceSquared < DistanceSquared)
 			{
 				DistanceSquared = ThisPortDistanceSquared;
@@ -109,15 +136,13 @@ FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortM
 {
 	FTransform Result;
 
-	const TWeakObjectPtr<USceneComponent> Scene = MetaData.AssociatedSceneComponent;
-	if (Scene.IsValid())
+	if (const USceneComponent* Scene = MetaData.AssociatedSceneComponent)
 	{
 		Result = Scene->GetSocketTransform(MetaData.SocketName);
 		Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
 		return Result;
 	}
-	const TWeakObjectPtr<AActor> Actor = MetaData.AssociatedActor;
-	if (Actor.IsValid())
+	if (const AActor* Actor = MetaData.AssociatedActor)
 	{
 		Result = Actor->GetTransform();
 		Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
@@ -146,9 +171,8 @@ bool USLMDomainSubsystemBase::ArePortsConnected(int32 FirstPortIndex, int32 Seco
 
 void USLMDomainSubsystemBase::AddPortMetaData(FSLMPortMetaData MetaData)
 {
-	TWeakObjectPtr<AActor> Actor = MetaData.AssociatedActor;
-	//TWeakObjectPtr<USceneComponent> SceneComp;
-	USceneComponent* SceneComp = nullptr;
+	const AActor* Actor = MetaData.AssociatedActor;
+	const USceneComponent* SceneComp = nullptr;
 	for(UActorComponent* Component : MetaData.AssociatedActor->GetComponents())
 	{
 		if(Component->GetFName() == MetaData.SceneComponentName)

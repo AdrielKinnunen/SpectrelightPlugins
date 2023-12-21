@@ -9,7 +9,7 @@ USLMDeviceComponentGearbox::USLMDeviceComponentGearbox()
 void USLMDeviceComponentGearbox::BeginPlay()
 {
 	Super::BeginPlay();
-	const TWeakObjectPtr<AActor> OwningActor = GetOwner();
+	const AActor* OwningActor = GetOwner();
 	DeviceSettings.Port_Rotation_Input.PortMetaData.AssociatedActor = OwningActor;
 	DeviceSettings.Port_Rotation_Output.PortMetaData.AssociatedActor = OwningActor;
 	GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>()->RegisterDeviceComponent(this);

@@ -15,9 +15,9 @@ struct FSLMPortMetaData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FName PortName;
 	UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
-	TWeakObjectPtr<AActor> AssociatedActor;
+	const AActor* AssociatedActor;
 	UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
-	TWeakObjectPtr<USceneComponent> AssociatedSceneComponent;
+	const USceneComponent* AssociatedSceneComponent;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	FName SceneComponentName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
@@ -63,14 +63,16 @@ public:
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void TestPrintAllData();
+	virtual void DebugPrint();
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void PortDrawDebug();
+	virtual void DebugDraw();
 
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	FVector PortIndexToWorldLocation(int32 PortIndex);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	int32 WorldLocationToPortIndex(const FVector WorldLocation);
+	int32 GetClosestPortIndexGlobal(const FVector WorldLocation);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	int32 GetClosestPortIndexActor(const FVector WorldLocation, const AActor* Actor);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
 
@@ -89,7 +91,7 @@ protected:
 	TArray<FSLMConnection> ConnectionsToAdd;
 	TArray<FSLMConnection> ConnectionsToRemove;
 
-	TMultiMap<TWeakObjectPtr<AActor>, int32> ActorToPorts;
+	TMultiMap<const AActor*, int32> ActorToPorts;
 	TSparseArray<FSLMPortMetaData> PortsMetaData;
 	
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")

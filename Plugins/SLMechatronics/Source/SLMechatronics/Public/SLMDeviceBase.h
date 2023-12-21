@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SLMDomainBase.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMDeviceBase.generated.h"
 
@@ -41,6 +40,7 @@ class SLMECHATRONICS_API USLMDeviceSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:
+	
 	virtual void PreSimulate(const float DeltaTime);
 	virtual void Simulate(const float DeltaTime);
 	virtual void PostSimulate(const float DeltaTime);
