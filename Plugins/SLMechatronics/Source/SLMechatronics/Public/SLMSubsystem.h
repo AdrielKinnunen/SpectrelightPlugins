@@ -42,7 +42,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	int32 StepCount = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	bool DebugDraw = false;
+	bool DebugDrawPorts = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	bool DebugDrawConnections = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	bool DebugPrint = false;
 

@@ -33,9 +33,9 @@ struct FSLMPortRotation
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMDataRotation PortData;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortMetaData PortMetaData;
 };
 
@@ -46,14 +46,18 @@ class SLMECHATRONICS_API USLMDomainRotation : public USLMDomainSubsystemBase
 	GENERATED_BODY()
 public:
 	static constexpr float RADS_TO_RPM = 9.54929658551372;
-	
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
 	int32 AddPort(const FSLMPortRotation& Port);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
 	void RemovePort(const int32 PortIndex);
 
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics|Rotation")
 	FSLMDataRotation GetByPortIndex(const int32 PortIndex);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void SetNetworkAngVel(int32 PortIndex, float NewAngVel);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
+	void SetNetworkAngVel(const int32 PortIndex, const float NewAngVel);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
+	void AddTorque(int32 PortIndex, float Torque, float DeltaTime);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	static float ConvertRPMtoRads(const float RPM)

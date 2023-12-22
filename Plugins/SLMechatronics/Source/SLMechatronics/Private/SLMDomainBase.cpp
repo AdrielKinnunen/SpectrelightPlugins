@@ -61,7 +61,7 @@ void USLMDomainSubsystemBase::DebugPrint()
 	}
 }
 
-void USLMDomainSubsystemBase::DebugDraw()
+void USLMDomainSubsystemBase::DebugDrawPorts()
 {
 	const auto Max = PortsMetaData.GetMaxIndex();
 	for (int32 i = 0; i < Max; i++)
@@ -77,7 +77,17 @@ void USLMDomainSubsystemBase::DebugDraw()
 	}
 }
 
-FVector USLMDomainSubsystemBase::PortIndexToWorldLocation(int32 PortIndex)
+void USLMDomainSubsystemBase::DebugDrawConnections()
+{
+	for (const auto Pair : Adjacencies)
+	{
+		const FVector Start = PortIndexToWorldLocation(Pair.Key);
+		const FVector End = PortIndexToWorldLocation(Pair.Value);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, -1, 0, 10);
+	}
+}
+
+FVector USLMDomainSubsystemBase::PortIndexToWorldLocation(const int32 PortIndex)
 {
 	if (PortsMetaData.IsValidIndex(PortIndex))
 	{
@@ -152,19 +162,25 @@ FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortM
 	return Result;
 }
 
-void USLMDomainSubsystemBase::ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex)
+void USLMDomainSubsystemBase::ConnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex)
 {
-	ConnectionsToAdd.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
-	bNeedsCleanup = true;
+	if (FirstPortIndex != SecondPortIndex)
+	{
+		ConnectionsToAdd.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
+		bNeedsCleanup = true;
+	}
 }
 
-void USLMDomainSubsystemBase::DisconnectPorts(int32 FirstPortIndex, int32 SecondPortIndex)
+void USLMDomainSubsystemBase::DisconnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex)
 {
-	ConnectionsToRemove.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
-	bNeedsCleanup = true;
+	if (FirstPortIndex != SecondPortIndex)
+	{
+		ConnectionsToRemove.Add(FSLMConnection(FirstPortIndex, SecondPortIndex));
+		bNeedsCleanup = true;
+	}
 }
 
-bool USLMDomainSubsystemBase::ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex)
+bool USLMDomainSubsystemBase::ArePortsConnected(const int32 FirstPortIndex, const int32 SecondPortIndex)
 {
 	return Adjacencies.FindPair(FirstPortIndex, SecondPortIndex) || Adjacencies.FindPair(SecondPortIndex, FirstPortIndex);
 }
@@ -214,8 +230,8 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 	//Handle ConnectionsToAdd
 	for (const auto& [FirstIndex, SecondIndex] : ConnectionsToAdd)
 	{
-		Adjacencies.Add(FirstIndex, SecondIndex);
-		Adjacencies.Add(SecondIndex, FirstIndex);
+		Adjacencies.AddUnique(FirstIndex, SecondIndex);
+		Adjacencies.AddUnique(SecondIndex, FirstIndex);
 		PortsDirty.Add(FirstIndex);
 		PortsDirty.Add(SecondIndex);
 	}

@@ -1,5 +1,4 @@
-﻿// Copyright Spectrelight Studios, LLC
-/*
+﻿/*// Copyright Spectrelight Studios, LLC
 #include "Devices/SLMDeviceWheel.h"
 
 void USLMDeviceSubsystemWheel::OnWorldBeginPlay(UWorld& InWorld)
@@ -82,7 +81,7 @@ void USLMDeviceComponentWheel::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-/*
+
 #include "DeviceComponents/SLMDeviceSimpleWheel.h"
 
 #include "SLMechatronicsGameplayTags.h"
@@ -172,6 +171,4 @@ void USLMDeviceSimpleWheel::BeginPlay()
 		WheelColliderComponent->OnComponentHit.AddDynamic(this, &USLMDeviceSimpleWheel::OnComponentHit);
 		WheelMass = WheelColliderComponent->GetMass();
 	}
-}
-#1#
-*/
+}*/

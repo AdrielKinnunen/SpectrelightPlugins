@@ -30,6 +30,13 @@ void USLMDomainRotation::SetNetworkAngVel(const int32 PortIndex, const float New
 	Networks[NetworkIndex].RPS = NewAngVel;
 }
 
+void USLMDomainRotation::AddTorque(const int32 PortIndex, const float Torque, const float DeltaTime)
+{
+	const FSLMDataRotation Network = GetByPortIndex(PortIndex);
+	const float NewAngVel = Network.RPS + Torque * DeltaTime;
+	SetNetworkAngVel(PortIndex, NewAngVel);
+}
+
 void USLMDomainRotation::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Creating network for %i ports"), PortIndices.Num());

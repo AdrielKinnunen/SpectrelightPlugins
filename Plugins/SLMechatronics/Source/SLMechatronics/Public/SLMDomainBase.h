@@ -53,29 +53,28 @@ class SLMECHATRONICS_API USLMDomainSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	//USLMechatronicsSubsystem* Subsystem;
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
+	void ConnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
+	void DisconnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics|Connections")
+	bool ArePortsConnected(const int32 FirstPortIndex, const int32 SecondPortIndex);
 	
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	void ConnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	void DisconnectPorts(int32 FirstPortIndex, int32 SecondPortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	bool ArePortsConnected(int32 FirstPortIndex, int32 SecondPortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void DebugPrint();
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void DebugDraw();
-
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	FVector PortIndexToWorldLocation(int32 PortIndex);
+	FVector PortIndexToWorldLocation(const int32 PortIndex);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	int32 GetClosestPortIndexGlobal(const FVector WorldLocation);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	int32 GetClosestPortIndexActor(const FVector WorldLocation, const AActor* Actor);
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
-
+	
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void DebugPrint();
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void DebugDrawPorts();
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void DebugDrawConnections();
 	
 	virtual void CheckForCleanUp();
 	virtual void PreSimulate(const float DeltaTime);
@@ -93,9 +92,8 @@ protected:
 
 	TMultiMap<const AActor*, int32> ActorToPorts;
 	TSparseArray<FSLMPortMetaData> PortsMetaData;
-	
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void AddPortMetaData(FSLMPortMetaData MetaData);
+
+	void AddPortMetaData(FSLMPortMetaData MetaData);
 
 	virtual void CreateNetworkForPorts(TArray<int32> PortIndices);
 	virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
@@ -106,31 +104,3 @@ private:
 	void CleanUpGraph();
 	TSet<int32> GetConnectedPorts(const TSet<int32>& Roots) const;
 };
-
-/*
-{
-	double DistanceSquared = UE_BIG_NUMBER;
-	int32 PortIndex = -1;
-
-	if (Cast<USLMDomainRotation>(Domain))
-	{
-		//DeviceSettings.Port_Rotation_Input.PortLocationData.
-	}
-
-	
-
-	for (const auto& Port : Ports)
-	{
-		const FVector PortLocation = PortToWorldLocation(Port);
-		const double ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
-		if (ThisPortDistanceSquared < DistanceSquared)
-		{
-			DistanceSquared = ThisPortDistanceSquared;
-			OutPort = Port;
-			Success = true;
-		}
-	}
-	
-	return PortIndex;
-}
-*/

@@ -62,9 +62,13 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("PreSimulate"), STAT_PreSimulate, STATGROUP_SLMechatronics)
 		for (const auto DomainSubsystem : DomainSubsystems)
 		{
-			if (DebugDraw)
+			if (DebugDrawPorts)
 			{
-				DomainSubsystem->DebugDraw();
+				DomainSubsystem->DebugDrawPorts();
+			}
+			if (DebugDrawConnections)
+			{
+				DomainSubsystem->DebugDrawConnections();
 			}
 			if (DebugPrint)
 			{
@@ -74,7 +78,7 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 		}
 		for (const auto& DeviceSubsystem : DeviceSubsystems)
 		{
-			if (DebugDraw)
+			if (DebugDrawPorts)
 			{
 			}
 			if (DebugPrint)
