@@ -88,9 +88,9 @@ struct FSLMPortAir
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMDataAir PortData;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortMetaData PortMetaData;
 };
 
@@ -100,16 +100,21 @@ class SLMECHATRONICS_API USLMDomainAir : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
+	USLMDomainAir();
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddPort(const FSLMPortAir& Port);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void RemovePort(const int32 PortIndex);
-	
+
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
 	FSLMDataAir GetByPortIndex(const int32 PortIndex);
-	
-	FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd);
-		
-	//void WriteData(const int32 PortIndex, const float Data);
-	//virtual void PostSimulate(const float DeltaTime) override;
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
+	
+	virtual void Simulate(const float DeltaTime) override;
 	
 private:
 	TSparseArray<FSLMDataAir> PortsData;

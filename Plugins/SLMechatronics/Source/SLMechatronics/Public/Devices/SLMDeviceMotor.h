@@ -9,6 +9,7 @@
 #include "Domains/SLMDomainSignal.h"
 #include "SLMDeviceMotor.generated.h"
 
+class USLMDeviceSubsystemMotor;
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelMotor
@@ -16,7 +17,7 @@ struct FSLMDeviceModelMotor
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MaxPowerkW = 100;
+	float MaxPowerkW = 1000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float ConstantTorqueRPS = 60;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -38,9 +39,9 @@ struct FSLMDeviceMotor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortRotation Port_Rotation_Crankshaft;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortSignal Port_Signal_Throttle;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortElectricity Port_Electricity;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSignal Port_Signal_Throttle;
 };
 
 
@@ -49,9 +50,14 @@ class SLMECHATRONICS_API USLMDeviceComponentMotor : public USLMDeviceComponentBa
 {
 	GENERATED_BODY()
 public:
-	USLMDeviceComponentMotor();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	USLMDeviceSubsystemMotor* Subsystem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceMotor DeviceSettings;
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDeviceModelMotor GetDeviceState() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -64,12 +70,9 @@ class SLMECHATRONICS_API USLMDeviceSubsystemMotor : public USLMDeviceSubsystemBa
 	GENERATED_BODY()
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	virtual void PreSimulate(float DeltaTime) override;
-	virtual void Simulate(float DeltaTime) override;
-	virtual void PostSimulate(float DeltaTime) override;
-
-	void RegisterDeviceComponent(USLMDeviceComponentMotor* DeviceComponent);
-	void DeRegisterDeviceComponent(const USLMDeviceComponentMotor* DeviceComponent);
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime) override;
+	virtual void PostSimulate(const float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddDevice(FSLMDeviceMotor Device);
@@ -82,7 +85,5 @@ private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
 	TWeakObjectPtr<USLMDomainElectricity> DomainElectricity;
-
 	TSparseArray<FSLMDeviceModelMotor> DeviceModels;
-	TSparseArray<USLMDeviceComponentMotor*> DeviceComponents;
 };

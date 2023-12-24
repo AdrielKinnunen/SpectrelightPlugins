@@ -99,6 +99,9 @@ protected:
 	virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
 	virtual void RemovePortAtIndex(int32 PortIndex);
 	virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
+
+	//Debug
+	FColor DomainColor = FColor::White;
 	
 private:
 	void CleanUpGraph();

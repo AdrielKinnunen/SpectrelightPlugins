@@ -35,7 +35,7 @@ struct FSLMPortRotation
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMDataRotation PortData;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortMetaData PortMetaData;
 };
 
@@ -45,33 +45,20 @@ class SLMECHATRONICS_API USLMDomainRotation : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
-	static constexpr float RADS_TO_RPM = 9.54929658551372;
-
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
+	USLMDomainRotation();
+	
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddPort(const FSLMPortRotation& Port);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void RemovePort(const int32 PortIndex);
 
-	UFUNCTION(BlueprintPure, Category = "SLMechatronics|Rotation")
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
 	FSLMDataRotation GetByPortIndex(const int32 PortIndex);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
-	void SetNetworkAngVel(const int32 PortIndex, const float NewAngVel);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics|Rotation")
-	void AddTorque(int32 PortIndex, float Torque, float DeltaTime);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SetAngVelByPortIndex(const int32 PortIndex, const float NewAngVel);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	static float ConvertRPMtoRads(const float RPM)
-	{
-		return RPM / RADS_TO_RPM;
-	}
+	virtual void Simulate(const float DeltaTime) override;
 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	static float ConvertRadsToRPM(const float RPM)
-	{
-		return RPM * RADS_TO_RPM;
-	}
-
-	
 private:
 	TSparseArray<FSLMDataRotation> PortsData;
 	TSparseArray<FSLMDataRotation> Networks;

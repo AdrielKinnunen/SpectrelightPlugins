@@ -2,26 +2,34 @@
 
 #include "Devices/SLMDeviceMotor.h"
 
-USLMDeviceComponentMotor::USLMDeviceComponentMotor()
+FSLMDeviceModelMotor USLMDeviceComponentMotor::GetDeviceState() const
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	return Subsystem->GetDeviceState(DeviceIndex);
 }
 
 void USLMDeviceComponentMotor::BeginPlay()
 {
 	Super::BeginPlay();
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemMotor>()->RegisterDeviceComponent(this);
+	const AActor* OwningActor = GetOwner();
+	DeviceSettings.Port_Electricity.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Rotation_Crankshaft.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Signal_Throttle.PortMetaData.AssociatedActor = OwningActor;
+
+	Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemMotor>();
+	DeviceIndex = Subsystem->AddDevice(DeviceSettings);
 }
 
 void USLMDeviceComponentMotor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemMotor>()->DeRegisterDeviceComponent(this);
+	Subsystem->RemoveDevice(DeviceIndex);
 	Super::EndPlay(EndPlayReason);
 }
 
 void USLMDeviceSubsystemMotor::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DomainRotation = GetWorld()->GetSubsystem<USLMDomainRotation>();
+	DomainSignal = GetWorld()->GetSubsystem<USLMDomainSignal>();
+	DomainElectricity = GetWorld()->GetSubsystem<USLMDomainElectricity>();
 	Super::OnWorldBeginPlay(InWorld);
 }
 
@@ -36,18 +44,24 @@ void USLMDeviceSubsystemMotor::Simulate(const float DeltaTime)
 		const FSLMDataRotation Crank = DomainRotation->GetByPortIndex(Model.Index_Rotation_Crankshaft);
 		const FSLMDataElectricity Electricity = DomainElectricity->GetByPortIndex(Model.Index_Electricity);
 		const float Throttle = FMath::Clamp(DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle), -1.0, 1.0);
-
-		const float MaxTorque = Model.MaxPowerkW / Model.ConstantTorqueRPS;			//max torque from engine stats
-		const float AvailableTorque = FMath::Abs(Crank.RPS) < Model.ConstantTorqueRPS ? MaxTorque : FMath::Abs(Model.MaxPowerkW / Crank.RPS);			//constant torque or power regime?
-		const float TorqueDemand = Throttle * AvailableTorque;			//how much torque we want?
-		const float EnergyFlowDemand = TorqueDemand * Crank.RPS * DeltaTime;		//how much energy does that require? Does 0 make sense?
-		const float EnergyFlow = FMath::Clamp(EnergyFlowDemand, Electricity.StoredJoules, Electricity.StoredJoules - Electricity.CapacityJoules);		//how much energy or room for energy do we have?
-		const float ActualTorque = EnergyFlow / (Crank.RPS * DeltaTime);			//friggin divide by zero again
-
-
+		const float MaxTorque = Model.MaxPowerkW / Model.ConstantTorqueRPS;
+		const float TorqueDemand = Throttle * MaxTorque;
+		const float InitialJoules = Electricity.StoredJoules;
 		
+		const float EnergyFlowDemand = -1 * TorqueDemand * DeltaTime * ((Crank.RPS > 0.0) ? 1.0 : -1.0);			//TODO: Better system than this, this sucks.
+		const float NewJoules = FMath::Clamp(InitialJoules + EnergyFlowDemand, 0.0, Electricity.CapacityJoules);
+		const float EnergyFlow = NewJoules - InitialJoules;
+		
+		float TorqueMultiplier = 0.0;
+		if (!FMath::IsNearlyZero(EnergyFlowDemand))
+		{
+			TorqueMultiplier = EnergyFlow / EnergyFlowDemand;
+		}
+		const float ActualTorque = TorqueDemand * TorqueMultiplier;
 		const float CrankRPS_Out = Crank.RPS + ActualTorque * DeltaTime / Crank.MOI;
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+		
+		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+		DomainElectricity->SetJoulesByPortIndex(Model.Index_Electricity, NewJoules);
 	}
 }
 
@@ -55,24 +69,11 @@ void USLMDeviceSubsystemMotor::PostSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemMotor::RegisterDeviceComponent(USLMDeviceComponentMotor* DeviceComponent)
-{
-	const auto Index = AddDevice(DeviceComponent->DeviceSettings);
-	DeviceComponent->DeviceIndex = Index;
-	DeviceComponents.Insert(Index, DeviceComponent);
-}
-
-void USLMDeviceSubsystemMotor::DeRegisterDeviceComponent(const USLMDeviceComponentMotor* DeviceComponent)
-{
-	const auto Index = DeviceComponent->DeviceIndex;
-	RemoveDevice(Index);
-	DeviceComponents.RemoveAt(Index);
-}
-
 int32 USLMDeviceSubsystemMotor::AddDevice(FSLMDeviceMotor Device)
 {
 	Device.DeviceModel.Index_Rotation_Crankshaft = DomainRotation->AddPort(Device.Port_Rotation_Crankshaft);
 	Device.DeviceModel.Index_Signal_Throttle = DomainSignal->AddPort(Device.Port_Signal_Throttle);
+	Device.DeviceModel.Index_Electricity = DomainElectricity->AddPort(Device.Port_Electricity);
 	return DeviceModels.Add(Device.DeviceModel);
 }
 
@@ -80,6 +81,8 @@ void USLMDeviceSubsystemMotor::RemoveDevice(const int32 DeviceIndex)
 {
 	DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Rotation_Crankshaft);
 	DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Throttle);
+	DomainElectricity->RemovePort(DeviceModels[DeviceIndex].Index_Electricity);
+	
 	DeviceModels.RemoveAt(DeviceIndex);
 }
 

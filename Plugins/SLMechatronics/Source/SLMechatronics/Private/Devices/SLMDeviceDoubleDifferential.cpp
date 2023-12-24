@@ -1,20 +1,28 @@
 ﻿// Copyright Spectrelight Studios, LLC
+
 #include "Devices/SLMDeviceDoubleDifferential.h"
 
-USLMDeviceComponentDoubleDifferential::USLMDeviceComponentDoubleDifferential()
+FSLMDeviceModelDoubleDifferential USLMDeviceComponentDoubleDifferential::GetDeviceState() const
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	return Subsystem->GetDeviceState(DeviceIndex);
 }
 
 void USLMDeviceComponentDoubleDifferential::BeginPlay()
 {
 	Super::BeginPlay();
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemDoubleDifferential>()->RegisterDeviceComponent(this);
+	const AActor* OwningActor = GetOwner();
+	DeviceSettings.Port_Rotation_Drive.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Rotation_Steer.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Rotation_Left.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Rotation_Right.PortMetaData.AssociatedActor = OwningActor;
+	
+	Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemDoubleDifferential>();
+	DeviceIndex = Subsystem->AddDevice(DeviceSettings);
 }
 
 void USLMDeviceComponentDoubleDifferential::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemDoubleDifferential>()->DeRegisterDeviceComponent(this);
+	Subsystem->RemoveDevice(DeviceIndex);
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -44,29 +52,15 @@ void USLMDeviceSubsystemDoubleDifferential::Simulate(const float DeltaTime)
 		const float Y = X - W;
 		const float Z = X + W;
 		
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Drive, W);
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Steer, X);
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Left, Y);
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Right, Z);
+		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Drive, W);
+		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Steer, X);
+		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Left, Y);
+		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Right, Z);
 	}
 }
 
 void USLMDeviceSubsystemDoubleDifferential::PostSimulate(const float DeltaTime)
 {
-}
-
-void USLMDeviceSubsystemDoubleDifferential::RegisterDeviceComponent(USLMDeviceComponentDoubleDifferential* DeviceComponent)
-{
-	const auto Index = AddDevice(DeviceComponent->DeviceSettings);
-	DeviceComponent->DeviceIndex = Index;
-	DeviceComponents.Insert(Index, DeviceComponent);
-}
-
-void USLMDeviceSubsystemDoubleDifferential::DeRegisterDeviceComponent(const USLMDeviceComponentDoubleDifferential* DeviceComponent)
-{
-	const auto Index = DeviceComponent->DeviceIndex;
-	RemoveDevice(Index);
-	DeviceComponents.RemoveAt(Index);
 }
 
 int32 USLMDeviceSubsystemDoubleDifferential::AddDevice(FSLMDeviceDoubleDifferential Device)

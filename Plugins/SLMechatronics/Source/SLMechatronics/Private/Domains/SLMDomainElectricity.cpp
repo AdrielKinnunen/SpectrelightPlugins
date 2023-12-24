@@ -2,9 +2,15 @@
 
 #include "Domains/SLMDomainElectricity.h"
 
+USLMDomainElectricity::USLMDomainElectricity()
+{
+	DomainColor = FColor::Yellow;
+}
+
 int32 USLMDomainElectricity::AddPort(const FSLMPortElectricity& Port)
 {
 	const int32 PortIndex = PortsData.Add(Port.PortData);
+	AddPortMetaData(Port.PortMetaData);
 	PortsRecentlyAdded.Add(PortIndex);
 	PortIndexToNetworkIndex.Add(-1);
 	bNeedsCleanup = true;
@@ -19,19 +25,22 @@ void USLMDomainElectricity::RemovePort(const int32 PortIndex)
 
 FSLMDataElectricity USLMDomainElectricity::GetByPortIndex(const int32 PortIndex)
 {
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
 	return Networks[NetworkIndex];
 }
 
 void USLMDomainElectricity::SetJoulesByPortIndex(int32 PortIndex, float NewJoules)
 {
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
 	Networks[NetworkIndex].StoredJoules = NewJoules;
 }
 
 void USLMDomainElectricity::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Creating network for %i ports"), PortIndices.Num());
 	const int32 NetworkIndex = Networks.Add(FSLMDataElectricity());
 	float SumStored= 0;
 	float SumCapacity = 0;

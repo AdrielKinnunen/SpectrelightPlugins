@@ -83,7 +83,7 @@ void USLMDomainSubsystemBase::DebugDrawConnections()
 	{
 		const FVector Start = PortIndexToWorldLocation(Pair.Key);
 		const FVector End = PortIndexToWorldLocation(Pair.Value);
-		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, -1, 0, 10);
+		DrawDebugLine(GetWorld(), Start, End, DomainColor, false, -1, 0, 10);
 	}
 }
 

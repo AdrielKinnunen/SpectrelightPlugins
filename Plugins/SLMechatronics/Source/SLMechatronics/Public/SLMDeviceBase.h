@@ -16,20 +16,17 @@ public:
 	USLMDeviceComponentBase();
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSLMEventSignature, float, DeltaTime);
-
-
+	
 	UPROPERTY(BlueprintAssignable)
 	FSLMEventSignature OnPreSimulate;
 	UPROPERTY(BlueprintAssignable)
 	FSLMEventSignature OnSimulate;
 	UPROPERTY(BlueprintAssignable)
 	FSLMEventSignature OnPostSimulate;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 DeviceIndex = -1;
-
 	
 protected:
+	int32 DeviceIndex = -1;
+	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

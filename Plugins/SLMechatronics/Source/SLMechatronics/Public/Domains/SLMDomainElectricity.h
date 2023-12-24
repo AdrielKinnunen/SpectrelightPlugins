@@ -33,9 +33,9 @@ struct FSLMPortElectricity
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMDataElectricity PortData;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortMetaData PortMetaData;
 };
 
@@ -45,10 +45,14 @@ class SLMECHATRONICS_API USLMDomainElectricity : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
-	int32 AddPort(const FSLMPortElectricity& Port);
-	void RemovePort(const int32 PortIndex);
+	USLMDomainElectricity();
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	int32 AddPort(const FSLMPortElectricity& Port);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void RemovePort(const int32 PortIndex);
+
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
 	FSLMDataElectricity GetByPortIndex(const int32 PortIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void SetJoulesByPortIndex(int32 PortIndex, float NewJoules);

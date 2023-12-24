@@ -2,6 +2,11 @@
 
 #include "Domains/SLMDomainRotation.h"
 
+USLMDomainRotation::USLMDomainRotation()
+{
+	DomainColor = FColor::Black;
+}
+
 int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port)
 {
 	const int32 PortIndex = PortsData.Add(Port.PortData);
@@ -20,26 +25,30 @@ void USLMDomainRotation::RemovePort(const int32 PortIndex)
 
 FSLMDataRotation USLMDomainRotation::GetByPortIndex(const int32 PortIndex)
 {
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
 	return Networks[NetworkIndex];
 }
 
-void USLMDomainRotation::SetNetworkAngVel(const int32 PortIndex, const float NewAngVel)
+void USLMDomainRotation::SetAngVelByPortIndex(const int32 PortIndex, const float NewAngVel)
 {
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
 	Networks[NetworkIndex].RPS = NewAngVel;
 }
 
-void USLMDomainRotation::AddTorque(const int32 PortIndex, const float Torque, const float DeltaTime)
+void USLMDomainRotation::Simulate(const float DeltaTime)
 {
-	const FSLMDataRotation Network = GetByPortIndex(PortIndex);
-	const float NewAngVel = Network.RPS + Torque * DeltaTime;
-	SetNetworkAngVel(PortIndex, NewAngVel);
+	//for (auto& Network : Networks)
+	//{
+		//Network.RPS *= 1 - 0.1 * DeltaTime;
+	//}
 }
 
 void USLMDomainRotation::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Creating network for %i ports"), PortIndices.Num());
 	const int32 NetworkIndex = Networks.Add(FSLMDataRotation());
 	float SumProduct = 0;
 	float SumMOI = 0;

@@ -1,5 +1,7 @@
 ﻿// Copyright Spectrelight Studios, LLC
+
 #pragma once
+
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
 #include "UObject/Object.h"
@@ -19,9 +21,9 @@ struct FSLMDataSignal
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Read = 0;
+	float Read = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Write = 0;
+	float Write = 0.0;
 };
 
 
@@ -30,9 +32,9 @@ struct FSLMPortSignal
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMDataSignal PortData;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortMetaData PortMetaData;
 };
 
@@ -42,10 +44,18 @@ class SLMECHATRONICS_API USLMDomainSignal : public USLMDomainSubsystemBase
 {
 	GENERATED_BODY()
 public:
+	USLMDomainSignal();
+	
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddPort(const FSLMPortSignal& Port);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void RemovePort(const int32 PortIndex);
+
+	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
 	float ReadByPortIndex(const int32 PortIndex);
-	void WriteData(const int32 PortIndex, const float Data);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void WriteByPortIndex(const int32 PortIndex, const float Data);
+	
 	virtual void PostSimulate(const float DeltaTime) override;
 	
 private:

@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
 #include "Domains/SLMDomainElectricity.h"
-#include "Domains/SLMDomainRotation.h"
 #include "Domains/SLMDomainSignal.h"
 #include "SLMDeviceBattery.generated.h"
 
+class USLMDeviceSubsystemBattery;
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelBattery
@@ -18,13 +18,15 @@ struct FSLMDeviceModelBattery
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float PowerWatts = 10000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float EnergyJoules = 100000;
+	float EnergyJoules = 5000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float CapacityJoules = 100000;
+	float CapacityJoules = 10000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float ChargeDischargeTriggerPercent = 0.5;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Electricity = -1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Signal_ChargePercent = -1;
 };
 
 
@@ -37,6 +39,8 @@ struct FSLMDeviceBattery
 	FSLMDeviceModelBattery DeviceModel;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortElectricity Port_Electricity;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSignal Port_Signal_ChargePercent;
 };
 
 
@@ -44,10 +48,16 @@ UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
 class SLMECHATRONICS_API USLMDeviceComponentBattery : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
+	
 public:
-	USLMDeviceComponentBattery();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	USLMDeviceSubsystemBattery* Subsystem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceBattery DeviceSettings;
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDeviceModelBattery GetDeviceState() const;
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -58,14 +68,12 @@ UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemBattery : public USLMDeviceSubsystemBase
 {
 	GENERATED_BODY()
+	
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	virtual void PreSimulate(float DeltaTime) override;
-	virtual void Simulate(float DeltaTime) override;
-	virtual void PostSimulate(float DeltaTime) override;
-
-	void RegisterDeviceComponent(USLMDeviceComponentBattery* DeviceComponent);
-	void DeRegisterDeviceComponent(const USLMDeviceComponentBattery* DeviceComponent);
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime) override;
+	virtual void PostSimulate(const float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddDevice(FSLMDeviceBattery Device);
@@ -76,7 +84,6 @@ public:
 	
 private:
 	TWeakObjectPtr<USLMDomainElectricity> DomainElectricity;
-
+	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
 	TSparseArray<FSLMDeviceModelBattery> DeviceModels;
-	TSparseArray<USLMDeviceComponentBattery*> DeviceComponents;
 };

@@ -2,26 +2,32 @@
 
 #include "Devices/SLMDeviceBattery.h"
 
-USLMDeviceComponentBattery::USLMDeviceComponentBattery()
+FSLMDeviceModelBattery USLMDeviceComponentBattery::GetDeviceState() const
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	return Subsystem->GetDeviceState(DeviceIndex);
 }
 
 void USLMDeviceComponentBattery::BeginPlay()
 {
 	Super::BeginPlay();
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemBattery>()->RegisterDeviceComponent(this);
+	const AActor* OwningActor = GetOwner();
+	DeviceSettings.Port_Electricity.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Signal_ChargePercent.PortMetaData.AssociatedActor = OwningActor;
+	
+	Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemBattery>();
+	DeviceIndex = Subsystem->AddDevice(DeviceSettings);
 }
 
 void USLMDeviceComponentBattery::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemBattery>()->DeRegisterDeviceComponent(this);
+	Subsystem->RemoveDevice(DeviceIndex);
 	Super::EndPlay(EndPlayReason);
 }
 
 void USLMDeviceSubsystemBattery::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DomainElectricity = GetWorld()->GetSubsystem<USLMDomainElectricity>();
+	DomainSignal = GetWorld()->GetSubsystem<USLMDomainSignal>();
 	Super::OnWorldBeginPlay(InWorld);
 }
 
@@ -38,11 +44,13 @@ void USLMDeviceSubsystemBattery::Simulate(const float DeltaTime)
 		float EnergyDemand = Electricity.CapacityJoules * Battery.ChargeDischargeTriggerPercent - Electricity.StoredJoules;
 		const float UpperBoundDueToPower = Battery.PowerWatts * DeltaTime;
 		EnergyDemand = FMath::Clamp(EnergyDemand, -1 * UpperBoundDueToPower, UpperBoundDueToPower);
-		EnergyDemand = FMath::Clamp(EnergyDemand, Battery.CapacityJoules - Battery.EnergyJoules, Battery.EnergyJoules);
+		EnergyDemand = FMath::Clamp(EnergyDemand, Battery.EnergyJoules - Battery.CapacityJoules, Battery.EnergyJoules);
 
 		const float NewJoules = Electricity.StoredJoules + EnergyDemand;
 		Battery.EnergyJoules -= EnergyDemand;
+		const float StateOfCharge = Battery.EnergyJoules / Battery.CapacityJoules;
 		DomainElectricity->SetJoulesByPortIndex(Battery.Index_Electricity, NewJoules);
+		DomainSignal->WriteByPortIndex(Battery.Index_Signal_ChargePercent, StateOfCharge);
 	}
 }
 
@@ -50,29 +58,18 @@ void USLMDeviceSubsystemBattery::PostSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemBattery::RegisterDeviceComponent(USLMDeviceComponentBattery* DeviceComponent)
-{
-	const auto Index = AddDevice(DeviceComponent->DeviceSettings);
-	DeviceComponent->DeviceIndex = Index;
-	DeviceComponents.Insert(Index, DeviceComponent);
-}
-
-void USLMDeviceSubsystemBattery::DeRegisterDeviceComponent(const USLMDeviceComponentBattery* DeviceComponent)
-{
-	const auto Index = DeviceComponent->DeviceIndex;
-	RemoveDevice(Index);
-	DeviceComponents.RemoveAt(Index);
-}
-
 int32 USLMDeviceSubsystemBattery::AddDevice(FSLMDeviceBattery Device)
 {
 	Device.DeviceModel.Index_Electricity = DomainElectricity->AddPort(Device.Port_Electricity);
+	Device.DeviceModel.Index_Signal_ChargePercent = DomainSignal->AddPort(Device.Port_Signal_ChargePercent);
 	return DeviceModels.Add(Device.DeviceModel);
 }
 
 void USLMDeviceSubsystemBattery::RemoveDevice(const int32 DeviceIndex)
 {
 	DomainElectricity->RemovePort(DeviceModels[DeviceIndex].Index_Electricity);
+	DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_ChargePercent);
+	
 	DeviceModels.RemoveAt(DeviceIndex);
 }
 

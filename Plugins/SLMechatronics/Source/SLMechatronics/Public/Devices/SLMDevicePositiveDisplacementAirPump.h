@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+/*
 #pragma once
 
 #include "CoreMinimal.h"
@@ -82,3 +82,4 @@ private:
 	TSparseArray<FSLMDeviceModelPositiveDisplacementAirPump> DeviceModels;
 	TSparseArray<USLMDeviceComponentPositiveDisplacementAirPump*> DeviceComponents;
 };
+*/

@@ -9,6 +9,7 @@
 #include "Domains/SLMDomainSignal.h"
 #include "SLMDeviceEngine.generated.h"
 
+class USLMDeviceSubsystemEngine;
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelEngine
@@ -52,10 +53,16 @@ UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
 class SLMECHATRONICS_API USLMDeviceComponentEngine : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
+	
 public:
-	USLMDeviceComponentEngine();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	USLMDeviceSubsystemEngine* Subsystem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceEngine DeviceSettings;
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDeviceModelEngine GetDeviceState() const;
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -66,14 +73,12 @@ UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemEngine : public USLMDeviceSubsystemBase
 {
 	GENERATED_BODY()
+	
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(float DeltaTime) override;
 	virtual void Simulate(float DeltaTime) override;
 	virtual void PostSimulate(float DeltaTime) override;
-
-	void RegisterDeviceComponent(USLMDeviceComponentEngine* DeviceComponent);
-	void DeRegisterDeviceComponent(const USLMDeviceComponentEngine* DeviceComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddDevice(FSLMDeviceEngine Device);
@@ -86,7 +91,5 @@ private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
 	TWeakObjectPtr<USLMDomainAir> DomainAir;
-
 	TSparseArray<FSLMDeviceModelEngine> DeviceModels;
-	TSparseArray<USLMDeviceComponentEngine*> DeviceComponents;
 };

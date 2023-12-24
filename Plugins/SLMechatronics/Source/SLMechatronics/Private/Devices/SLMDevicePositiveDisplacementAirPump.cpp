@@ -1,11 +1,10 @@
 ﻿// Copyright Spectrelight Studios, LLC
 
+/*
+
 #include "Devices/SLMDevicePositiveDisplacementAirPump.h"
 
-USLMDeviceComponentPositiveDisplacementAirPump::USLMDeviceComponentPositiveDisplacementAirPump()
-{
-	PrimaryComponentTick.bCanEverTick = false;
-}
+
 
 void USLMDeviceComponentPositiveDisplacementAirPump::BeginPlay()
 {
@@ -48,7 +47,7 @@ void USLMDeviceSubsystemPositiveDisplacementAirPump::Simulate(const float DeltaT
 		DomainAir->AddAir(ToPort, Charge);
 		
 		const float CrankRPS_Out = Crank.RPS + (PumpingTorque * DeltaTime) / Crank.MOI;
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
 	}
 }
 
@@ -86,3 +85,4 @@ FSLMDeviceModelPositiveDisplacementAirPump USLMDeviceSubsystemPositiveDisplaceme
 {
 	return DeviceModels[DeviceIndex];
 }
+*/

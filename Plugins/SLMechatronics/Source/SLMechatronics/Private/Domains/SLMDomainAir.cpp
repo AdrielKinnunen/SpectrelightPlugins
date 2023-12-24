@@ -2,9 +2,15 @@
 
 #include "Domains/SLMDomainAir.h"
 
+USLMDomainAir::USLMDomainAir()
+{
+	DomainColor = FColor::Blue;
+}
+
 int32 USLMDomainAir::AddPort(const FSLMPortAir& Port)
 {
 	const int32 PortIndex = PortsData.Add(Port.PortData);
+	AddPortMetaData(Port.PortMetaData);
 	PortsRecentlyAdded.Add(PortIndex);
 	PortIndexToNetworkIndex.Add(-1);
 	bNeedsCleanup = true;
@@ -19,15 +25,10 @@ void USLMDomainAir::RemovePort(const int32 PortIndex)
 
 FSLMDataAir USLMDomainAir::GetByPortIndex(const int32 PortIndex)
 {
-	check(PortIndex >= 0);
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
+	check(Networks.IsValidIndex(NetworkIndex));
 	return Networks[NetworkIndex];
-}
-
-FSLMDataAir USLMDomainAir::RemoveAir(const int32 PortIndex, const float VolumeLiters)
-{
-	return FSLMDataAir();
 }
 
 void USLMDomainAir::AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd)
@@ -35,30 +36,21 @@ void USLMDomainAir::AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd)
 	
 }
 
-
-/*
-void USLMDomainAir::WriteData(const int32 PortIndex, const float Data)
+FSLMDataAir USLMDomainAir::RemoveAir(const int32 PortIndex, const float VolumeLiters)
 {
-	check(PortIndex >= 0);
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
-	Networks[NetworkIndex].Write = Data;
+	return FSLMDataAir();
 }
 
-void USLMDomainAir::PostSimulate(const float DeltaTime)
+void USLMDomainAir::Simulate(const float DeltaTime)
 {
-	for (auto& Network : Networks)
-	{
-	}
+	Super::Simulate(DeltaTime);
 }
-*/
 
 void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
 	const int32 NetworkIndex = Networks.Add(FSLMDataAir());
 	float SumVolume = 0.0;
 	float SumTemp = 0.0;
-	//float Oxygen = kgPerLiterAtSSL;
 	for (const auto& PortIndex : PortIndices)
 	{
 		const auto Data = PortsData[PortIndex];
@@ -68,17 +60,15 @@ void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 		
 		PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
 	}
-	//Networks[NetworkIndex].AngVel = SumProduct / Volume;
-	//Networks[NetworkIndex].MOI = Volume;
 }
 
 void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
 {
-	const FSLMDataAir NetworkData = Networks[NetworkIndex];
+	const FSLMDataAir Network = Networks[NetworkIndex];
 	FSLMDataAir& PortData = PortsData[PortIndex];
 	
-	PortData.Pressure_bar = NetworkData.Pressure_bar;
-	PortData.Temp_K = NetworkData.Temp_K;
+	PortData.Pressure_bar = Network.Pressure_bar;
+	PortData.Temp_K = Network.Temp_K;
 	//PortData.Oxygen = NetworkData.Oxygen;
 }
 

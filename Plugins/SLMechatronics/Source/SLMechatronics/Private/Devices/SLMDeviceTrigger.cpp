@@ -1,5 +1,7 @@
 ﻿// Copyright Spectrelight Studios, LLC
 
+/*
+
 #include "Devices/SLMDeviceTrigger.h"
 
 USLMDeviceComponentTrigger::USLMDeviceComponentTrigger()
@@ -82,5 +84,6 @@ FSLMDeviceModelTrigger USLMDeviceSubsystemTrigger::GetDeviceState(const int32 De
 void USLMDeviceSubsystemTrigger::SetSignal(const int32 DeviceIndex, const float NewSignal)
 {
 	const auto PortIndex = DeviceModels[DeviceIndex].Index_Signal_Input;
-	DomainSignal->WriteData(PortIndex, NewSignal);
+	DomainSignal->WriteByPortIndex(PortIndex, NewSignal);
 }
+*/

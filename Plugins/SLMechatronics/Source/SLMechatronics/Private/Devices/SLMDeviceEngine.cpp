@@ -2,26 +2,36 @@
 
 #include "Devices/SLMDeviceEngine.h"
 
-USLMDeviceComponentEngine::USLMDeviceComponentEngine()
+
+FSLMDeviceModelEngine USLMDeviceComponentEngine::GetDeviceState() const
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	return Subsystem->GetDeviceState(DeviceIndex);
 }
 
 void USLMDeviceComponentEngine::BeginPlay()
 {
 	Super::BeginPlay();
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemEngine>()->RegisterDeviceComponent(this);
+	const AActor* OwningActor = GetOwner();
+	DeviceSettings.Port_Rotation_Crankshaft.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Signal_Throttle.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Air_Intake.PortMetaData.AssociatedActor = OwningActor;
+	DeviceSettings.Port_Air_Exhaust.PortMetaData.AssociatedActor = OwningActor;
+	
+	Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemEngine>();
+	DeviceIndex = Subsystem->AddDevice(DeviceSettings);
 }
 
 void USLMDeviceComponentEngine::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetSubsystem<USLMDeviceSubsystemEngine>()->DeRegisterDeviceComponent(this);
+	Subsystem->RemoveDevice(DeviceIndex);
 	Super::EndPlay(EndPlayReason);
 }
 
 void USLMDeviceSubsystemEngine::OnWorldBeginPlay(UWorld& InWorld)
 {
 	DomainRotation = GetWorld()->GetSubsystem<USLMDomainRotation>();
+	DomainSignal = GetWorld()->GetSubsystem<USLMDomainSignal>();
+	DomainAir = GetWorld()->GetSubsystem<USLMDomainAir>();
 	Super::OnWorldBeginPlay(InWorld);
 }
 
@@ -58,7 +68,7 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 
 		const float TotalTorque = PumpingTorque + CombustionTorque;
 		const float CrankRPS_Out = Crank.RPS + (TotalTorque * DeltaTime) / Crank.MOI;
-		DomainRotation->SetNetworkAngVel(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
 	}
 }
 
@@ -66,24 +76,12 @@ void USLMDeviceSubsystemEngine::PostSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemEngine::RegisterDeviceComponent(USLMDeviceComponentEngine* DeviceComponent)
-{
-	const auto Index = AddDevice(DeviceComponent->DeviceSettings);
-	DeviceComponent->DeviceIndex = Index;
-	DeviceComponents.Insert(Index, DeviceComponent);
-}
-
-void USLMDeviceSubsystemEngine::DeRegisterDeviceComponent(const USLMDeviceComponentEngine* DeviceComponent)
-{
-	const auto Index = DeviceComponent->DeviceIndex;
-	RemoveDevice(Index);
-	DeviceComponents.RemoveAt(Index);
-}
-
 int32 USLMDeviceSubsystemEngine::AddDevice(FSLMDeviceEngine Device)
 {
 	Device.DeviceModel.Index_Rotation_Crankshaft = DomainRotation->AddPort(Device.Port_Rotation_Crankshaft);
 	Device.DeviceModel.Index_Signal_Throttle = DomainSignal->AddPort(Device.Port_Signal_Throttle);
+	Device.DeviceModel.Index_Air_Intake = DomainAir->AddPort(Device.Port_Air_Intake);
+	Device.DeviceModel.Index_Air_Exhaust = DomainAir->AddPort(Device.Port_Air_Exhaust);
 	return DeviceModels.Add(Device.DeviceModel);
 }
 
@@ -91,6 +89,8 @@ void USLMDeviceSubsystemEngine::RemoveDevice(const int32 DeviceIndex)
 {
 	DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Rotation_Crankshaft);
 	DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Throttle);
+	DomainAir->RemovePort(DeviceModels[DeviceIndex].Index_Air_Intake);
+	DomainAir->RemovePort(DeviceModels[DeviceIndex].Index_Air_Exhaust);
 	DeviceModels.RemoveAt(DeviceIndex);
 }
 

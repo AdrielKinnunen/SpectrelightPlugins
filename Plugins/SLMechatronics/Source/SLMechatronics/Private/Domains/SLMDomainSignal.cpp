@@ -2,9 +2,15 @@
 
 #include "Domains/SLMDomainSignal.h"
 
+USLMDomainSignal::USLMDomainSignal()
+{
+	DomainColor = FColor::White;
+}
+
 int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)
 {
 	const int32 PortIndex = PortsData.Add(Port.PortData);
+	AddPortMetaData(Port.PortMetaData);
 	PortsRecentlyAdded.Add(PortIndex);
 	PortIndexToNetworkIndex.Add(-1);
 	bNeedsCleanup = true;
@@ -19,17 +25,17 @@ void USLMDomainSignal::RemovePort(const int32 PortIndex)
 
 float USLMDomainSignal::ReadByPortIndex(const int32 PortIndex)
 {
-	check(PortIndex >= 0);
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
+	check(Networks.IsValidIndex(NetworkIndex));
 	return Networks[NetworkIndex].Read;
 }
 
-void USLMDomainSignal::WriteData(const int32 PortIndex, const float Data)
+void USLMDomainSignal::WriteByPortIndex(const int32 PortIndex, const float Data)
 {
-	check(PortIndex >= 0);
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
 	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(NetworkIndex >= 0);
+	check(Networks.IsValidIndex(NetworkIndex));
 	Networks[NetworkIndex].Write = Data;
 }
 
@@ -43,7 +49,6 @@ void USLMDomainSignal::PostSimulate(const float DeltaTime)
 
 void USLMDomainSignal::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Creating network for %i ports"), PortIndices.Num());
 	const int32 NetworkIndex = Networks.Add(FSLMDataSignal());
 	for (const auto& PortIndex : PortIndices)
 	{
