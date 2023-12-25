@@ -46,6 +46,21 @@ void USLMDomainAir::Simulate(const float DeltaTime)
 	Super::Simulate(DeltaTime);
 }
 
+FString USLMDomainAir::GetDebugString(const int32 PortIndex)
+{
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
+	const auto Network =  Networks[NetworkIndex];
+	FString Result;
+	Result += "Air\n";
+	Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
+	Result += FString::Printf(TEXT("Pressure(bar) = %f\n"), Network.Pressure_bar);
+	Result += FString::Printf(TEXT("Volume(l) = %f\n"), Network.Volume_l);
+	Result += FString::Printf(TEXT("Temperature(K) = %f\n"), Network.Temp_K);
+	Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * Network.OxygenRatio);
+	return Result;}
+
 void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
 	const int32 NetworkIndex = Networks.Add(FSLMDataAir());

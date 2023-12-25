@@ -57,6 +57,7 @@ public:
 	void WriteByPortIndex(const int32 PortIndex, const float Data);
 	
 	virtual void PostSimulate(const float DeltaTime) override;
+	virtual FString GetDebugString(const int32 PortIndex) override;
 	
 private:
 	TSparseArray<FSLMDataSignal> PortsData;

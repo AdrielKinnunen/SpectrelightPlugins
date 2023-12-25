@@ -39,6 +39,19 @@ void USLMDomainElectricity::SetJoulesByPortIndex(int32 PortIndex, float NewJoule
 	Networks[NetworkIndex].StoredJoules = NewJoules;
 }
 
+FString USLMDomainElectricity::GetDebugString(const int32 PortIndex)
+{
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
+	const auto Network =  Networks[NetworkIndex];
+	FString Result;
+	Result += "Electricity\n";
+	Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
+	Result += FString::Printf(TEXT("Stored = %f\n"), Network.StoredJoules);
+	Result += FString::Printf(TEXT("Capacity = %f\n"), Network.CapacityJoules);
+	return Result;}
+
 void USLMDomainElectricity::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
 	const int32 NetworkIndex = Networks.Add(FSLMDataElectricity());

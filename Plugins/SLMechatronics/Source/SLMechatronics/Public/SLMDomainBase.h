@@ -75,6 +75,8 @@ public:
 	virtual void DebugDrawPorts();
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	virtual void DebugDrawConnections();
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual FString GetDebugString(const int32 PortIndex);
 	
 	virtual void CheckForCleanUp();
 	virtual void PreSimulate(const float DeltaTime);

@@ -58,6 +58,7 @@ public:
 	void SetAngVelByPortIndex(const int32 PortIndex, const float NewAngVel);
 
 	virtual void Simulate(const float DeltaTime) override;
+	virtual FString GetDebugString(const int32 PortIndex) override;
 
 private:
 	TSparseArray<FSLMDataRotation> PortsData;

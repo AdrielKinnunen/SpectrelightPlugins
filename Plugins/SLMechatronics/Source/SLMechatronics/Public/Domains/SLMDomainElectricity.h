@@ -56,6 +56,9 @@ public:
 	FSLMDataElectricity GetByPortIndex(const int32 PortIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void SetJoulesByPortIndex(int32 PortIndex, float NewJoules);
+
+	virtual FString GetDebugString(const int32 PortIndex) override;
+
 	
 private:
 	TSparseArray<FSLMDataElectricity> PortsData;

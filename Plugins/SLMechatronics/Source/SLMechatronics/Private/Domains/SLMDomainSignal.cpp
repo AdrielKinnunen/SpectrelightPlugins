@@ -47,6 +47,19 @@ void USLMDomainSignal::PostSimulate(const float DeltaTime)
 	}
 }
 
+FString USLMDomainSignal::GetDebugString(const int32 PortIndex)
+{
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
+	const auto Network =  Networks[NetworkIndex];
+	FString Result;
+	Result += "Signal\n";
+	Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
+	Result += FString::Printf(TEXT("Read = %f\n"), Network.Read);
+	Result += FString::Printf(TEXT("Write = %f\n"), Network.Write);
+	return Result;}
+
 void USLMDomainSignal::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
 	const int32 NetworkIndex = Networks.Add(FSLMDataSignal());

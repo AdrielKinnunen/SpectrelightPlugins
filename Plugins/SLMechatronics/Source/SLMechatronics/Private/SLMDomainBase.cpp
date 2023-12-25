@@ -53,7 +53,6 @@ void USLMDomainSubsystemBase::DebugPrint()
 		if (PortIndexToNetworkIndex.IsValidIndex(i))
 		{
 			const auto Network = PortIndexToNetworkIndex[i];
-			//UE_LOG(LogTemp, Warning, TEXT("    Port %i maps to network %i"), i, Network);
 			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT(
 			"Port %i maps to network %i"
 			), i, Network), false);
@@ -73,6 +72,7 @@ void USLMDomainSubsystemBase::DebugDrawPorts()
 			const auto Location = Transform.GetLocation();
 			const FRotator Rotation = Transform.Rotator();
 			DrawDebugCoordinateSystem(GetWorld(), Location, Rotation, 200);
+			DrawDebugString(GetWorld(), Location, GetDebugString(i), 0, FColor::White, 0.0, true, 1.5);
 		}
 	}
 }
@@ -85,6 +85,11 @@ void USLMDomainSubsystemBase::DebugDrawConnections()
 		const FVector End = PortIndexToWorldLocation(Pair.Value);
 		DrawDebugLine(GetWorld(), Start, End, DomainColor, false, -1, 0, 10);
 	}
+}
+
+FString USLMDomainSubsystemBase::GetDebugString(const int32 PortIndex)
+{
+	return "Hello World!";
 }
 
 FVector USLMDomainSubsystemBase::PortIndexToWorldLocation(const int32 PortIndex)

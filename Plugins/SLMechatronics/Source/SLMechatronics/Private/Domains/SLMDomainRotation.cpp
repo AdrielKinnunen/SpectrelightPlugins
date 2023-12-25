@@ -47,6 +47,20 @@ void USLMDomainRotation::Simulate(const float DeltaTime)
 	//}
 }
 
+FString USLMDomainRotation::GetDebugString(const int32 PortIndex)
+{
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
+	const auto Network =  Networks[NetworkIndex];
+	FString Result;
+	Result += "Rotation\n";
+	Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
+	Result += FString::Printf(TEXT("MOI = %f\n"), Network.MOI);
+	Result += FString::Printf(TEXT("RPS = %f\n"), Network.RPS);
+	return Result;
+}
+
 void USLMDomainRotation::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
 	const int32 NetworkIndex = Networks.Add(FSLMDataRotation());

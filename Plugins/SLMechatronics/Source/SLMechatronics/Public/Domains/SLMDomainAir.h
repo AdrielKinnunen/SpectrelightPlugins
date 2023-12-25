@@ -115,6 +115,8 @@ public:
 	FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
 	
 	virtual void Simulate(const float DeltaTime) override;
+	virtual FString GetDebugString(const int32 PortIndex) override;
+
 	
 private:
 	TSparseArray<FSLMDataAir> PortsData;
