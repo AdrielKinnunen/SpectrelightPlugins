@@ -17,14 +17,14 @@ struct FSLMDataRotation
 	{
 	}
 
-	FSLMDataRotation(const float RPS, const float MOI): RPS(RPS), MOI(MOI)
+	FSLMDataRotation(const float AngularVelocity, const float MomentOfInertia): AngularVelocity(AngularVelocity), MomentOfInertia(MomentOfInertia)
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float RPS = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MOI = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Angular Velocity in rad/s"))
+	float AngularVelocity = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Moment of Inertia in kg*m2"))
+	float MomentOfInertia = 1;
 };
 
 
@@ -53,15 +53,15 @@ public:
 	void RemovePort(const int32 PortIndex);
 
 	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	FSLMDataRotation GetByPortIndex(const int32 PortIndex);
+	FSLMDataRotation GetData(const int32 PortIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void SetAngVelByPortIndex(const int32 PortIndex, const float NewAngVel);
+	void SetAngularVelocity(const int32 PortIndex, const float NewAngVel);
 
 	virtual void Simulate(const float DeltaTime) override;
 	virtual FString GetDebugString(const int32 PortIndex) override;
 
 private:
-	TSparseArray<FSLMDataRotation> PortsData;
+	TSparseArray<FSLMDataRotation> Ports;
 	TSparseArray<FSLMDataRotation> Networks;
 
 	void CreateNetworkForPort(const int32 Port);

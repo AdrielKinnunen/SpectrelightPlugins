@@ -29,13 +29,13 @@ struct FSLMDataAir
 	//static constexpr float MolarMassAir = 28.97;						//Molar mass of air in g/mol
 	//static constexpr float CvAir = 250 * IdealGasConstant;			//Molar heat capacity at constant volume
 		
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Absolute pressure in bar"))
 	float Pressure_bar = 1.0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Volume in liters"))
 	float Volume_l = 1.0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Temperature in Kelvin"))
 	float Temp_K = 288.15;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Oxygen ratio"))
 	float OxygenRatio = 0.21;
 	
 	float GetMoles() const

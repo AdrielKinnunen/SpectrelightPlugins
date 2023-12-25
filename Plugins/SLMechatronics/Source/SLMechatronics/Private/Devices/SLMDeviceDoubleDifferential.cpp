@@ -40,10 +40,10 @@ void USLMDeviceSubsystemDoubleDifferential::Simulate(const float DeltaTime)
 {
 	for (const auto Model : DeviceModels)
 	{
-		const auto [A,L] = DomainRotation->GetByPortIndex(Model.Index_Rotation_Drive);
-		const auto [B,M] = DomainRotation->GetByPortIndex(Model.Index_Rotation_Steer);
-		const auto [C,N] = DomainRotation->GetByPortIndex(Model.Index_Rotation_Left);
-		const auto [D,O] = DomainRotation->GetByPortIndex(Model.Index_Rotation_Right);
+		const auto [A,L] = DomainRotation->GetData(Model.Index_Rotation_Drive);
+		const auto [B,M] = DomainRotation->GetData(Model.Index_Rotation_Steer);
+		const auto [C,N] = DomainRotation->GetData(Model.Index_Rotation_Left);
+		const auto [D,O] = DomainRotation->GetData(Model.Index_Rotation_Right);
 		
 		const float Divisor = L*(M+N+O) + M*(N+O) + 4*N*O;
 		
@@ -52,10 +52,10 @@ void USLMDeviceSubsystemDoubleDifferential::Simulate(const float DeltaTime)
 		const float Y = X - W;
 		const float Z = X + W;
 		
-		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Drive, W);
-		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Steer, X);
-		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Left, Y);
-		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Right, Z);
+		DomainRotation->SetAngularVelocity(Model.Index_Rotation_Drive, W);
+		DomainRotation->SetAngularVelocity(Model.Index_Rotation_Steer, X);
+		DomainRotation->SetAngularVelocity(Model.Index_Rotation_Left, Y);
+		DomainRotation->SetAngularVelocity(Model.Index_Rotation_Right, Z);
 	}
 }
 

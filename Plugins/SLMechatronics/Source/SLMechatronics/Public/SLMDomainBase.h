@@ -103,7 +103,7 @@ protected:
 	virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
 
 	//Debug
-	FColor DomainColor = FColor::White;
+	FColor DomainColor = FColor::Black;
 	
 private:
 	void CleanUpGraph();

@@ -40,21 +40,21 @@ void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime)
 {
 	for (auto& Device : DeviceModels)
 	{
-		const FSLMDataRotation In = DomainRotation->GetByPortIndex(Device.Index_Rotation_Input);
-		const FSLMDataRotation Out = DomainRotation->GetByPortIndex(Device.Index_Rotation_Output);
+		const FSLMDataRotation In = DomainRotation->GetData(Device.Index_Rotation_Input);
+		const FSLMDataRotation Out = DomainRotation->GetData(Device.Index_Rotation_Output);
 
 		Device.GearRatio = DomainSignal->ReadByPortIndex(Device.Index_Signal_GearRatio);
 
 		if (!FMath::IsNearlyZero(Device.GearRatio))
 		{
-			const float MOIShaftInputEffective = Device.GearRatio * Device.GearRatio * In.MOI;
-			const float AngVelShaftInputEffective = In.RPS / Device.GearRatio;
+			const float MOIShaftInputEffective = Device.GearRatio * Device.GearRatio * In.MomentOfInertia;
+			const float AngVelShaftInputEffective = In.AngularVelocity / Device.GearRatio;
 
-			const float OutAngVel = (AngVelShaftInputEffective * MOIShaftInputEffective + Out.RPS * Out.MOI) / (MOIShaftInputEffective + Out.MOI);
+			const float OutAngVel = (AngVelShaftInputEffective * MOIShaftInputEffective + Out.AngularVelocity * Out.MomentOfInertia) / (MOIShaftInputEffective + Out.MomentOfInertia);
 			const float InAngVel = OutAngVel * Device.GearRatio;
 
-			DomainRotation->SetAngVelByPortIndex(Device.Index_Rotation_Input, InAngVel);
-			DomainRotation->SetAngVelByPortIndex(Device.Index_Rotation_Output, OutAngVel);
+			DomainRotation->SetAngularVelocity(Device.Index_Rotation_Input, InAngVel);
+			DomainRotation->SetAngularVelocity(Device.Index_Rotation_Output, OutAngVel);
 		}
 	}
 }

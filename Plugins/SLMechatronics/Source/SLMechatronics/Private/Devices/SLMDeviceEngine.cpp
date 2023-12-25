@@ -43,7 +43,7 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 {
 	for (const auto& Model : DeviceModels)
 	{
-		const FSLMDataRotation Crank = DomainRotation->GetByPortIndex(Model.Index_Rotation_Crankshaft);
+		const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
 		const FSLMDataAir Intake = DomainAir->GetByPortIndex(Model.Index_Air_Intake);
 		const FSLMDataAir Exhaust = DomainAir->GetByPortIndex(Model.Index_Air_Exhaust);
 		const float Throttle = DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle);
@@ -51,9 +51,9 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 		const float PressureDifference = Intake.Pressure_bar - Exhaust.Pressure_bar;
 		const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * OneOverTwoPi;
 
-		const float RotationDelta = Crank.RPS * DeltaTime;
+		const float RotationDelta = Crank.AngularVelocity * DeltaTime;
 		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Model.DisplacementPerRev * FMath::Abs(RotationDelta);
-		const bool bIsNormalDirection = Crank.RPS >= 0.0;
+		const bool bIsNormalDirection = Crank.AngularVelocity >= 0.0;
 		const int32 FromPort = bIsNormalDirection ? Model.Index_Air_Intake : Model.Index_Air_Exhaust;
 		const int32 ToPort = bIsNormalDirection ? Model.Index_Air_Exhaust : Model.Index_Air_Intake;
 		
@@ -67,8 +67,8 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 		DomainAir->AddAir(ToPort, Charge);
 
 		const float TotalTorque = PumpingTorque + CombustionTorque;
-		const float CrankRPS_Out = Crank.RPS + (TotalTorque * DeltaTime) / Crank.MOI;
-		DomainRotation->SetAngVelByPortIndex(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+		const float CrankRPS_Out = Crank.AngularVelocity + (TotalTorque * DeltaTime) / Crank.MomentOfInertia;
+		DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
 	}
 }
 

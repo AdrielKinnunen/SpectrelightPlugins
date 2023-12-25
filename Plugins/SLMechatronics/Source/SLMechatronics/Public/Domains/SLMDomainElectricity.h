@@ -21,9 +21,9 @@ struct FSLMDataElectricity
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Stored energy in Joules"))
 	float StoredJoules = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Energy capacity in Joules"))
 	float CapacityJoules = 1;
 };
 

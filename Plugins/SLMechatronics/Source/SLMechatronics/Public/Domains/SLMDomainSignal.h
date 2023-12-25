@@ -20,9 +20,9 @@ struct FSLMDataSignal
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Read from this property"))
 	float Read = 0.0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Write to this property"))
 	float Write = 0.0;
 };
 
