@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+/*
 #include "Devices/SLMDeviceEngine.h"
 
 
@@ -49,7 +49,7 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 		const float Throttle = DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle);
 		
 		const float PressureDifference = Intake.Pressure_bar - Exhaust.Pressure_bar;
-		const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * OneOverTwoPi;
+		const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * SLMOneOverTwoPi;
 
 		const float RotationDelta = Crank.AngularVelocity * DeltaTime;
 		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Model.DisplacementPerRev * FMath::Abs(RotationDelta);
@@ -59,8 +59,8 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
 		
 		FSLMDataAir Charge = DomainAir->RemoveAir(FromPort, LitersIngested);
 		const float OxygenGrams = Charge.GetMassGrams() * Charge.OxygenRatio;
-		const float FuelGrams = OxygenGrams * FuelPerAirGrams;																			//TODO Add fuel consumption
-		const float CombustionEnergy = FuelJoulesPerGram * FuelGrams;
+		const float FuelGrams = OxygenGrams * SLMFuelPerAirGrams;																			//TODO Add fuel consumption
+		const float CombustionEnergy = SLMFuelJoulesPerGram * FuelGrams;
 		const float CombustionWork = CombustionEnergy * Model.Efficiency;
 		const float CombustionTorque = CombustionWork / RotationDelta;
 		Charge.AddHeatJoules(CombustionEnergy - CombustionWork);
@@ -98,3 +98,4 @@ FSLMDeviceModelEngine USLMDeviceSubsystemEngine::GetDeviceState(const int32 Devi
 {
 	return DeviceModels[DeviceIndex];
 }
+*/

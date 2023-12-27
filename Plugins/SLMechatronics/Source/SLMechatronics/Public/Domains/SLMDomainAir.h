@@ -4,13 +4,13 @@
 #include "SLMDomainBase.h"
 #include "SLMDomainAir.generated.h"
 
-constexpr float GammaAir			= 1.4;							//Specific heat ratio for air
-constexpr float IdealGasConstant	= 0.0831446;					//Ideal gas constant for atm*L/(mol*K)
-constexpr float MolarMassAir		= 28.97;						//Molar mass of air in g/mol
-constexpr float CvAir				= 250 * IdealGasConstant;		//Molar heat capacity at constant volume
-constexpr float FuelPerAirGrams		= 0.323939;						//Grams of fuel per gram of air for stochiometric combustion
-constexpr float FuelJoulesPerGram	= 45000;						//Combustion Energy per gram of fuel
-constexpr float OneOverTwoPi		= 0.159155;						//Used in pressure to torque calculation for a pump
+constexpr float SLMGammaAir				= 1.4;								//Specific heat ratio for air
+constexpr float SLMIdealGasConstant		= 0.0831446;						//Ideal gas constant for atm*L/(mol*K)
+constexpr float SLMMolarMassAir			= 28.97;							//Molar mass of air in g/mol
+constexpr float SLMCvAir				= 250 * SLMIdealGasConstant;		//Molar heat capacity at constant volume
+constexpr float SLMFuelPerAirGrams		= 0.323939;							//Grams of fuel per gram of air for stochiometric combustion
+constexpr float SLMFuelJoulesPerGram	= 45000;							//Combustion Energy per gram of fuel
+constexpr float SLMOneOverTwoPi			= 0.159155;							//Used in pressure to torque calculation for a pump
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -41,25 +41,25 @@ struct FSLMDataAir
 	float GetMoles() const
 	{
 		// PV = NrT		->		N = PV/rT
-		return (Pressure_bar * Volume_l) / (IdealGasConstant * Temp_K);
+		return (Pressure_bar * Volume_l) / (SLMIdealGasConstant * Temp_K);
 	}
 
 	float GetMassGrams() const
 	{
-		const float Mass = GetMoles() * MolarMassAir;
+		const float Mass = GetMoles() * SLMMolarMassAir;
 		return Mass;
 	}
 
 	void AddHeatJoules(const float Joules)
 	{
-		Temp_K += Joules / (GetMassGrams() * CvAir);
+		Temp_K += Joules / (GetMassGrams() * SLMCvAir);
 	}
 
 	void ChangeVolumeIsentropically(const float NewVolume)
 	{
-		const float NewTemp = Temp_K * FMath::Pow(Volume_l / NewVolume, GammaAir - 1.0);
-		const float NewPressure = Pressure_bar * FMath::Pow(NewVolume / Volume_l, GammaAir * -1.0);
-
+		check(NewVolume > 0.0);
+		const float NewTemp = Temp_K * FMath::Pow(Volume_l / NewVolume, SLMGammaAir - 1.0);
+		const float NewPressure = Pressure_bar * FMath::Pow(NewVolume / Volume_l, SLMGammaAir * -1.0);
 		Temp_K = NewTemp;
 		Pressure_bar = NewPressure;
 		Volume_l = NewVolume;
@@ -75,7 +75,7 @@ struct FSLMDataAir
 		const float FinalOxygen = (FirstN * First.OxygenRatio + SecondN * Second.OxygenRatio) / FinalN;
 		const float FinalVolume = First.Volume_l + Second.Volume_l;
 		const float FinalPressure = (First.Pressure_bar * First.Volume_l + Second.Pressure_bar * Second.Volume_l) / FinalVolume;
-		const float FinalTemp = (FinalPressure * FinalVolume) / (FinalN * IdealGasConstant);					// PV = NrT		->		T = PV/Nr
+		const float FinalTemp = (FinalPressure * FinalVolume) / (FinalN * SLMIdealGasConstant);					// PV = NrT		->		T = PV/Nr
 		//const float FinalTemp = (FirstN * First.Temp_K + SecondN * Second.Temp_K) / FinalN;
 		
 		return FSLMDataAir(FinalPressure, FinalVolume, FinalTemp, FinalOxygen);
@@ -108,7 +108,7 @@ public:
 	void RemovePort(const int32 PortIndex);
 
 	UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-	FSLMDataAir GetByPortIndex(const int32 PortIndex);
+	FSLMDataAir GetData(const int32 PortIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
@@ -119,7 +119,7 @@ public:
 
 	
 private:
-	TSparseArray<FSLMDataAir> PortsData;
+	TSparseArray<FSLMDataAir> Ports;
 	TSparseArray<FSLMDataAir> Networks;
 	
 	void CreateNetworkForPort(const int32 Port);

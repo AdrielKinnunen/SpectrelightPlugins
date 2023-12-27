@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+/*
 #include "Devices/SLMDeviceDoubleDifferential.h"
 
 FSLMDeviceModelDoubleDifferential USLMDeviceComponentDoubleDifferential::GetDeviceState() const
@@ -83,3 +83,4 @@ FSLMDeviceModelDoubleDifferential USLMDeviceSubsystemDoubleDifferential::GetDevi
 {
 	return DeviceModels[DeviceIndex];
 }
+*/

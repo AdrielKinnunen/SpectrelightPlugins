@@ -57,7 +57,7 @@ FString USLMDomainRotation::GetDebugString(const int32 PortIndex)
 	Result += "Rotation\n";
 	Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
 	Result += FString::Printf(TEXT("MOI = %f\n"), Network.MomentOfInertia);
-	Result += FString::Printf(TEXT("RPS = %f\n"), Network.AngularVelocity);
+	Result += FString::Printf(TEXT("Rad/s = %f\n"), Network.AngularVelocity);
 	return Result;
 }
 

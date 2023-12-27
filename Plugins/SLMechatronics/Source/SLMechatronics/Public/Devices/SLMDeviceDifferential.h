@@ -13,7 +13,7 @@ USTRUCT(BlueprintType)
 struct FSLMDeviceModelDifferential
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float GearRatio = 1.0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -23,7 +23,6 @@ struct FSLMDeviceModelDifferential
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Rotation_Right = -1;
 };
-
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceDifferential

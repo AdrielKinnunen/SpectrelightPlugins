@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-/*
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,6 +8,7 @@
 #include "Domains/SLMDomainRotation.h"
 #include "SLMDevicePositiveDisplacementAirPump.generated.h"
 
+class USLMDeviceSubsystemPositiveDisplacementAirPump;
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelPositiveDisplacementAirPump
@@ -23,7 +24,6 @@ struct FSLMDeviceModelPositiveDisplacementAirPump
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Air_Exhaust = -1;
 };
-
 
 USTRUCT(BlueprintType)
 struct FSLMDevicePositiveDisplacementAirPump
@@ -45,10 +45,16 @@ UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
 class SLMECHATRONICS_API USLMDeviceComponentPositiveDisplacementAirPump : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
+	
 public:
-	USLMDeviceComponentPositiveDisplacementAirPump();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	USLMDeviceSubsystemPositiveDisplacementAirPump* Subsystem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDevicePositiveDisplacementAirPump DeviceSettings;
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDeviceModelPositiveDisplacementAirPump GetDeviceState() const;
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -61,12 +67,9 @@ class SLMECHATRONICS_API USLMDeviceSubsystemPositiveDisplacementAirPump : public
 	GENERATED_BODY()
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	virtual void PreSimulate(float DeltaTime) override;
-	virtual void Simulate(float DeltaTime) override;
-	virtual void PostSimulate(float DeltaTime) override;
-
-	void RegisterDeviceComponent(USLMDeviceComponentPositiveDisplacementAirPump* DeviceComponent);
-	void DeRegisterDeviceComponent(const USLMDeviceComponentPositiveDisplacementAirPump* DeviceComponent);
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime) override;
+	virtual void PostSimulate(const float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddDevice(FSLMDevicePositiveDisplacementAirPump Device);
@@ -78,8 +81,5 @@ public:
 private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TWeakObjectPtr<USLMDomainAir> DomainAir;
-
 	TSparseArray<FSLMDeviceModelPositiveDisplacementAirPump> DeviceModels;
-	TSparseArray<USLMDeviceComponentPositiveDisplacementAirPump*> DeviceComponents;
 };
-*/

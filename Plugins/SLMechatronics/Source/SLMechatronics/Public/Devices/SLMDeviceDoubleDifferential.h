@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+/*
 #pragma once
 
 #include "CoreMinimal.h"
@@ -89,3 +89,4 @@ private:
 	TSparseArray<FSLMDeviceModelDoubleDifferential> DeviceModels;
 	TSparseArray<USLMDeviceComponentDoubleDifferential*> DeviceComponents;
 };
+*/

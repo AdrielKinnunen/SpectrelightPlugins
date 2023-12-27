@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+/*
 #pragma once
 
 #include "CoreMinimal.h"
@@ -93,3 +93,4 @@ private:
 	TWeakObjectPtr<USLMDomainAir> DomainAir;
 	TSparseArray<FSLMDeviceModelEngine> DeviceModels;
 };
+*/
