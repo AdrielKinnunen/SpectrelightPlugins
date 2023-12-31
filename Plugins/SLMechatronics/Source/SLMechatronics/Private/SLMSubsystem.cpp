@@ -57,9 +57,9 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 		}
 	}
 
-	//PreSimulate, runs once per frame, sets up state for calculations
+	//Debug
 	{
-		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("PreSimulate"), STAT_PreSimulate, STATGROUP_SLMechatronics)
+		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Debug"), STAT_Debug, STATGROUP_SLMechatronics)
 		for (const auto DomainSubsystem : DomainSubsystems)
 		{
 			if (DebugDrawPorts)
@@ -76,14 +76,17 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 			}
 			DomainSubsystem->PreSimulate(DeltaTime);
 		}
+	}
+	
+	//PreSimulate, runs once per frame, sets up state for calculations
+	{
+		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("PreSimulate"), STAT_PreSimulate, STATGROUP_SLMechatronics)
+		for (const auto DomainSubsystem : DomainSubsystems)
+		{
+			DomainSubsystem->PreSimulate(DeltaTime);
+		}
 		for (const auto& DeviceSubsystem : DeviceSubsystems)
 		{
-			if (DebugDrawPorts)
-			{
-			}
-			if (DebugPrint)
-			{
-			}	
 			DeviceSubsystem->PreSimulate(DeltaTime);
 		}
 	}

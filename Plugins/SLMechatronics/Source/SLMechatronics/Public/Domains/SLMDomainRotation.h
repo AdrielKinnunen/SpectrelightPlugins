@@ -25,6 +25,13 @@ struct FSLMDataRotation
 	float AngularVelocity = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Moment of Inertia in kg*m2"))
 	float MomentOfInertia = 1;
+
+	FSLMDataRotation GetApparentStateThroughGearRatio(const float GearRatio) const
+	{
+		const float ApparentAngularVelocity = AngularVelocity / GearRatio;
+		const float ApparentMomentOfInertia = GearRatio * GearRatio * MomentOfInertia;
+		return FSLMDataRotation(ApparentAngularVelocity, ApparentMomentOfInertia);
+	}
 };
 
 

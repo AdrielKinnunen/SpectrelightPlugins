@@ -8,21 +8,14 @@
 
 class USLMDomainSubsystemBase;
 
+DECLARE_DYNAMIC_DELEGATE(FSLMEvent);
+
 UCLASS(Abstract)
 class SLMECHATRONICS_API USLMDeviceComponentBase : public UActorComponent
 {
 	GENERATED_BODY()
 public:
 	USLMDeviceComponentBase();
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSLMEventSignature, float, DeltaTime);
-	
-	UPROPERTY(BlueprintAssignable)
-	FSLMEventSignature OnPreSimulate;
-	UPROPERTY(BlueprintAssignable)
-	FSLMEventSignature OnSimulate;
-	UPROPERTY(BlueprintAssignable)
-	FSLMEventSignature OnPostSimulate;
 	
 protected:
 	int32 DeviceIndex = -1;
@@ -37,7 +30,6 @@ class SLMECHATRONICS_API USLMDeviceSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:
-	
 	virtual void PreSimulate(const float DeltaTime);
 	virtual void Simulate(const float DeltaTime);
 	virtual void PostSimulate(const float DeltaTime);

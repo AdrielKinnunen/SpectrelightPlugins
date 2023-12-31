@@ -46,22 +46,26 @@ void USLMDeviceSubsystemMotor::Simulate(const float DeltaTime)
 		const float Throttle = FMath::Clamp(DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle), -1.0, 1.0);
 		const float MaxTorque = Model.MaxPowerkW / Model.ConstantTorqueRPS;
 		const float TorqueDemand = Throttle * MaxTorque;
-		const float InitialJoules = Electricity.StoredJoules;
-		
-		const float EnergyFlowDemand = -1 * TorqueDemand * DeltaTime * ((Crank.AngularVelocity > 0.0) ? 1.0 : -1.0);			//TODO: Better system than this, this sucks.
-		const float NewJoules = FMath::Clamp(InitialJoules + EnergyFlowDemand, 0.0, Electricity.CapacityJoules);
-		const float EnergyFlow = NewJoules - InitialJoules;
-		
-		float TorqueMultiplier = 0.0;
-		if (!FMath::IsNearlyZero(EnergyFlowDemand))
+
+		//Motoring = Negative energy transfer
+		//Generating = positive energy transfer
+		const float MinEnergyTransfer = -Electricity.StoredJoules;
+		const float MaxEnergyTransfer = Electricity.CapacityJoules - Electricity.StoredJoules;
+
+		//TODO: Incorporate efficiency
+		const float EnergyDemandMech = -1 * TorqueDemand * DeltaTime * Crank.AngularVelocity;
+		const float EnergyDemandClamped = FMath::Clamp(EnergyDemandMech, MinEnergyTransfer, MaxEnergyTransfer);
+
+		float TorqueMultiplier = 1.0;
+		if (!FMath::IsNearlyZero(EnergyDemandMech))
 		{
-			TorqueMultiplier = EnergyFlow / EnergyFlowDemand;
+			TorqueMultiplier = EnergyDemandClamped / EnergyDemandMech;
 		}
 		const float ActualTorque = TorqueDemand * TorqueMultiplier;
 		const float CrankRPS_Out = Crank.AngularVelocity + ActualTorque * DeltaTime / Crank.MomentOfInertia;
 		
 		DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
-		DomainElectricity->SetJoulesByPortIndex(Model.Index_Electricity, NewJoules);
+		DomainElectricity->SetJoulesByPortIndex(Model.Index_Electricity, Electricity.StoredJoules + EnergyDemandClamped);
 	}
 }
 

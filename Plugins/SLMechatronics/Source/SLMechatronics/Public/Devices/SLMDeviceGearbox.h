@@ -14,6 +14,7 @@ USTRUCT(BlueprintType)
 struct FSLMDeviceModelGearbox
 {
 	GENERATED_BODY()
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	int32 NumForwardGears = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
@@ -27,17 +28,18 @@ struct FSLMDeviceModelGearbox
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float GearSpreadExponent = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float GearRatio = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float LastSignalValue = 0.0;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	float GearRatio = 0.0;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Rotation_Input = -1;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Rotation_Output = -1;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Signal_ShiftGears = -1;
-};
 
+	float LastSignalValue = 0.0;
+	bool bChangedGear;
+	FSLMEvent OnChangedGear;
+};
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceGearbox
@@ -67,6 +69,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDeviceModelGearbox GetDeviceState() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics", meta = (AutoCreateRefTerm = "Delegate"))
+	void BindToOnChangedGear(const FSLMEvent& Delegate);
 
 protected:
 	virtual void BeginPlay() override;
@@ -90,6 +95,9 @@ public:
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDeviceModelGearbox GetDeviceState(const int32 DeviceIndex);
+	
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics", meta = (AutoCreateRefTerm = "Delegate"))
+	void BindToOnChangedGear(const int32 DeviceIndex, const FSLMEvent& Delegate);
 	
 private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
