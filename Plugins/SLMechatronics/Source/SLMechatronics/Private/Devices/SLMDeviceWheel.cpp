@@ -2,9 +2,19 @@
 
 #include "Devices/SLMDeviceWheel.h"
 
-FSLMDeviceModelWheel USLMDeviceComponentWheel::GetDeviceState() const
+FSLMDeviceModelWheel USLMDeviceComponentWheel::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
+}
+
+FSLMDeviceCosmeticsWheel USLMDeviceComponentWheel::GetDeviceCosmetics()
+{
+	return Subsystem->GetDeviceCosmetics(DeviceIndex);
+}
+
+void USLMDeviceComponentWheel::SendHitData(UPrimitiveComponent* Primitive, FVector Location, FVector Normal, FVector NormalImpulse)
+{
+	Subsystem->SendHitData(DeviceIndex, Primitive, Location, Normal, NormalImpulse);
 }
 
 void USLMDeviceComponentWheel::BeginPlay()
@@ -67,7 +77,7 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime)
 		//Wheel.DirectionWheelAxis = OutputImpulse;
 		if (Wheel.Collider)
 		{
-			Wheel.Collider->AddImpulse(OutputImpulse);	
+			Wheel.Collider->AddImpulse(OutputImpulse);
 		}
 		const FVector DrawDebugStartPoint = Wheel.ContactPatchLocation + FVector(0,0,120);
 		DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + Wheel.SlipVelocityWorld, FColor::Green, false, -1, 0, 5);
@@ -82,6 +92,10 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime)
 
 void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
 {
+	for (auto It = DeviceModels.CreateConstIterator(); It; ++It)
+	{
+		DeviceCosmetics[It.GetIndex()].AngularVelocityDegrees = FMath::RadiansToDegrees(DomainRotation->GetData(It->Index_Mech_Drive).AngularVelocity);
+	}
 }
 
 int32 USLMDeviceSubsystemWheel::AddDevice(FSLMDeviceWheel Device)
@@ -90,6 +104,7 @@ int32 USLMDeviceSubsystemWheel::AddDevice(FSLMDeviceWheel Device)
 	Device.DeviceModel.Index_Signal_Brake = DomainSignal->AddPort(Device.Port_Signal_Brake);
 	Device.DeviceModel.Index_Signal_Steer = DomainSignal->AddPort(Device.Port_Signal_Steer);
 	//Device.DeviceModel.Collider->OnComponentHit.AddUniqueDynamic(this, &ThisClass::)
+	DeviceCosmetics.Add(FSLMDeviceCosmeticsWheel());
 	return DeviceModels.Add(Device.DeviceModel);
 }
 
@@ -99,12 +114,18 @@ void USLMDeviceSubsystemWheel::RemoveDevice(const int32 DeviceIndex)
 	DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Brake);
 	DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Steer);
 
+	DeviceCosmetics.RemoveAt(DeviceIndex);
 	DeviceModels.RemoveAt(DeviceIndex);
 }
 
 FSLMDeviceModelWheel USLMDeviceSubsystemWheel::GetDeviceState(const int32 DeviceIndex)
 {
 	return DeviceModels[DeviceIndex];
+}
+
+FSLMDeviceCosmeticsWheel USLMDeviceSubsystemWheel::GetDeviceCosmetics(const int32 DeviceIndex)
+{
+	return DeviceCosmetics[DeviceIndex];
 }
 
 void USLMDeviceSubsystemWheel::SendHitData(const int32 DeviceIndex, UPrimitiveComponent* Primitive, FVector Location, FVector Normal, FVector NormalImpulse)

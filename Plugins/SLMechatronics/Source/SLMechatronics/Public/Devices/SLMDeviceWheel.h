@@ -74,6 +74,29 @@ struct FSLMDeviceModelWheel
 };
 
 USTRUCT(BlueprintType)
+struct FSLMDeviceCosmeticsWheel
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float AngularVelocityDegrees;
+
+	
+/*
+	void PreSimulate()
+	{
+		ImpulseBudget = NormalImpulseMagnitude * FrictionCoefficient;
+		//DirectionWheelAxis = Collider->GetRightVector();
+		DirectionWheelAxis = FVector(0,1,0);
+		DirectionLong = FVector::CrossProduct(DirectionWheelAxis, ContactPatchNormal);
+		DirectionLat = FVector::CrossProduct(ContactPatchNormal, DirectionLong);
+		//WheelVelocity = WheelColliderComponent->GetComponentVelocity();
+		Velocity = FVector(100,0,0);
+	}
+*/
+};
+
+USTRUCT(BlueprintType)
 struct FSLMDeviceWheel
 {
 	GENERATED_BODY()
@@ -100,7 +123,12 @@ public:
 	FSLMDeviceWheel DeviceSettings;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelWheel GetDeviceState() const;
+	FSLMDeviceModelWheel GetDeviceState();
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDeviceCosmeticsWheel GetDeviceCosmetics();
+
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SendHitData(UPrimitiveComponent* Primitive, FVector Location, FVector Normal, FVector NormalImpulse);
 
 	/*
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -134,6 +162,8 @@ public:
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDeviceModelWheel GetDeviceState(const int32 DeviceIndex);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	FSLMDeviceCosmeticsWheel GetDeviceCosmetics(const int32 DeviceIndex);
 
 	//TESTING
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
@@ -144,6 +174,7 @@ private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
 	TSparseArray<FSLMDeviceModelWheel> DeviceModels;
+	TSparseArray<FSLMDeviceCosmeticsWheel> DeviceCosmetics;
 
 
 	//TMap<TWeakObjectPtr<UPrimitiveComponent>, int32> PrimitiveToIndex;

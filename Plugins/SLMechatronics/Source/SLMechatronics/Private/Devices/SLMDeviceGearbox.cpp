@@ -18,8 +18,8 @@ void USLMDeviceComponentGearbox::BeginPlay()
 	const AActor* OwningActor = GetOwner();
 	DeviceSettings.Port_Rotation_Input.PortMetaData.AssociatedActor = OwningActor;
 	DeviceSettings.Port_Rotation_Output.PortMetaData.AssociatedActor = OwningActor;
-	DeviceSettings.Port_Signal_GearRatio.PortMetaData.AssociatedActor = OwningActor;
-	
+	DeviceSettings.Port_Signal_Shift.PortMetaData.AssociatedActor = OwningActor;
+
 	Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemGearbox>();
 	DeviceIndex = Subsystem->AddDevice(DeviceSettings);
 }
@@ -47,7 +47,7 @@ void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime)
 	{
 		const FSLMDataRotation In = DomainRotation->GetData(Device.Index_Rotation_Input);
 		const FSLMDataRotation Out = DomainRotation->GetData(Device.Index_Rotation_Output);
-		const float ShiftSignal = DomainSignal->ReadByPortIndex(Device.Index_Signal_ShiftGears);
+		const float ShiftSignal = DomainSignal->ReadByPortIndex(Device.Index_Signal_Shift);
 		bool bChangedGear = false;
 		if (Device.LastSignalValue < 0.99 && ShiftSignal >= 0.99)
 		{
@@ -62,12 +62,12 @@ void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime)
 		Device.LastSignalValue = ShiftSignal;
 		if (bChangedGear)
 		{
-			Device.GearRatio = FMath::Sign(Device.CurrentGear)*Device.FirstGearRatio * FMath::Pow(Device.RatioBetweenGears, Device.GearSpreadExponent*(1-FMath::Abs(Device.CurrentGear)));
+			Device.GearRatio = FMath::Sign(Device.CurrentGear) * Device.FirstGearRatio * FMath::Pow(Device.RatioBetweenGears, Device.GearSpreadExponent * (1 - FMath::Abs(Device.CurrentGear)));
 			Device.bChangedGear = true;
 		}
 
 		const FSLMDataRotation InApparent = In.GetApparentStateThroughGearRatio(Device.GearRatio);
-		
+
 		if (!FMath::IsNearlyZero(Device.GearRatio))
 		{
 			const float OutAngVel = (InApparent.AngularVelocity * InApparent.MomentOfInertia + Out.AngularVelocity * Out.MomentOfInertia) / (InApparent.MomentOfInertia + Out.MomentOfInertia);
@@ -95,8 +95,8 @@ int32 USLMDeviceSubsystemGearbox::AddDevice(FSLMDeviceGearbox Device)
 {
 	Device.DeviceModel.Index_Rotation_Input = DomainRotation->AddPort(Device.Port_Rotation_Input);
 	Device.DeviceModel.Index_Rotation_Output = DomainRotation->AddPort(Device.Port_Rotation_Output);
-	Device.DeviceModel.Index_Signal_ShiftGears = DomainSignal->AddPort(Device.Port_Signal_GearRatio);
-	
+	Device.DeviceModel.Index_Signal_Shift = DomainSignal->AddPort(Device.Port_Signal_Shift);
+
 	return DeviceModels.Add(Device.DeviceModel);
 }
 
@@ -104,7 +104,7 @@ void USLMDeviceSubsystemGearbox::RemoveDevice(const int32 DeviceIndex)
 {
 	DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Rotation_Input);
 	DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Rotation_Output);
-	DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_ShiftGears);
+	DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Shift);
 
 	DeviceModels.RemoveAt(DeviceIndex);
 }

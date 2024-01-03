@@ -4,76 +4,82 @@
 
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
-#include "Domains/SLMDomainRotation.h"
 #include "Domains/SLMDomainSignal.h"
-#include "SLMDeviceGearbox.generated.h"
+#include "SLMDeviceCockpit.generated.h"
 
-class USLMDeviceSubsystemGearbox;
-
+class USLMDeviceSubsystemCockpit;
 
 USTRUCT(BlueprintType)
-struct FSLMDeviceModelGearbox
+struct FSLMCockpitValues
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	int32 NumForwardGears = 5;
+	float Throttle = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	int32 NumReverseGears = 1;
+	float Brake = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	int32 CurrentGear = 0;
+	float Steer = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float FirstGearRatio = 5.0;
+	float Shift = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float RatioBetweenGears = 1.3;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float GearSpreadExponent = 1.0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float GearRatio = 0.0;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Input = -1;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Output = -1;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Signal_Shift = -1;
-
-	float LastSignalValue = 0.0;
-	bool bChangedGear;
-	FSLMEvent OnChangedGear;
+	float Fire = 0.0;
 };
 
-
 USTRUCT(BlueprintType)
-struct FSLMDeviceGearbox
+struct FSLMDeviceModelCockpit
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMDeviceModelGearbox DeviceModel;
+	FSLMCockpitValues Values;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Signal_Throttle = -1;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Signal_Brake = -1;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Signal_Steer = -1;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Signal_Shift = -1;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 Index_Signal_Fire = -1;
+};
+
+USTRUCT(BlueprintType)
+struct FSLMDeviceCockpit
+{
+	GENERATED_BODY()
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Input;
+	FSLMDeviceModelCockpit DeviceModel;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Output;
+	FSLMPortSignal Port_Signal_Throttle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSignal Port_Signal_Brake;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSignal Port_Signal_Steer;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortSignal Port_Signal_Shift;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSignal Port_Signal_Fire;
 };
 
 
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
-class SLMECHATRONICS_API USLMDeviceComponentGearbox : public USLMDeviceComponentBase
+class SLMECHATRONICS_API USLMDeviceComponentCockpit : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	USLMDeviceSubsystemGearbox* Subsystem;
+	USLMDeviceSubsystemCockpit* Subsystem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDeviceGearbox DeviceSettings;
+	FSLMDeviceCockpit DeviceSettings;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelGearbox GetDeviceState() const;
+	FSLMDeviceModelCockpit GetDeviceState();
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SetCockpitValues(FSLMCockpitValues Values);
 
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics", meta = (AutoCreateRefTerm = "Delegate"))
-	void BindToOnChangedGear(const FSLMEvent& Delegate);
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -81,7 +87,7 @@ protected:
 
 
 UCLASS()
-class SLMECHATRONICS_API USLMDeviceSubsystemGearbox : public USLMDeviceSubsystemBase
+class SLMECHATRONICS_API USLMDeviceSubsystemCockpit : public USLMDeviceSubsystemBase
 {
 	GENERATED_BODY()
 public:
@@ -89,18 +95,16 @@ public:
 	virtual void PreSimulate(const float DeltaTime) override;
 	virtual void Simulate(const float DeltaTime) override;
 	virtual void PostSimulate(const float DeltaTime) override;
-
+	
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	int32 AddDevice(FSLMDeviceGearbox Device);
+	int32 AddDevice(FSLMDeviceCockpit Device);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelGearbox GetDeviceState(const int32 DeviceIndex);
-
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics", meta = (AutoCreateRefTerm = "Delegate"))
-	void BindToOnChangedGear(const int32 DeviceIndex, const FSLMEvent& Delegate);
+	FSLMDeviceModelCockpit GetDeviceState(const int32 DeviceIndex);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void SetCockpitValues(const int32 DeviceIndex, FSLMCockpitValues Values);
 private:
-	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TWeakObjectPtr<USLMDomainSignal> DomainSignal;
-	TSparseArray<FSLMDeviceModelGearbox> DeviceModels;
+	TSparseArray<FSLMDeviceModelCockpit> DeviceModels;
 };

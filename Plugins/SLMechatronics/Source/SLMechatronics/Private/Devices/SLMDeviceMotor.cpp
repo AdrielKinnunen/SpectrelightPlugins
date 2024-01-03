@@ -2,7 +2,7 @@
 
 #include "Devices/SLMDeviceMotor.h"
 
-FSLMDeviceModelMotor USLMDeviceComponentMotor::GetDeviceState() const
+FSLMDeviceModelMotor USLMDeviceComponentMotor::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
 }
