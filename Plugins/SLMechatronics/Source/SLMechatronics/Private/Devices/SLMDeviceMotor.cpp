@@ -44,7 +44,7 @@ void USLMDeviceSubsystemMotor::Simulate(const float DeltaTime)
 		const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
 		const FSLMDataElectricity Electricity = DomainElectricity->GetByPortIndex(Model.Index_Electricity);
 		const float Throttle = FMath::Clamp(DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle), -1.0, 1.0);
-		const float MaxTorque = Model.MaxPowerkW / Model.ConstantTorqueRPS;
+		const float MaxTorque = Model.MaxPowerWatts / Model.ConstantTorqueAngVel;
 		const float TorqueDemand = Throttle * MaxTorque;
 
 		//Motoring = Negative energy transfer

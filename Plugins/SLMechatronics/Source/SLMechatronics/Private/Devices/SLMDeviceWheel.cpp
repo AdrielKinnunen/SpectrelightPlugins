@@ -49,14 +49,18 @@ void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
 	{
 		if (Wheel.Collider)
 		{
-			Wheel.WheelMass = Wheel.Collider->GetMass();
-			Wheel.ImpulseBudget = Wheel.NormalImpulseMagnitude * Wheel.FrictionCoefficient;
-			Wheel.DirectionWheelAxis = Wheel.Collider->GetRightVector();
-			//Wheel.DirectionWheelAxis = FVector(0,1,0);
+			const auto SteerSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Steer), -1, 1);
+			Wheel.SteerAngle = FMath::FInterpConstantTo(Wheel.SteerAngle, Wheel.MaxSteerAngle * SteerSignal, DeltaTime, Wheel.SteerRate);
+			
+			Wheel.DirectionWheelAxis = Wheel.Collider->GetRightVector().RotateAngleAxis(Wheel.SteerAngle, Wheel.Collider->GetUpVector());
 			Wheel.DirectionLong = FVector::CrossProduct(Wheel.DirectionWheelAxis, Wheel.ContactPatchNormal);
 			Wheel.DirectionLat = FVector::CrossProduct(Wheel.ContactPatchNormal, Wheel.DirectionLong);
 			Wheel.Velocity = Wheel.Collider->GetComponentVelocity();
-			//Wheel.Velocity = FVector(100,0,0);
+			
+			Wheel.WheelMass = Wheel.Collider->GetMass();
+			Wheel.ImpulseBudget = Wheel.NormalImpulseMagnitude * Wheel.FrictionCoefficient;
+			
+			Wheel.ImpulseAccumulator = FVector::ZeroVector;
 		}
 	}
 }
@@ -65,36 +69,53 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime)
 {
 	for (auto& Wheel:DeviceModels)
 	{
-		//const auto [AngVel,WheelMOI] = DomainRotation->GetData(Wheel.Index_Mech_Drive);
-		const float AngVel = 20;
-		const auto SteerSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Steer), -1, 1);
+		auto [AngVel,WheelMOI] = DomainRotation->GetData(Wheel.Index_Mech_Drive);
 		const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
-		
-		
-		//Velocities
-		Wheel.SlipVelocityWorld = FVector::VectorPlaneProject((Wheel.DirectionLong * Wheel.Radius * AngVel - Wheel.Velocity), Wheel.ContactPatchNormal);
-		const FVector DesiredImpulse = Wheel.SlipVelocityWorld * Wheel.WheelMass;
-		const FVector OutputImpulse = DesiredImpulse.GetClampedToMaxSize(Wheel.ImpulseBudget);
-		
-		if (Wheel.Collider)
-		{
-			Wheel.Collider->AddImpulse(OutputImpulse);
-		}
-		const FVector DrawDebugStartPoint = Wheel.ContactPatchLocation + FVector(0,0,120);
-		DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + Wheel.SlipVelocityWorld, FColor::Green, false, -1, 0, 5);
-		DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + Wheel.ContactPatchNormal * Wheel.NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
-		DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + OutputImpulse * 0.1, FColor::Red, false, -1, 0, 5);
 
-		//const float AngImpulse = FVector::DotProduct(OutputImpulse, Wheel.DirectionLong) * Wheel.Radius * Wheel.TestImpulseMultiplier;
-		//const float WheelRPMOut = (AngVel + AngImpulse / WheelMOI) * (1 - BrakeSignal);
-		//DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, WheelRPMOut);
+		const float SlipSpeedLongSI = (AngVel * Wheel.Radius - FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong)) * 0.01;
+		const float AngularImpulseToStop = -1 * SlipSpeedLongSI * WheelMOI;
+		const FVector ImpulseToStopSI = Wheel.DirectionLong * (AngularImpulseToStop / Wheel.Radius);
+		Wheel.ImpulseAccumulator += ImpulseToStopSI * -100;
+		AngVel += AngularImpulseToStop / WheelMOI;
+		
+		const float BrakeTorque = Wheel.BrakeMaxTorque * BrakeSignal;
+		const float MaxBrakeImpulse = BrakeTorque * DeltaTime;
+		const float BrakeImpulseToStop = -1 * AngVel * WheelMOI;
+		const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeImpulse, MaxBrakeImpulse);
+		AngVel += BrakeImpulseClamped / WheelMOI;
+
+		DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
 	}
 }
 
 void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
 {
-	for (auto It = DeviceModels.CreateConstIterator(); It; ++It)
+	for (auto It = DeviceModels.CreateIterator(); It; ++It)
 	{
+		if (It->Collider)
+		{
+			const auto [AngVel,WheelMOI] = DomainRotation->GetData(It->Index_Mech_Drive);
+			const FVector SlipVelocityWorld = FVector::VectorPlaneProject((It->DirectionLong * It->Radius * AngVel - It->Velocity), It->ContactPatchNormal);
+			const FVector ImpulseToStop = SlipVelocityWorld * It->WheelMass;
+			It->ImpulseAccumulator = (It->ImpulseAccumulator + ImpulseToStop).GetClampedToMaxSize(It->ImpulseBudget);
+			
+			const FVector Impulse = It->ImpulseAccumulator;
+			const FVector AngularImpulse = It->DirectionWheelAxis * FVector::DotProduct(It->DirectionLong, Impulse) * -1;
+			It->Collider->AddImpulseAtLocation(Impulse, It->ContactPatchLocation);
+			It->Collider->AddAngularImpulseInRadians(AngularImpulse);
+
+			//const FVector MomentArm = It->ContactPatchLocation - It->Collider->GetCenterOfMass();
+			//const FVector AngularImpulse = FVector::CrossProduct(MomentArm, Impulse);
+			//It->Collider->AddImpulse(Impulse);
+			//It->Collider->AddAngularImpulseInRadians(AngularImpulse);
+
+			//Debug
+			const FVector DrawDebugStartPoint = It->ContactPatchLocation + FVector(0,0,120);
+			DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ContactPatchNormal * It->NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
+			DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ImpulseAccumulator * 0.1, FColor::Red, false, -1, 0, 5);
+			
+			It->NormalImpulseMagnitude = 0;
+		}
 		DeviceCosmetics[It.GetIndex()].AngularVelocityDegrees = FMath::RadiansToDegrees(DomainRotation->GetData(It->Index_Mech_Drive).AngularVelocity);
 	}
 }

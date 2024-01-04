@@ -14,29 +14,38 @@ USTRUCT(BlueprintType)
 struct FSLMDeviceModelWheel
 {
 	GENERATED_BODY()
-	
+
+	//Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float Radius = 50;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float FrictionCoefficient = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float MaxSteerAngle = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float SteerRate = 30;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float BrakeMaxTorque = 5000;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float TestImpulseMultiplier = -0.0001;
 
-	//Initial state at beginning of frame
+	//Set by hit event
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	UPrimitiveComponent* Collider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FVector ContactPatchLocation;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FVector ContactPatchNormal;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	float NormalImpulseMagnitude;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FVector Velocity;
 
+	//PreSimulate
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	float SteerAngle;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	float WheelMass;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	float ImpulseBudget;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FVector DirectionWheelAxis;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -44,33 +53,18 @@ struct FSLMDeviceModelWheel
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FVector DirectionLat;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FVector SlipVelocityWorld;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FVector SlipVelocityLocal;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FRotator ContactPatchOrientation;
+	FVector Velocity;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	UPrimitiveComponent* Collider;
+	//Simulate
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	FVector ImpulseAccumulator;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Mech_Drive = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Signal_Steer = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Signal_Brake = -1;
-
-	void PreSimulate()
-	{
-		ImpulseBudget = NormalImpulseMagnitude * FrictionCoefficient;
-		//DirectionWheelAxis = Collider->GetRightVector();
-		DirectionWheelAxis = FVector(0,1,0);
-		DirectionLong = FVector::CrossProduct(DirectionWheelAxis, ContactPatchNormal);
-		DirectionLat = FVector::CrossProduct(ContactPatchNormal, DirectionLong);
-		//WheelVelocity = WheelColliderComponent->GetComponentVelocity();
-		Velocity = FVector(100,0,0);
-	}
-	
 };
 
 USTRUCT(BlueprintType)

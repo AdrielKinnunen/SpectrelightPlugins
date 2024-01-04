@@ -52,7 +52,7 @@ public:
 	FSLMDeviceDifferential DeviceSettings;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelDifferential GetDeviceState() const;
+	FSLMDeviceModelDifferential GetDeviceState();
 	
 protected:
 	virtual void BeginPlay() override;

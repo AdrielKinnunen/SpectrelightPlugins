@@ -17,9 +17,9 @@ struct FSLMDeviceModelMotor
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float MaxPowerkW = 1000;
+	float MaxPowerWatts = 1000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float ConstantTorqueRPS = 60;
+	float ConstantTorqueAngVel = 60;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Rotation_Crankshaft = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
