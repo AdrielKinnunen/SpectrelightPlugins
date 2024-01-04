@@ -65,16 +65,17 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime)
 {
 	for (auto& Wheel:DeviceModels)
 	{
-		const auto [AngVel,WheelMOI] = DomainRotation->GetData(Wheel.Index_Mech_Drive);
-		//const auto SteerSignal = Subsystem->GetNetworkData(SteerIndex).Capacity;
-		//const auto BrakeSignal = Subsystem->GetNetworkData(BrakeIndex).Capacity;
-		//const float WheelRPM = 20;
+		//const auto [AngVel,WheelMOI] = DomainRotation->GetData(Wheel.Index_Mech_Drive);
+		const float AngVel = 20;
+		const auto SteerSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Steer), -1, 1);
+		const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
+		
 		
 		//Velocities
 		Wheel.SlipVelocityWorld = FVector::VectorPlaneProject((Wheel.DirectionLong * Wheel.Radius * AngVel - Wheel.Velocity), Wheel.ContactPatchNormal);
 		const FVector DesiredImpulse = Wheel.SlipVelocityWorld * Wheel.WheelMass;
 		const FVector OutputImpulse = DesiredImpulse.GetClampedToMaxSize(Wheel.ImpulseBudget);
-		//Wheel.DirectionWheelAxis = OutputImpulse;
+		
 		if (Wheel.Collider)
 		{
 			Wheel.Collider->AddImpulse(OutputImpulse);
@@ -84,9 +85,9 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime)
 		DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + Wheel.ContactPatchNormal * Wheel.NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
 		DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + OutputImpulse * 0.1, FColor::Red, false, -1, 0, 5);
 
-		const float AngImpulse = FVector::DotProduct(OutputImpulse, Wheel.DirectionLong) * Wheel.Radius * Wheel.TestImpulseMultiplier;
-		const float WheelRPMOut = AngVel + AngImpulse / WheelMOI;
-		DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, WheelRPMOut);
+		//const float AngImpulse = FVector::DotProduct(OutputImpulse, Wheel.DirectionLong) * Wheel.Radius * Wheel.TestImpulseMultiplier;
+		//const float WheelRPMOut = (AngVel + AngImpulse / WheelMOI) * (1 - BrakeSignal);
+		//DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, WheelRPMOut);
 	}
 }
 
