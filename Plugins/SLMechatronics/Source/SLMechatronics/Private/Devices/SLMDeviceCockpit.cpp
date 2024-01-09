@@ -47,7 +47,7 @@ void USLMDeviceSubsystemCockpit::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemCockpit::Simulate(const float DeltaTime)
+void USLMDeviceSubsystemCockpit::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	for (const auto& Device : DeviceModels)
 	{

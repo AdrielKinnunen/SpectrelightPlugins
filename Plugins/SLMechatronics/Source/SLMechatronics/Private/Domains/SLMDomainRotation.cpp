@@ -39,7 +39,7 @@ void USLMDomainRotation::SetAngularVelocity(const int32 PortIndex, const float N
 	Networks[NetworkIndex].AngularVelocity = NewAngVel;
 }
 
-void USLMDomainRotation::Simulate(const float DeltaTime)
+void USLMDomainRotation::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	//for (auto& Network : Networks)
 	//{

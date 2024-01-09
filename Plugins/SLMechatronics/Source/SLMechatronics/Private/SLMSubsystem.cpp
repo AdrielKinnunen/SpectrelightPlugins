@@ -94,15 +94,16 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 	//Simulate, substeps StepCount times per frame, this is where the bulk of simulation happens
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Simulate"), STAT_Simulate, STATGROUP_SLMechatronics)
+		const float SubstepDeltaTime = DeltaTime / StepCount;
 		for (int32 i = 0; i < StepCount; i++)
 		{
 			for (const auto DomainSubsystem : DomainSubsystems)
 			{
-				DomainSubsystem->Simulate(DeltaTime);
+				DomainSubsystem->Simulate(SubstepDeltaTime, StepCount);
 			}
 			for (const auto& DeviceSubsystem : DeviceSubsystems)
 			{
-				DeviceSubsystem->Simulate(DeltaTime);
+				DeviceSubsystem->Simulate(SubstepDeltaTime, StepCount);
 			}
 		}
 	}

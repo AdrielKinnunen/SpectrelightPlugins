@@ -147,7 +147,7 @@ class SLMECHATRONICS_API USLMDeviceSubsystemWheel : public USLMDeviceSubsystemBa
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(float DeltaTime) override;
-	virtual void Simulate(float DeltaTime) override;
+	virtual void Simulate(float DeltaTime, const int32 StepCount) override;
 	virtual void PostSimulate(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")

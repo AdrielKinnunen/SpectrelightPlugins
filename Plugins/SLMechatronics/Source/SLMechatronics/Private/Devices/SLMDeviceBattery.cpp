@@ -2,7 +2,7 @@
 
 #include "Devices/SLMDeviceBattery.h"
 
-FSLMDeviceModelBattery USLMDeviceComponentBattery::GetDeviceState() const
+FSLMDeviceModelBattery USLMDeviceComponentBattery::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
 }
@@ -35,7 +35,7 @@ void USLMDeviceSubsystemBattery::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemBattery::Simulate(const float DeltaTime)
+void USLMDeviceSubsystemBattery::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	for (auto& Battery : DeviceModels)
 	{

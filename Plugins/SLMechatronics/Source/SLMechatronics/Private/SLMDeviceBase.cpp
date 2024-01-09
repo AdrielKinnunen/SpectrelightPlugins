@@ -21,7 +21,7 @@ void USLMDeviceSubsystemBase::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemBase::Simulate(const float DeltaTime)
+void USLMDeviceSubsystemBase::Simulate(const float DeltaTime, const int32 StepCount)
 {
 }
 

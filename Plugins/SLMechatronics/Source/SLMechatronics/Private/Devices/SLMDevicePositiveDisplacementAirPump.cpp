@@ -2,7 +2,7 @@
 
 #include "Devices/SLMDevicePositiveDisplacementAirPump.h"
 
-FSLMDeviceModelPositiveDisplacementAirPump USLMDeviceComponentPositiveDisplacementAirPump::GetDeviceState() const
+FSLMDeviceModelPositiveDisplacementAirPump USLMDeviceComponentPositiveDisplacementAirPump::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
 }
@@ -36,7 +36,7 @@ void USLMDeviceSubsystemPositiveDisplacementAirPump::PreSimulate(const float Del
 {
 }
 
-void USLMDeviceSubsystemPositiveDisplacementAirPump::Simulate(const float DeltaTime)
+void USLMDeviceSubsystemPositiveDisplacementAirPump::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	for (const auto& Model : DeviceModels)
 	{

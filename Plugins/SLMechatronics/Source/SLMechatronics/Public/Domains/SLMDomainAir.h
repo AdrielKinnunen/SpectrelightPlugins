@@ -4,13 +4,13 @@
 #include "SLMDomainBase.h"
 #include "SLMDomainAir.generated.h"
 
-constexpr float SLMGammaAir				= 1.4;								//Specific heat ratio for air
-constexpr float SLMIdealGasConstant		= 0.0831446;						//Ideal gas constant for atm*L/(mol*K)
-constexpr float SLMMolarMassAir			= 28.97;							//Molar mass of air in g/mol
-constexpr float SLMCvAir				= 250 * SLMIdealGasConstant;		//Molar heat capacity at constant volume
-constexpr float SLMFuelPerAirGrams		= 0.323939;							//Grams of fuel per gram of air for stochiometric combustion
-constexpr float SLMFuelJoulesPerGram	= 45000;							//Combustion Energy per gram of fuel
-constexpr float SLMOneOverTwoPi			= 0.159155;							//Used in pressure to torque calculation for a pump
+constexpr float SLMGammaAir				= 1.4;							//Specific heat ratio for air
+constexpr float SLMIdealGasConstant		= 0.0831446;					//Ideal gas constant for atm*L/(mol*K)
+constexpr float SLMMolarMassAir			= 28.97;						//Molar mass of air in g/mol
+constexpr float SLMCvAir				= 250 * SLMIdealGasConstant;	//Molar heat capacity at constant volume
+constexpr float SLMFuelPerAirGrams		= 0.323939;						//Grams of fuel per gram of air for stochiometric combustion
+constexpr float SLMFuelJoulesPerGram	= 45000;						//Combustion Energy per gram of fuel
+constexpr float SLMOneOverTwoPi			= 0.159155;						//Used in pressure to torque calculation for a pump
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -24,11 +24,6 @@ struct FSLMDataAir
 	{
 	}
 
-	//static constexpr float GammaAir = 1.4;							//Specific heat ratio for air
-	//static constexpr float IdealGasConstant = 0.0813144;				//Ideal gas constant for atm*L/(mol*K)
-	//static constexpr float MolarMassAir = 28.97;						//Molar mass of air in g/mol
-	//static constexpr float CvAir = 250 * IdealGasConstant;			//Molar heat capacity at constant volume
-		
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Absolute pressure in bar"))
 	float Pressure_bar = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Volume in liters"))
@@ -37,7 +32,7 @@ struct FSLMDataAir
 	float Temp_K = 288.15;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Oxygen ratio"))
 	float OxygenRatio = 0.21;
-	
+
 	float GetMoles() const
 	{
 		// PV = NrT		->		N = PV/rT
@@ -46,8 +41,7 @@ struct FSLMDataAir
 
 	float GetMassGrams() const
 	{
-		const float Mass = GetMoles() * SLMMolarMassAir;
-		return Mass;
+		return GetMoles() * SLMMolarMassAir;
 	}
 
 	void AddHeatJoules(const float Joules)
@@ -64,8 +58,7 @@ struct FSLMDataAir
 		Pressure_bar = NewPressure;
 		Volume_l = NewVolume;
 	}
-	
-	
+
 	static FSLMDataAir Mix(const FSLMDataAir First, const FSLMDataAir Second)
 	{
 		const float FirstN = First.GetMoles();
@@ -75,9 +68,9 @@ struct FSLMDataAir
 		const float FinalOxygen = (FirstN * First.OxygenRatio + SecondN * Second.OxygenRatio) / FinalN;
 		const float FinalVolume = First.Volume_l + Second.Volume_l;
 		const float FinalPressure = (First.Pressure_bar * First.Volume_l + Second.Pressure_bar * Second.Volume_l) / FinalVolume;
-		const float FinalTemp = (FinalPressure * FinalVolume) / (FinalN * SLMIdealGasConstant);					// PV = NrT		->		T = PV/Nr
+		const float FinalTemp = (FinalPressure * FinalVolume) / (FinalN * SLMIdealGasConstant); // PV = NrT		->		T = PV/Nr
 		//const float FinalTemp = (FirstN * First.Temp_K + SecondN * Second.Temp_K) / FinalN;
-		
+
 		return FSLMDataAir(FinalPressure, FinalVolume, FinalTemp, FinalOxygen);
 	}
 };
@@ -113,17 +106,15 @@ public:
 	void AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
-	
-	virtual void Simulate(const float DeltaTime) override;
-	virtual FString GetDebugString(const int32 PortIndex) override;
 
-	
+	virtual void Simulate(const float DeltaTime, const int32 StepCount) override;
+	virtual FString GetDebugString(const int32 PortIndex) override;
 private:
 	TSparseArray<FSLMDataAir> Ports;
 	TSparseArray<FSLMDataAir> Networks;
-	
+
 	void CreateNetworkForPort(const int32 Port);
-	
+
 	virtual void CreateNetworkForPorts(const TArray<int32> PortIndices) override;
 	virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, int32 PortIndex) override;
 	virtual void RemovePortAtIndex(const int32 PortIndex) override;

@@ -3,7 +3,7 @@
 #include "Devices/SLMDeviceEngine.h"
 
 
-FSLMDeviceModelEngine USLMDeviceComponentEngine::GetDeviceState() const
+FSLMDeviceModelEngine USLMDeviceComponentEngine::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
 }

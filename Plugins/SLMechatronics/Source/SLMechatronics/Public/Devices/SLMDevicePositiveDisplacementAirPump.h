@@ -53,7 +53,7 @@ public:
 	FSLMDevicePositiveDisplacementAirPump DeviceSettings;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelPositiveDisplacementAirPump GetDeviceState() const;
+	FSLMDeviceModelPositiveDisplacementAirPump GetDeviceState();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -68,7 +68,7 @@ class SLMECHATRONICS_API USLMDeviceSubsystemPositiveDisplacementAirPump : public
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(const float DeltaTime) override;
-	virtual void Simulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime, const int32 StepCount) override;
 	virtual void PostSimulate(const float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")

@@ -35,7 +35,7 @@ void USLMDeviceSubsystemDifferential::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemDifferential::Simulate(const float DeltaTime)
+void USLMDeviceSubsystemDifferential::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	for (const auto Model : DeviceModels)
 	{

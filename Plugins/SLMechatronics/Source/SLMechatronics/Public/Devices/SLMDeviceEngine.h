@@ -61,7 +61,7 @@ public:
 	FSLMDeviceEngine DeviceSettings;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelEngine GetDeviceState() const;
+	FSLMDeviceModelEngine GetDeviceState();
 	
 protected:
 	virtual void BeginPlay() override;

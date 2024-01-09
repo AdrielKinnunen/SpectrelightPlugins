@@ -2,7 +2,7 @@
 
 #include "Devices/SLMDeviceGearbox.h"
 
-FSLMDeviceModelGearbox USLMDeviceComponentGearbox::GetDeviceState() const
+FSLMDeviceModelGearbox USLMDeviceComponentGearbox::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
 }
@@ -41,7 +41,7 @@ void USLMDeviceSubsystemGearbox::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime)
+void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	for (auto& Device : DeviceModels)
 	{

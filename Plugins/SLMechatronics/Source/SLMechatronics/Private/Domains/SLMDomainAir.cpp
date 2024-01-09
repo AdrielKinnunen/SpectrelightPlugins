@@ -44,7 +44,7 @@ FSLMDataAir USLMDomainAir::RemoveAir(const int32 PortIndex, const float VolumeLi
 	return FSLMDataAir();
 }
 
-void USLMDomainAir::Simulate(const float DeltaTime)
+void USLMDomainAir::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	
 }

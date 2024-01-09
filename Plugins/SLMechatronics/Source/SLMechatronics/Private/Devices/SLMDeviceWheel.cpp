@@ -2,6 +2,8 @@
 
 #include "Devices/SLMDeviceWheel.h"
 
+#include "DynamicMesh/ColliderMesh.h"
+
 FSLMDeviceModelWheel USLMDeviceComponentWheel::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
@@ -56,7 +58,6 @@ void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
 			Wheel.DirectionLong = FVector::CrossProduct(Wheel.DirectionWheelAxis, Wheel.ContactPatchNormal);
 			Wheel.DirectionLat = FVector::CrossProduct(Wheel.ContactPatchNormal, Wheel.DirectionLong);
 			Wheel.Velocity = Wheel.Collider->GetComponentVelocity();
-			
 			Wheel.WheelMass = Wheel.Collider->GetMass();
 			Wheel.ImpulseBudget = Wheel.NormalImpulseMagnitude * Wheel.FrictionCoefficient;
 			
@@ -65,25 +66,28 @@ void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
 	}
 }
 
-void USLMDeviceSubsystemWheel::Simulate(float DeltaTime)
+void USLMDeviceSubsystemWheel::Simulate(const float DeltaTime, const int32 StepCount)
 {
 	for (auto& Wheel:DeviceModels)
 	{
 		auto [AngVel,WheelMOI] = DomainRotation->GetData(Wheel.Index_Mech_Drive);
 		const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
-
-		const float SlipSpeedLongSI = (AngVel * Wheel.Radius - FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong)) * 0.01;
-		const float AngularImpulseToStop = -1 * SlipSpeedLongSI * WheelMOI;
-		const FVector ImpulseToStopSI = Wheel.DirectionLong * (AngularImpulseToStop / Wheel.Radius);
-		Wheel.ImpulseAccumulator += ImpulseToStopSI * -100;
-		AngVel += AngularImpulseToStop / WheelMOI;
 		
-		const float BrakeTorque = Wheel.BrakeMaxTorque * BrakeSignal;
-		const float MaxBrakeImpulse = BrakeTorque * DeltaTime;
+		//Brakes
+		const float MaxBrakeImpulse = Wheel.BrakeMaxTorque * BrakeSignal * DeltaTime;
 		const float BrakeImpulseToStop = -1 * AngVel * WheelMOI;
 		const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeImpulse, MaxBrakeImpulse);
 		AngVel += BrakeImpulseClamped / WheelMOI;
 
+		//Grip
+		const FVector SlipVelocityWorld = FVector::VectorPlaneProject((Wheel.DirectionLong * Wheel.Radius * AngVel - Wheel.Velocity), Wheel.ContactPatchNormal);
+		const FVector ImpulseToStop = SlipVelocityWorld * Wheel.WheelMass;
+
+		const float RemainingImpulseBudget = Wheel.ImpulseBudget - Wheel.ImpulseAccumulator.Length();
+		const FVector ActualImpulse = ImpulseToStop.GetClampedToMaxSize(RemainingImpulseBudget);
+		Wheel.ImpulseAccumulator += ActualImpulse;
+		const float AngularImpulse = FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius * Wheel.TestImpulseMultiplier; 
+		AngVel += AngularImpulse / WheelMOI;
 		DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
 	}
 }
@@ -94,20 +98,10 @@ void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
 	{
 		if (It->Collider)
 		{
-			const auto [AngVel,WheelMOI] = DomainRotation->GetData(It->Index_Mech_Drive);
-			const FVector SlipVelocityWorld = FVector::VectorPlaneProject((It->DirectionLong * It->Radius * AngVel - It->Velocity), It->ContactPatchNormal);
-			const FVector ImpulseToStop = SlipVelocityWorld * It->WheelMass;
-			It->ImpulseAccumulator = (It->ImpulseAccumulator + ImpulseToStop).GetClampedToMaxSize(It->ImpulseBudget);
-			
 			const FVector Impulse = It->ImpulseAccumulator;
 			const FVector AngularImpulse = It->DirectionWheelAxis * FVector::DotProduct(It->DirectionLong, Impulse) * -1;
 			It->Collider->AddImpulseAtLocation(Impulse, It->ContactPatchLocation);
 			It->Collider->AddAngularImpulseInRadians(AngularImpulse);
-
-			//const FVector MomentArm = It->ContactPatchLocation - It->Collider->GetCenterOfMass();
-			//const FVector AngularImpulse = FVector::CrossProduct(MomentArm, Impulse);
-			//It->Collider->AddImpulse(Impulse);
-			//It->Collider->AddAngularImpulseInRadians(AngularImpulse);
 
 			//Debug
 			const FVector DrawDebugStartPoint = It->ContactPatchLocation + FVector(0,0,120);

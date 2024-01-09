@@ -2,7 +2,7 @@
 /*
 #include "Devices/SLMDeviceDoubleDifferential.h"
 
-FSLMDeviceModelDoubleDifferential USLMDeviceComponentDoubleDifferential::GetDeviceState() const
+FSLMDeviceModelDoubleDifferential USLMDeviceComponentDoubleDifferential::GetDeviceState()
 {
 	return Subsystem->GetDeviceState(DeviceIndex);
 }
