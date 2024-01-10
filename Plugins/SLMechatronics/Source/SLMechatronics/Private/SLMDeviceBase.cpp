@@ -4,17 +4,17 @@
 
 USLMDeviceComponentBase::USLMDeviceComponentBase()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+    PrimaryComponentTick.bCanEverTick = false;
 }
 
 void USLMDeviceComponentBase::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 }
 
 void USLMDeviceComponentBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::EndPlay(EndPlayReason);
+    Super::EndPlay(EndPlayReason);
 }
 
 void USLMDeviceSubsystemBase::PreSimulate(const float DeltaTime)

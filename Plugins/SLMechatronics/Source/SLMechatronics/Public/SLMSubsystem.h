@@ -17,45 +17,45 @@ DECLARE_STATS_GROUP(TEXT("SLMechatronics"), STATGROUP_SLMechatronics, STATCAT_Ad
 USTRUCT()
 struct FSLMechatronicsSubsystemTickFunction : public FTickFunction
 {
-	GENERATED_BODY()
-	UPROPERTY()
-	USLMechatronicsSubsystem* Target;
-	SLMECHATRONICS_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph) override;
-	SLMECHATRONICS_API virtual FString DiagnosticMessage() override;
-	SLMECHATRONICS_API virtual FName DiagnosticContext(bool bDetailed) override;
+    GENERATED_BODY()
+    UPROPERTY()
+    USLMechatronicsSubsystem* Target;
+    SLMECHATRONICS_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph) override;
+    SLMECHATRONICS_API virtual FString DiagnosticMessage() override;
+    SLMECHATRONICS_API virtual FName DiagnosticContext(bool bDetailed) override;
 };
 
 
 template <>
 struct TStructOpsTypeTraits<FSLMechatronicsSubsystemTickFunction> : public TStructOpsTypeTraitsBase2<FSLMechatronicsSubsystemTickFunction>
 {
-	enum { WithCopy = false };
+    enum { WithCopy = false };
 };
 
 
 UCLASS()
 class SLMECHATRONICS_API USLMechatronicsSubsystem : public UWorldSubsystem
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 public:
-	//Properties
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	int32 StepCount = 1;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	bool DebugDrawPorts = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	bool DebugDrawConnections = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	bool DebugPrint = false;
+    //Properties
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    int32 StepCount = 1;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    bool DebugDrawPorts = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    bool DebugDrawConnections = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    bool DebugPrint = false;
 
-	//Functions
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	void Tick(float DeltaTime);
+    //Functions
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+    void Tick(float DeltaTime);
 private:
-	//Properties
-	FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
-	//TSparseArray<USLMDeviceComponentBase*> DeviceComponents;
-	TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
-	TArray<USLMDomainSubsystemBase*> DomainSubsystems;
+    //Properties
+    FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
+    //TSparseArray<USLMDeviceComponentBase*> DeviceComponents;
+    TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
+    TArray<USLMDomainSubsystemBase*> DomainSubsystems;
 };

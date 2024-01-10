@@ -9,75 +9,74 @@
 
 class USLMDeviceSubsystemDifferential;
 
+
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelDifferential
 {
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float GearRatio = 1.0;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Input = -1;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Left = -1;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 Index_Rotation_Right = -1;
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    float GearRatio = 1.0;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+    int32 Index_Rotation_Input = -1;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+    int32 Index_Rotation_Left = -1;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+    int32 Index_Rotation_Right = -1;
 };
+
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceDifferential
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMDeviceModelDifferential DeviceModel;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Input;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Left;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Right;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FSLMDeviceModelDifferential DeviceModel;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FSLMPortRotation Port_Rotation_Input;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FSLMPortRotation Port_Rotation_Left;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FSLMPortRotation Port_Rotation_Right;
 };
 
 
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
 class SLMECHATRONICS_API USLMDeviceComponentDifferential : public USLMDeviceComponentBase
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	USLMDeviceSubsystemDifferential* Subsystem;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDeviceDifferential DeviceSettings;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+    USLMDeviceSubsystemDifferential* Subsystem;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+    FSLMDeviceDifferential DeviceSettings;
 
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelDifferential GetDeviceState();
-	
+    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+    FSLMDeviceModelDifferential GetDeviceState();
 protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };
 
 
 UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemDifferential : public USLMDeviceSubsystemBase
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 public:
-	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	virtual void PreSimulate(const float DeltaTime) override;
-	virtual void Simulate(const float DeltaTime, const int32 StepCount) override;
-	virtual void PostSimulate(const float DeltaTime) override;
+    virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+    virtual void PreSimulate(const float DeltaTime) override;
+    virtual void Simulate(const float DeltaTime, const int32 StepCount) override;
+    virtual void PostSimulate(const float DeltaTime) override;
 
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	int32 AddDevice(FSLMDeviceDifferential Device);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void RemoveDevice(const int32 DeviceIndex);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceModelDifferential GetDeviceState(const int32 DeviceIndex);
-	
+    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+    int32 AddDevice(FSLMDeviceDifferential Device);
+    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+    void RemoveDevice(const int32 DeviceIndex);
+    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+    FSLMDeviceModelDifferential GetDeviceState(const int32 DeviceIndex);
 private:
-	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
-	TSparseArray<FSLMDeviceModelDifferential> DeviceModels;
+    TWeakObjectPtr<USLMDomainRotation> DomainRotation;
+    TSparseArray<FSLMDeviceModelDifferential> DeviceModels;
 };

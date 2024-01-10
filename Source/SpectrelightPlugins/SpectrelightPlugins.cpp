@@ -3,4 +3,4 @@
 #include "SpectrelightPlugins.h"
 #include "Modules/ModuleManager.h"
 
-IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, SpectrelightPlugins, "SpectrelightPlugins" );
+IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, SpectrelightPlugins, "SpectrelightPlugins");

@@ -5,10 +5,11 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+
 class FSLVisionModule : public IModuleInterface
 {
 public:
-	/** IModuleInterface implementation */
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
+    /** IModuleInterface implementation */
+    virtual void StartupModule() override;
+    virtual void ShutdownModule() override;
 };

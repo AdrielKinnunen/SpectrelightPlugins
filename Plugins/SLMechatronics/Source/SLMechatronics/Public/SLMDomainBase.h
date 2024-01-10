@@ -10,102 +10,100 @@
 USTRUCT(BlueprintType)
 struct FSLMPortMetaData
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FName PortName;
-	UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
-	const AActor* AssociatedActor;
-	UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
-	const USceneComponent* AssociatedSceneComponent;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-	FName SceneComponentName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FName SocketName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FVector OffsetLocal;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FName PortName;
+    UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
+    const AActor* AssociatedActor;
+    UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
+    const USceneComponent* AssociatedSceneComponent;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
+    FName SceneComponentName;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FName SocketName;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FVector OffsetLocal;
 };
-
 
 
 USTRUCT(BlueprintType)
 struct FSLMConnection
 {
-	FSLMConnection()
-	{
-	}
+    FSLMConnection()
+    {
+    }
 
-	FSLMConnection(const int32 FirstIndex, const int32 SecondIndex): FirstIndex(FirstIndex), SecondIndex(SecondIndex)
-	{
-	}
+    FSLMConnection(const int32 FirstIndex, const int32 SecondIndex): FirstIndex(FirstIndex), SecondIndex(SecondIndex)
+    {
+    }
 
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 FirstIndex = -1;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	int32 SecondIndex = -1;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+    int32 FirstIndex = -1;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+    int32 SecondIndex = -1;
 };
 
 
 UCLASS(Abstract, BlueprintType)
 class SLMECHATRONICS_API USLMDomainSubsystemBase : public UWorldSubsystem
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 public:
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
-	void ConnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
-	void DisconnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
-	UFUNCTION(BlueprintPure, Category = "SLMechatronics|Connections")
-	bool ArePortsConnected(const int32 FirstPortIndex, const int32 SecondPortIndex);
-	
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	FVector PortIndexToWorldLocation(const int32 PortIndex);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	int32 GetClosestPortIndexGlobal(const FVector WorldLocation);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	int32 GetClosestPortIndexActor(const FVector WorldLocation, const AActor* Actor);
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
-	
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void DebugPrint();
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void DebugDrawPorts();
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual void DebugDrawConnections();
-	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-	virtual FString GetDebugString(const int32 PortIndex);
-	
-	virtual void CheckForCleanUp();
-	virtual void PreSimulate(const float DeltaTime);
-	virtual void Simulate(const float DeltaTime, const int32 StepCount);
-	virtual void PostSimulate(const float DeltaTime);
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
+    void ConnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
+    void DisconnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
+    UFUNCTION(BlueprintPure, Category = "SLMechatronics|Connections")
+    bool ArePortsConnected(const int32 FirstPortIndex, const int32 SecondPortIndex);
+
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    FVector PortIndexToWorldLocation(const int32 PortIndex);
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    int32 GetClosestPortIndexGlobal(const FVector WorldLocation);
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    int32 GetClosestPortIndexActor(const FVector WorldLocation, const AActor* Actor);
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
+
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    virtual void DebugPrint();
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    virtual void DebugDrawPorts();
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    virtual void DebugDrawConnections();
+    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+    virtual FString GetDebugString(const int32 PortIndex);
+
+    virtual void CheckForCleanUp();
+    virtual void PreSimulate(const float DeltaTime);
+    virtual void Simulate(const float DeltaTime, const int32 StepCount);
+    virtual void PostSimulate(const float DeltaTime);
 protected:
-	TMultiMap<int32, int32> Adjacencies;
-	TSparseArray<int32> PortIndexToNetworkIndex;
+    TMultiMap<int32, int32> Adjacencies;
+    TSparseArray<int32> PortIndexToNetworkIndex;
 
-	bool bNeedsCleanup = false;
-	TSet<int32> PortsRecentlyAdded;
-	TSet<int32> PortsToRemove;
-	TArray<FSLMConnection> ConnectionsToAdd;
-	TArray<FSLMConnection> ConnectionsToRemove;
+    bool bNeedsCleanup = false;
+    TSet<int32> PortsRecentlyAdded;
+    TSet<int32> PortsToRemove;
+    TArray<FSLMConnection> ConnectionsToAdd;
+    TArray<FSLMConnection> ConnectionsToRemove;
 
-	TMultiMap<const AActor*, int32> ActorToPorts;
-	TSparseArray<FSLMPortMetaData> PortsMetaData;
+    TMultiMap<const AActor*, int32> ActorToPorts;
+    TSparseArray<FSLMPortMetaData> PortsMetaData;
 
-	void AddPortMetaData(FSLMPortMetaData MetaData);
+    void AddPortMetaData(FSLMPortMetaData MetaData);
 
-	virtual void CreateNetworkForPorts(TArray<int32> PortIndices);
-	virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
-	virtual void RemovePortAtIndex(int32 PortIndex);
-	virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
+    virtual void CreateNetworkForPorts(TArray<int32> PortIndices);
+    virtual void DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex);
+    virtual void RemovePortAtIndex(int32 PortIndex);
+    virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
 
-	//Debug
-	FColor DomainColor = FColor::Black;
-	
+    //Debug
+    FColor DomainColor = FColor::Black;
 private:
-	void CleanUpGraph();
-	TSet<int32> GetConnectedPorts(const TSet<int32>& Roots) const;
+    void CleanUpGraph();
+    TSet<int32> GetConnectedPorts(const TSet<int32>& Roots) const;
 };

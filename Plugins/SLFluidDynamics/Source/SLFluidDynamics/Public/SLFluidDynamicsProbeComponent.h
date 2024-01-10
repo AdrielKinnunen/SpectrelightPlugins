@@ -7,18 +7,18 @@
 #include "Components/SceneComponent.h"
 #include "SLFluidDynamicsProbeComponent.generated.h"
 
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class SLFLUIDDYNAMICS_API USLFluidDynamicsProbeComponent : public USceneComponent
 {
-	GENERATED_BODY()
-
+    GENERATED_BODY()
 public:
-	// Sets default values for this component's properties
-	USLFluidDynamicsProbeComponent();
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSLFluidDynamicsProbeSettings FluidDynamicsProbeSettings;
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    // Sets default values for this component's properties
+    USLFluidDynamicsProbeComponent();
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FSLFluidDynamicsProbeSettings FluidDynamicsProbeSettings;
+    virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    //virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 };

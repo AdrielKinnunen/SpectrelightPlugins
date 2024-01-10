@@ -9,30 +9,21 @@
 #include "SLTilemapSubsystem.generated.h"
 
 
-
 UCLASS()
 class SLTILEMAP_API USLTilemapSubsystem : public UWorldSubsystem
 {
-	GENERATED_BODY()
-
-
+    GENERATED_BODY()
 public:
-	//Begin Subsystem
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual void Deinitialize() override;
-	//End Subsystem
+    //Begin Subsystem
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Deinitialize() override;
+    //End Subsystem
 
-
-	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
-	FTileMap InputTileMap;
-	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
-	FTileMap OutputTileMap;
-	UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
-	USLWave* Wave;
-
-	
-	
-	
+    UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+    FTileMap InputTileMap;
+    UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+    FTileMap OutputTileMap;
+    UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
+    USLWave* Wave;
 private:
-	
 };

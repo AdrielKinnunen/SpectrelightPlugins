@@ -9,29 +9,27 @@
 USTRUCT(BlueprintType)
 struct FVisionPolygon
 {
-	GENERATED_BODY()
-	FVisionPolygon()
-	{
-	}
+    GENERATED_BODY()
+    FVisionPolygon()
+    {
+    }
 
-	FVisionPolygon(const FVector2D NewOrigin, const TArray<FVector2D> NewVertices)
-	{
-		Origin = NewOrigin;
-		Vertices = NewVertices;
-	}
+    FVisionPolygon(const FVector2D NewOrigin, const TArray<FVector2D> NewVertices)
+    {
+        Origin = NewOrigin;
+        Vertices = NewVertices;
+    }
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLVision")
-	FVector2D Origin;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLVision")
-	TArray<FVector2D> Vertices;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLVision")
+    FVector2D Origin;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLVision")
+    TArray<FVector2D> Vertices;
 };
-
-
 
 
 UENUM(BlueprintType)
 enum class EVisionShape : uint8
 {
-	Circle,
-	Directional
+    Circle,
+    Directional
 };

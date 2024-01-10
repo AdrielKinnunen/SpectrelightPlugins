@@ -4,13 +4,13 @@
 #include "SLMDomainBase.h"
 #include "SLMDomainAir.generated.h"
 
-constexpr float SLMGammaAir             = 1.4;                          //Specific heat ratio for air
-constexpr float SLMIdealGasConstant     = 0.0831446;                    //Ideal gas constant for atm*L/(mol*K)
-constexpr float SLMMolarMassAir         = 28.97;                        //Molar mass of air in g/mol
-constexpr float SLMCvAir                = 250 * SLMIdealGasConstant;    //Molar heat capacity at constant volume
-constexpr float SLMFuelPerAirGrams      = 0.323939;                     //Grams of fuel per gram of air for stochiometric combustion
-constexpr float SLMFuelJoulesPerGram    = 45000;                        //Combustion Energy per gram of fuel
-constexpr float SLMOneOverTwoPi         = 0.159155;                     //Used in pressure to torque calculation for a pump
+constexpr float SLMGammaAir                 = 1.4;                          //Specific heat ratio for air
+constexpr float SLMIdealGasConstant         = 0.0831446;                    //Ideal gas constant for atm*L/(mol*K)
+constexpr float SLMMolarMassAir             = 28.97;                        //Molar mass of air in g/mol
+constexpr float SLMCvAir                    = 250 * SLMIdealGasConstant;    //Molar heat capacity at constant volume
+constexpr float SLMFuelPerAirGrams          = 0.323939;                     //Grams of fuel per gram of air for stochiometric combustion
+constexpr float SLMFuelJoulesPerGram        = 45000;                        //Combustion Energy per gram of fuel
+constexpr float SLMOneOverTwoPi             = 0.159155;                     //Used in pressure to torque calculation for a pump
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir

@@ -12,6 +12,5 @@
 UCLASS()
 class SPECTRELIGHTPLUGINS_API ASpectrelightPluginsGameModeBase : public AGameModeBase
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
 };
