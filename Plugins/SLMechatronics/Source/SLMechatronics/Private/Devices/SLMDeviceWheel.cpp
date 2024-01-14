@@ -75,7 +75,7 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime, float SubstepScalar)
 
         //Brakes
         const float MaxBrakeImpulse = Wheel.BrakeMaxTorque * BrakeSignal * DeltaTime;
-        const float BrakeImpulseToStop = -1 * AngVel * WheelMOI;
+        const float BrakeImpulseToStop = -0.1 * SubstepScalar * AngVel * WheelMOI;
         const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeImpulse, MaxBrakeImpulse);
         AngVel += BrakeImpulseClamped / WheelMOI;
 
@@ -98,8 +98,12 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime, float SubstepScalar)
         const float RemainingImpulseBudget = Wheel.ImpulseBudget - Wheel.ImpulseAccumulator.Length();
         const FVector ActualImpulse = ImpulseToStop.GetClampedToMaxSize(RemainingImpulseBudget);
         Wheel.ImpulseAccumulator += ActualImpulse;
-        const float AngularImpulse = -0.0001 * FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius;
-        AngVel += AngularImpulse / WheelMOI;
+        const float GripAngularImpulse = -0.0001 * FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius;
+
+        const float TotalImpulse = GripAngularImpulse + BrakeImpulseClamped;
+
+        
+        AngVel += GripAngularImpulse / WheelMOI;
         
         DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
     }
