@@ -27,8 +27,6 @@ struct FSLMDeviceModelWheel
     float SteerRate = 30;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float BrakeMaxTorque = 5000;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    float TestImpulseMultiplier = -0.0001;
 
     //Set by hit event
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -76,19 +74,6 @@ struct FSLMDeviceCosmeticsWheel
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float AngularVelocityDegrees;
-
-    /*
-        void PreSimulate()
-        {
-            ImpulseBudget = NormalImpulseMagnitude * FrictionCoefficient;
-            //DirectionWheelAxis = Collider->GetRightVector();
-            DirectionWheelAxis = FVector(0,1,0);
-            DirectionLong = FVector::CrossProduct(DirectionWheelAxis, ContactPatchNormal);
-            DirectionLat = FVector::CrossProduct(ContactPatchNormal, DirectionLong);
-            //WheelVelocity = WheelColliderComponent->GetComponentVelocity();
-            Velocity = FVector(100,0,0);
-        }
-    */
 };
 
 
@@ -133,12 +118,12 @@ public:
     UPrimitiveComponent* WheelColliderComponent = nullptr;
 
     UFUNCTION(Category = "SLMechatronics")
-    void OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+    void OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, FHitResult& Hit);
     */
 
 protected:
     virtual void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 };
 
 
@@ -149,21 +134,21 @@ class SLMECHATRONICS_API USLMDeviceSubsystemWheel : public USLMDeviceSubsystemBa
 public:
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
     virtual void PreSimulate(float DeltaTime) override;
-    virtual void Simulate(float DeltaTime, const int32 StepCount) override;
+    virtual void Simulate(float DeltaTime, float SubstepScalar) override;
     virtual void PostSimulate(float DeltaTime) override;
 
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
     int32 AddDevice(FSLMDeviceWheel Device);
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    void RemoveDevice(const int32 DeviceIndex);
+    void RemoveDevice(int32 DeviceIndex);
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    FSLMDeviceModelWheel GetDeviceState(const int32 DeviceIndex);
+    FSLMDeviceModelWheel GetDeviceState(int32 DeviceIndex);
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    FSLMDeviceCosmeticsWheel GetDeviceCosmetics(const int32 DeviceIndex);
+    FSLMDeviceCosmeticsWheel GetDeviceCosmetics(int32 DeviceIndex);
 
     //TESTING
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    void SendHitData(const int32 DeviceIndex, UPrimitiveComponent* Primitive, FVector Location, FVector Normal, FVector NormalImpulse);
+    void SendHitData(int32 DeviceIndex, UPrimitiveComponent* Primitive, FVector Location, FVector Normal, FVector NormalImpulse);
 private:
     TWeakObjectPtr<USLMDomainRotation> DomainRotation;
     TWeakObjectPtr<USLMDomainSignal> DomainSignal;

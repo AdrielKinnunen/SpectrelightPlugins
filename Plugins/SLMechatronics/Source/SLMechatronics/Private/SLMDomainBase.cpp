@@ -20,7 +20,7 @@ void USLMDomainSubsystemBase::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDomainSubsystemBase::Simulate(const float DeltaTime, const int32 StepCount)
+void USLMDomainSubsystemBase::Simulate(const float DeltaTime, const float SubstepScalar)
 {
 }
 

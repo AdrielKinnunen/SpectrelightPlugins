@@ -66,6 +66,7 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
             {
                 DomainSubsystem->DebugDrawPorts();
             }
+            
             if (DebugDrawConnections)
             {
                 DomainSubsystem->DebugDrawConnections();
@@ -95,15 +96,16 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
     {
         DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Simulate"), STAT_Simulate, STATGROUP_SLMechatronics)
         const float SubstepDeltaTime = DeltaTime / StepCount;
+        const float SubstepScalar = 1.0 / StepCount;
         for (int32 i = 0; i < StepCount; i++)
         {
             for (const auto DomainSubsystem : DomainSubsystems)
             {
-                DomainSubsystem->Simulate(SubstepDeltaTime, StepCount);
+                DomainSubsystem->Simulate(SubstepDeltaTime, SubstepScalar);
             }
             for (const auto& DeviceSubsystem : DeviceSubsystems)
             {
-                DeviceSubsystem->Simulate(SubstepDeltaTime, StepCount);
+                DeviceSubsystem->Simulate(SubstepDeltaTime, SubstepScalar);
             }
         }
     }

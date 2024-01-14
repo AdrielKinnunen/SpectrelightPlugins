@@ -79,7 +79,7 @@ public:
 
     virtual void CheckForCleanUp();
     virtual void PreSimulate(const float DeltaTime);
-    virtual void Simulate(const float DeltaTime, const int32 StepCount);
+    virtual void Simulate(const float DeltaTime, const float SubstepScalar);
     virtual void PostSimulate(const float DeltaTime);
 protected:
     TMultiMap<int32, int32> Adjacencies;

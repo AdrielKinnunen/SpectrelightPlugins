@@ -68,7 +68,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
     void SetAngularVelocity(const int32 PortIndex, const float NewAngVel);
 
-    virtual void Simulate(const float DeltaTime, const int32 StepCount) override;
+    virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
     virtual FString GetDebugString(const int32 PortIndex) override;
 private:
     TSparseArray<FSLMDataRotation> Ports;

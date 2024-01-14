@@ -31,6 +31,6 @@ class SLMECHATRONICS_API USLMDeviceSubsystemBase : public UWorldSubsystem
     GENERATED_BODY()
 public:
     virtual void PreSimulate(const float DeltaTime);
-    virtual void Simulate(const float DeltaTime, const int32 StepCount);
+    virtual void Simulate(const float DeltaTime, const float SubstepScalar);
     virtual void PostSimulate(const float DeltaTime);
 };

@@ -70,7 +70,7 @@ class SLMECHATRONICS_API USLMDeviceSubsystemBattery : public USLMDeviceSubsystem
 public:
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
     virtual void PreSimulate(const float DeltaTime) override;
-    virtual void Simulate(const float DeltaTime, const int32 StepCount) override;
+    virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
     virtual void PostSimulate(const float DeltaTime) override;
 
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")

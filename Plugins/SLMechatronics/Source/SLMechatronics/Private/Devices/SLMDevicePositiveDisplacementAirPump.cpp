@@ -36,7 +36,7 @@ void USLMDeviceSubsystemPositiveDisplacementAirPump::PreSimulate(const float Del
 {
 }
 
-void USLMDeviceSubsystemPositiveDisplacementAirPump::Simulate(const float DeltaTime, const int32 StepCount)
+void USLMDeviceSubsystemPositiveDisplacementAirPump::Simulate(const float DeltaTime, const float SubstepScalar)
 {
     for (const auto& Model : DeviceModels)
     {

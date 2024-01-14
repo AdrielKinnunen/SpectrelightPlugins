@@ -41,7 +41,7 @@ void USLMDeviceSubsystemGearbox::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime, const int32 StepCount)
+void USLMDeviceSubsystemGearbox::Simulate(const float DeltaTime, const float SubstepScalar)
 {
     for (auto& Device : DeviceModels)
     {

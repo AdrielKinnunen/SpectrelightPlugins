@@ -37,14 +37,16 @@ void USLMDeviceSubsystemMotor::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemMotor::Simulate(const float DeltaTime, const int32 StepCount)
+void USLMDeviceSubsystemMotor::Simulate(const float DeltaTime, const float SubstepScalar)
 {
     for (const auto& Model : DeviceModels)
     {
         const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
         const FSLMDataElectricity Electricity = DomainElectricity->GetByPortIndex(Model.Index_Electricity);
         const float Throttle = FMath::Clamp(DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle), -1.0, 1.0);
-        const float MaxTorque = Model.MaxPowerWatts / Model.ConstantTorqueAngVel;
+
+        const float AngVelForTorqueCalculation = FMath::Max(FMath::Abs(Crank.AngularVelocity), Model.ConstantTorqueAngVel);
+        const float MaxTorque = Model.MaxPowerWatts / AngVelForTorqueCalculation;
         const float TorqueDemand = Throttle * MaxTorque;
 
         //Motoring = Negative energy transfer
@@ -65,7 +67,7 @@ void USLMDeviceSubsystemMotor::Simulate(const float DeltaTime, const int32 StepC
         const float CrankRPS_Out = Crank.AngularVelocity + ActualTorque * DeltaTime / Crank.MomentOfInertia;
 
         DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
-        DomainElectricity->SetJoulesByPortIndex(Model.Index_Electricity, Electricity.StoredJoules + EnergyDemandClamped);
+        //DomainElectricity->SetJoulesByPortIndex(Model.Index_Electricity, Electricity.StoredJoules + EnergyDemandClamped);
     }
 }
 

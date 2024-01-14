@@ -2,7 +2,6 @@
 
 #include "Devices/SLMDeviceWheel.h"
 
-#include "DynamicMesh/ColliderMesh.h"
 
 FSLMDeviceModelWheel USLMDeviceComponentWheel::GetDeviceState()
 {
@@ -31,7 +30,7 @@ void USLMDeviceComponentWheel::BeginPlay()
     DeviceIndex = Subsystem->AddDevice(DeviceSettings);
 }
 
-void USLMDeviceComponentWheel::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void USLMDeviceComponentWheel::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
     Subsystem->RemoveDevice(DeviceIndex);
     Super::EndPlay(EndPlayReason);
@@ -66,7 +65,7 @@ void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
     }
 }
 
-void USLMDeviceSubsystemWheel::Simulate(const float DeltaTime, const int32 StepCount)
+void USLMDeviceSubsystemWheel::Simulate(float DeltaTime, float SubstepScalar)
 {
     for (auto& Wheel : DeviceModels)
     {
@@ -81,14 +80,27 @@ void USLMDeviceSubsystemWheel::Simulate(const float DeltaTime, const int32 StepC
         AngVel += BrakeImpulseClamped / WheelMOI;
 
         //Grip
-        const FVector SlipVelocityWorld = FVector::VectorPlaneProject((Wheel.DirectionLong * Wheel.Radius * AngVel - Wheel.Velocity), Wheel.ContactPatchNormal);
-        const FVector ImpulseToStop = SlipVelocityWorld * Wheel.WheelMass;
+        const float DesiredAngVel = FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong) / Wheel.Radius;
+        const float AngularImpulseToStop = (DesiredAngVel - AngVel) * WheelMOI;
+        const float LinearImpulseMaxSizeThisSubstep = FMath::Abs(AngularImpulseToStop * 10000 / Wheel.Radius);
+        
+        const float SlipSpeedLong = Wheel.Radius * AngVel - FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong);
+        FVector ImpulseToStopLong = SlipSpeedLong * Wheel.WheelMass * Wheel.DirectionLong * SubstepScalar;
+        const FVector ImpulseToStopLongClamped = ImpulseToStopLong.GetClampedToMaxSize(LinearImpulseMaxSizeThisSubstep);
+        
+        const float SlipSpeedLat = -1 * FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLat);
+        const FVector ImpulseToStopLat = SlipSpeedLat * Wheel.WheelMass * Wheel.DirectionLat * SubstepScalar;
+
+
+        const FVector ImpulseToStop = ImpulseToStopLat + ImpulseToStopLongClamped;
+
 
         const float RemainingImpulseBudget = Wheel.ImpulseBudget - Wheel.ImpulseAccumulator.Length();
         const FVector ActualImpulse = ImpulseToStop.GetClampedToMaxSize(RemainingImpulseBudget);
         Wheel.ImpulseAccumulator += ActualImpulse;
-        const float AngularImpulse = FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius * Wheel.TestImpulseMultiplier;
+        const float AngularImpulse = -0.0001 * FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius;
         AngVel += AngularImpulse / WheelMOI;
+        
         DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
     }
 }
@@ -125,7 +137,7 @@ int32 USLMDeviceSubsystemWheel::AddDevice(FSLMDeviceWheel Device)
     return DeviceModels.Add(Device.DeviceModel);
 }
 
-void USLMDeviceSubsystemWheel::RemoveDevice(const int32 DeviceIndex)
+void USLMDeviceSubsystemWheel::RemoveDevice(int32 DeviceIndex)
 {
     DomainRotation->RemovePort(DeviceModels[DeviceIndex].Index_Mech_Drive);
     DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Brake);
@@ -135,17 +147,17 @@ void USLMDeviceSubsystemWheel::RemoveDevice(const int32 DeviceIndex)
     DeviceModels.RemoveAt(DeviceIndex);
 }
 
-FSLMDeviceModelWheel USLMDeviceSubsystemWheel::GetDeviceState(const int32 DeviceIndex)
+FSLMDeviceModelWheel USLMDeviceSubsystemWheel::GetDeviceState(int32 DeviceIndex)
 {
     return DeviceModels[DeviceIndex];
 }
 
-FSLMDeviceCosmeticsWheel USLMDeviceSubsystemWheel::GetDeviceCosmetics(const int32 DeviceIndex)
+FSLMDeviceCosmeticsWheel USLMDeviceSubsystemWheel::GetDeviceCosmetics(int32 DeviceIndex)
 {
     return DeviceCosmetics[DeviceIndex];
 }
 
-void USLMDeviceSubsystemWheel::SendHitData(const int32 DeviceIndex, UPrimitiveComponent* Primitive, FVector Location, FVector Normal, FVector NormalImpulse)
+void USLMDeviceSubsystemWheel::SendHitData(int32 DeviceIndex, UPrimitiveComponent* Primitive, FVector Location, FVector Normal, FVector NormalImpulse)
 {
     FSLMDeviceModelWheel Wheel = DeviceModels[DeviceIndex];
     Wheel.Collider = Primitive;

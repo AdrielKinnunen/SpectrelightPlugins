@@ -35,7 +35,7 @@ void USLMDeviceSubsystemBattery::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemBattery::Simulate(const float DeltaTime, const int32 StepCount)
+void USLMDeviceSubsystemBattery::Simulate(const float DeltaTime, const float SubstepScalar)
 {
     for (auto& Battery : DeviceModels)
     {
