@@ -1,8 +1,8 @@
 #include "SLTilemapLib.h"
 
-int32 USLTilemapLib::XYToIndex(const int32 SizeX, const int32 X, const int32 Y)
+int32 USLTilemapLib::XYToIndex(const int32 X, const int32 Y, const int32 SizeX)
 {
-    return (Y * SizeX) + X;
+    return inline_XYToIndex(X, Y, SizeX);
 }
 
 FTileMap USLTilemapLib::CreateTileMap(const int32 NewSizeX, const int32 NewSizeY, const uint8 InitialValue)

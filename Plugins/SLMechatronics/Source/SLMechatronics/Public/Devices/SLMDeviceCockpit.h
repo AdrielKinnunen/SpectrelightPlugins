@@ -20,6 +20,8 @@ struct FSLMCockpitValues
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float Brake = 0.0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    float Clutch = 0.0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float Steer = 0.0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float Shift = 0.0;
@@ -40,6 +42,8 @@ struct FSLMDeviceModelCockpit
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Signal_Brake = -1;
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+    int32 Index_Signal_Clutch = -1;
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Signal_Steer = -1;
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Signal_Shift = -1;
@@ -59,6 +63,8 @@ struct FSLMDeviceCockpit
     FSLMPortSignal Port_Signal_Throttle;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     FSLMPortSignal Port_Signal_Brake;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FSLMPortSignal Port_Signal_Clutch;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     FSLMPortSignal Port_Signal_Steer;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")

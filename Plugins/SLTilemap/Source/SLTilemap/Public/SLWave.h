@@ -50,8 +50,8 @@ public:
     bool Run();
 private:
     //Wave
-    int32 PatternSize = 3;
-    TArray<FTileMap> Patterns;
+    int32 KernelSize = 3;
+    TArray<FTileKernel> Patterns;
     TArray<int32> Counts;
     TArray<float> Weights;
     TArray<float> PlogP;
@@ -68,11 +68,11 @@ private:
 
     void GeneratePatterns();
     void InitPatternCells();
-    void RegisterPattern(const FTileMap& Pattern);
+    void RegisterPattern(const FTileKernel Pattern);
     bool UpdateCell(const int32 CellIndex);
     void OnFailed();
     void ObserveCell(const int32 CellIndex);
-    void WritePatternToMapData(const FTileMap& Pattern, int32 x, int32 y);
-    bool CanPatternFitAtThisLocation(const FTileMap& Pattern, int32 x, int32 y) const;
-    FTileMap OrCellPatternsTogether(const int32 CellIndex);
+    void WritePatternToMapData(const FTileKernel& Pattern, int32 x, int32 y);
+    bool CanPatternFitAtThisLocation(const FTileKernel& Pattern, int32 x, int32 y) const;
+    FTileKernel OrCellPatternsTogether(const int32 CellIndex);
 };

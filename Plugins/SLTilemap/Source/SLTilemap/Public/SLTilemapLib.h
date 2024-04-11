@@ -21,9 +21,73 @@ enum class ETileState : uint8
     RoofedWall = 1 << 6,
     RoofedWindow = 1 << 7
 };
-
-
 ENUM_CLASS_FLAGS(ETileState);
+
+
+
+
+
+FORCEINLINE int32 inline_IndexToX(const int32 Index, const int32 SizeX)
+{
+    return Index % SizeX;
+}
+
+FORCEINLINE int32 inline_IndexToY(const int32 Index, const int32 SizeX)
+{
+    return Index / SizeX;
+}
+
+FORCEINLINE int32 inline_XYToIndex(const int32 X, const int32 Y, const int32 SizeX)
+{
+    return Y * SizeX + X;
+}
+
+
+
+
+
+USTRUCT(BlueprintType)
+struct FTileKernel
+{
+    GENERATED_BODY()
+    uint8 Data[16];
+
+    static FTileKernel And(const FTileKernel A, const FTileKernel B)
+    {
+        FTileKernel Result;
+        for (int i = 0; i < 16; i++)
+        {
+            Result.Data[i] = A.Data[i] & B.Data[i];
+        }
+        return Result;
+    }
+
+    static FTileKernel Or(const FTileKernel A, const FTileKernel B)
+    {
+        FTileKernel Result;
+        for (int i = 0; i < 16; i++)
+        {
+            Result.Data[i] = A.Data[i] | B.Data[i];
+        }
+        return Result;
+    }
+};
+
+FORCEINLINE bool operator ==(const FTileKernel& A, const FTileKernel& B)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        if (A.Data[i] != B.Data[i])
+        {
+            return false;
+        }
+    }
+    return true; 
+}
+
+
+
+
 
 USTRUCT(BlueprintType)
 struct FTileMap
@@ -64,37 +128,51 @@ struct FTileMap
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap", meta = (Bitmask, BitmaskEnum = "ETileState"))
     TArray<uint8> Data;
 
-    int32 GetX(const int32 Index) const
-    {
-        return Index % SizeX;
-    }
-
-    int32 GetY(const int32 Index) const
-    {
-        return Index / SizeX;
-    }
-
-    int32 GetIndex(const int32 X, const int32 Y) const
-    {
-        return Y * SizeX + X;
-    }
-
     uint8 GetTile(const int32 X, const int32 Y) const
     {
-        return Data[Y * SizeX + X];
+        return Data[inline_XYToIndex(X, Y, SizeX)];
     }
 
     void SetTile(const uint8 Tile, const int32 X, const int32 Y)
     {
-        Data[Y * SizeX + X] = Tile;
+        Data[inline_XYToIndex(X, Y, SizeX)] = Tile;
+    }
+
+    FTileKernel ReadKernel(const int32 KernelSize, const int32 StartX, const int32 StartY) const
+    {
+        FTileKernel Result = FTileKernel();
+        for (int32 Y = 0; Y < KernelSize; Y++)
+        {
+            for (int32 X = 0; X < KernelSize; X++)
+            {
+                const uint8 Tile = GetTile(X + StartX, Y + StartY);
+                Result.Data[inline_XYToIndex(X, Y, KernelSize)] = Tile;
+            }
+        }
+        return Result;
+    }
+
+    void WriteKernel(const FTileKernel Kernel, const int32 KernelSize, const int32 StartX, const int32 StartY)
+    {
+        for (int32 Y = 0; Y < KernelSize; Y++)
+        {
+            for (int32 X = 0; X < KernelSize; X++)
+            {
+                const int32 KernelIndex = inline_XYToIndex(X, Y, KernelSize);
+                const uint8 Tile = Kernel.Data[KernelIndex];
+                SetTile(Tile, X + StartX, Y + StartY);
+            }
+        }
     }
 };
-
 
 FORCEINLINE bool operator ==(const FTileMap& A, const FTileMap& B)
 {
     return A.SizeX == B.SizeX && A.Data == B.Data;
 }
+
+
+
 
 
 USTRUCT(BlueprintType)
@@ -113,13 +191,16 @@ struct FTileMapInfo
 };
 
 
+
+
+
 UCLASS()
 class SLTILEMAP_API USLTilemapLib : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static int32 XYToIndex(const int32 SizeX, const int32 X, const int32 Y);
+    static int32 XYToIndex(const int32 X, const int32 Y, const int32 SizeX);
 
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
     static FTileMap CreateTileMap(const int32 NewSizeX, const int32 NewSizeY, const uint8 InitialValue);

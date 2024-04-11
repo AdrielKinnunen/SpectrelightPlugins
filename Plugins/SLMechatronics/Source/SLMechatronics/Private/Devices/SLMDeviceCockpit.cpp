@@ -23,6 +23,7 @@ void USLMDeviceComponentCockpit::BeginPlay()
     const AActor* OwningActor = GetOwner();
     DeviceSettings.Port_Signal_Throttle.PortMetaData.AssociatedActor = OwningActor;
     DeviceSettings.Port_Signal_Brake.PortMetaData.AssociatedActor = OwningActor;
+    DeviceSettings.Port_Signal_Clutch.PortMetaData.AssociatedActor = OwningActor;
     DeviceSettings.Port_Signal_Steer.PortMetaData.AssociatedActor = OwningActor;
     DeviceSettings.Port_Signal_Shift.PortMetaData.AssociatedActor = OwningActor;
     DeviceSettings.Port_Signal_Fire.PortMetaData.AssociatedActor = OwningActor;
@@ -53,6 +54,8 @@ void USLMDeviceSubsystemCockpit::Simulate(const float DeltaTime, const float Sub
     {
         DomainSignal->WriteByPortIndex(Device.Index_Signal_Throttle, Device.Values.Throttle);
         DomainSignal->WriteByPortIndex(Device.Index_Signal_Brake, Device.Values.Brake);
+        DomainSignal->WriteByPortIndex(Device.Index_Signal_Clutch, Device.Values.Clutch);
+
         DomainSignal->WriteByPortIndex(Device.Index_Signal_Steer, Device.Values.Steer);
         DomainSignal->WriteByPortIndex(Device.Index_Signal_Shift, Device.Values.Shift);
         DomainSignal->WriteByPortIndex(Device.Index_Signal_Fire, Device.Values.Fire);
@@ -67,6 +70,7 @@ int32 USLMDeviceSubsystemCockpit::AddDevice(FSLMDeviceCockpit Device)
 {
     Device.DeviceModel.Index_Signal_Throttle = DomainSignal->AddPort(Device.Port_Signal_Throttle);
     Device.DeviceModel.Index_Signal_Brake = DomainSignal->AddPort(Device.Port_Signal_Brake);
+    Device.DeviceModel.Index_Signal_Clutch = DomainSignal->AddPort(Device.Port_Signal_Clutch);
     Device.DeviceModel.Index_Signal_Steer = DomainSignal->AddPort(Device.Port_Signal_Steer);
     Device.DeviceModel.Index_Signal_Shift = DomainSignal->AddPort(Device.Port_Signal_Shift);
     Device.DeviceModel.Index_Signal_Fire = DomainSignal->AddPort(Device.Port_Signal_Fire);
@@ -78,6 +82,7 @@ void USLMDeviceSubsystemCockpit::RemoveDevice(const int32 DeviceIndex)
 {
     DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Throttle);
     DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Brake);
+    DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Clutch);
     DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Steer);
     DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Shift);
     DomainSignal->RemovePort(DeviceModels[DeviceIndex].Index_Signal_Fire);
