@@ -16,7 +16,7 @@ struct FCell
     {
     }
 
-    FCell(const TArray<int32> NewAllowedPatternIndices, const TArray<int32> NewNeighborIndices)
+    FCell(const TArray<int32>& NewAllowedPatternIndices, const TArray<int32>& NewNeighborIndices)
     {
         AllowedPatternIndices = NewAllowedPatternIndices;
         NeighborIndices = NewNeighborIndices;
@@ -36,7 +36,7 @@ public:
     int32 RandomSeed = 133742069;
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
     FRandomStream RandomStream;
-    //Tilemaps
+
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
     FTileMap InputTileMap;
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
@@ -48,15 +48,21 @@ public:
     bool Step();
     UFUNCTION(Blueprintcallable, Category = "SLTilemap")
     bool Run();
+
+    UFUNCTION(Blueprintcallable, Category = "SLTilemap")
+    TArray<float> GetEntropy();
+
+
+
+    
 private:
     //Wave
-    int32 KernelSize = 3;
-    TArray<FTileKernel> Patterns;
+    TArray<FTilePattern> Patterns;
     TArray<int32> Counts;
     TArray<float> Weights;
     TArray<float> PlogP;
     bool Failed = false;
-    int32 FailedAtIndex = 0;
+    int32 FailedAtIndex = -1;
 
     //Cells
     TArray<FCell> CellArray;
@@ -68,11 +74,11 @@ private:
 
     void GeneratePatterns();
     void InitPatternCells();
-    void RegisterPattern(const FTileKernel Pattern);
+    void RegisterPattern(const FTilePattern Pattern);
     bool UpdateCell(const int32 CellIndex);
     void OnFailed();
     void ObserveCell(const int32 CellIndex);
-    void WritePatternToMapData(const FTileKernel& Pattern, int32 x, int32 y);
-    bool CanPatternFitAtThisLocation(const FTileKernel& Pattern, int32 x, int32 y) const;
-    FTileKernel OrCellPatternsTogether(const int32 CellIndex);
+    void WritePatternToMapData(const FTilePattern& Pattern, int32 x, int32 y);
+    bool CanPatternFitAtThisLocation(const FTilePattern& Pattern, int32 x, int32 y) const;
+    FTilePattern OrCellPatternsTogether(const int32 CellIndex);
 };

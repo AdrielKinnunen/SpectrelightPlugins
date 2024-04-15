@@ -1,18 +1,77 @@
 #include "SLTilemapLib.h"
 
-int32 USLTilemapLib::XYToIndex(const int32 X, const int32 Y, const int32 SizeX)
+void USLTilemapLib::RunTests()
 {
-    return inline_XYToIndex(X, Y, SizeX);
+    constexpr int32 Width = 10;
+    constexpr int32 Height = 5;
+    
+    constexpr int32 TLC = 0;
+    constexpr int32 TRC = Width - 1;
+    constexpr int32 BLC = Width * (Height - 1);
+    constexpr int32 BRC = Width * Height - 1;
+    constexpr int32 TRCT = Height - 1;
+    constexpr int32 BLCT = Height * (Width - 1);
+    
+    check(inline_XYToIndex(Width - 1, Height - 1, Width) == BRC);
+    check(inline_IndexToX(BRC, Width) == Width - 1);
+    check(inline_IndexToY(BRC, Width) == Height - 1);
+    
+    check(inline_IndexToIndexReflected(TLC, Width) == TRC);
+    check(inline_IndexToIndexReflected(BLC, Width) == BRC);
+    
+    check(inline_IndexToIndexTransposed(TLC, Width, Height) == TLC);
+    check(inline_IndexToIndexTransposed(TRC, Width, Height) == BLCT);
+    check(inline_IndexToIndexTransposed(BLC, Width, Height) == TRCT);
+    check(inline_IndexToIndexTransposed(BRC, Width, Height) == BRC);
+
+    check(inline_IndexToIndexRotated(TLC, Width, Height) == TRCT);
+    check(inline_IndexToIndexRotated(TRC, Width, Height) == BRC);
+    check(inline_IndexToIndexRotated(BRC, Width, Height) == BLCT);
+    check(inline_IndexToIndexRotated(BLC, Width, Height) == TLC);
+
+    FTileMap OriginalMap = FTileMap(Width, Height, 0);
+    OriginalMap.SetTile(1,0,0);
+    OriginalMap.SetTile(2,Width - 1,0);
+    OriginalMap.SetTile(3,Width - 1,Height - 1);
+    OriginalMap.SetTile(4,0,Height - 1);
+    FTileMap TestMap = OriginalMap;
+    check(TestMap == OriginalMap);
+    
+    TestMap = FTileMap::Reflect(TestMap);
+    TestMap = FTileMap::Reflect(TestMap);
+    check(TestMap == OriginalMap);
+    
+    TestMap = FTileMap::Transpose(TestMap);
+    TestMap = FTileMap::Transpose(TestMap);
+    check(TestMap == OriginalMap);
+
+    TestMap = FTileMap::Rotate(TestMap);
+    TestMap = FTileMap::Rotate(TestMap);
+    TestMap = FTileMap::Rotate(TestMap);
+    TestMap = FTileMap::Rotate(TestMap);
+    check(TestMap == OriginalMap);
+
+    TestMap = FTileMap::Transpose(TestMap);
+    TestMap = FTileMap::Reflect(TestMap);\
+    TestMap = FTileMap::Rotate(TestMap);
+    check(TestMap == OriginalMap);
+
+    UE_LOG(LogTemp, Warning, TEXT("Tests ran OK"));
 }
 
-FTileMap USLTilemapLib::CreateTileMap(const int32 NewSizeX, const int32 NewSizeY, const uint8 InitialValue)
+int32 USLTilemapLib::XYToIndex(const int32 X, const int32 Y, const int32 Width)
 {
-    return FTileMap(NewSizeX, NewSizeY, InitialValue);
+    return inline_XYToIndex(X, Y, Width);
+}
+
+FTileMap USLTilemapLib::CreateTileMap(const int32 NewWidth, const int32 NewHeight, const uint8 InitialValue)
+{
+    return FTileMap(NewWidth, NewHeight, InitialValue);
 }
 
 bool USLTilemapLib::IsTilemapValid(const FTileMap& TileMap)
 {
-    return TileMap.Data.Num() == TileMap.SizeX * TileMap.SizeY;
+    return TileMap.Data.Num() == TileMap.Width * TileMap.Height;
 }
 
 uint8 USLTilemapLib::GetTileAtXY(const FTileMap& TileMap, const int32 X, const int32 Y)
@@ -20,13 +79,13 @@ uint8 USLTilemapLib::GetTileAtXY(const FTileMap& TileMap, const int32 X, const i
     return TileMap.GetTile(X, Y);
 }
 
-FTileMap USLTilemapLib::GetTilemapSection(const FTileMap& Tilemap, const int32 X, const int32 Y, const int32 SizeX, const int32 SizeY)
+FTileMap USLTilemapLib::GetTilemapSection(const FTileMap& Tilemap, const int32 X, const int32 Y, const int32 Width, const int32 Height)
 {
-    FTileMap OutSection = FTileMap(SizeX, SizeY);
+    FTileMap OutSection = FTileMap(Width, Height);
 
-    for (int32 j = 0; j < SizeY; j++)
+    for (int32 j = 0; j < Height; j++)
     {
-        for (int32 i = 0; i < SizeX; i++)
+        for (int32 i = 0; i < Width; i++)
         {
             //const int32 temp = GetTileAtXY(Tilemap, x + i, y + j);
             //SetTileAtXY(OutSection, temp, i, j);
@@ -39,21 +98,19 @@ FTileMap USLTilemapLib::GetTilemapSection(const FTileMap& Tilemap, const int32 X
 
 void USLTilemapLib::SetTileAtXY(FTileMap& TileMap, const uint8 Tile, const int32 X, const int32 Y)
 {
-    //const int32 TileIndex = TileMapXYToIndex(TileMap, X, Y);
-    //TileMap.Data[TileIndex] = Tile;
     TileMap.SetTile(Tile, X, Y);
 }
 
 void USLTilemapLib::SetBorder(FTileMap& TileMap, const uint8 Tile)
 {
-    const int32 LastX = TileMap.SizeX - 1;
-    const int32 LastY = TileMap.SizeY - 1;
-    for (int32 i = 0; i < TileMap.SizeX; i++)
+    const int32 LastX = TileMap.Width - 1;
+    const int32 LastY = TileMap.Height - 1;
+    for (int32 i = 0; i < TileMap.Width; i++)
     {
         TileMap.SetTile(Tile, i, 0);
         TileMap.SetTile(Tile, i, LastY);
     }
-    for (int32 i = 0; i < TileMap.SizeY; i++)
+    for (int32 i = 0; i < TileMap.Height; i++)
     {
         TileMap.SetTile(Tile, 0, i);
         TileMap.SetTile(Tile, LastX, i);
@@ -78,8 +135,8 @@ void USLTilemapLib::FloodFill(FTileMap& TileMap, const int32 X, const int32 Y, c
 		FloodQueue.Dequeue(ThisCellIndex);
 		IndicesOfTilesToFill.Add(ThisCellIndex);
 
-		//const int32 ThisCellX = ThisCellIndex % TileMap.SizeX;
-		//const int32 ThisCellY = ThisCellIndex / TileMap.SizeX;
+		//const int32 ThisCellX = ThisCellIndex % TileMap.Width;
+		//const int32 ThisCellY = ThisCellIndex / TileMap.Width;
 		const int32 ThisCellX = TileMap.GetX(ThisCellIndex);
 		const int32 ThisCellY = TileMap.GetY(ThisCellIndex);
 		
@@ -117,61 +174,44 @@ void USLTilemapLib::FloodFill(FTileMap& TileMap, const int32 X, const int32 Y, c
         {
             FloodFill(TileMap, X - 1, Y, Tile, TileToReplace);
         }
-        if (Y < TileMap.SizeY - 1)
+        if (Y < TileMap.Height - 1)
         {
             FloodFill(TileMap, X, Y + 1, Tile, TileToReplace);
         }
-        if (X < TileMap.SizeX - 1)
+        if (X < TileMap.Width - 1)
         {
             FloodFill(TileMap, X + 1, Y, Tile, TileToReplace);
         }
     }
 }
 
-FTileMap USLTilemapLib::MirrorTilemap(const FTileMap& TileMap)
+FTileMap USLTilemapLib::ReflectTilemap(const FTileMap& TileMap)
 {
-    FTileMap OutTileMap = TileMap;
-    for (int32 Y = 0; Y < TileMap.SizeY; Y++)
-    {
-        for (int32 X = 0; X < TileMap.SizeX; X++)
-        {
-            const uint8 Tile = TileMap.GetTile(TileMap.SizeX - 1 - X, Y);
-            OutTileMap.SetTile(Tile, X, Y);
-        }
-    }
-    return OutTileMap;
+    return FTileMap::Reflect(TileMap);
+}
+
+FTileMap USLTilemapLib::TransposeTilemap(const FTileMap& TileMap)
+{
+    return FTileMap::Transpose(TileMap);
 }
 
 FTileMap USLTilemapLib::RotateTilemap(const FTileMap& TileMap)
 {
-    FTileMap OutTilemap = TileMap;
-    OutTilemap.SizeY = TileMap.SizeX;
-    OutTilemap.SizeX = TileMap.SizeY;
-
-    for (int32 Y = 0; Y < OutTilemap.SizeY; Y++)
-    {
-        for (int32 X = 0; X < OutTilemap.SizeX; X++)
-        {
-            const uint8 Tile = TileMap.GetTile(Y, TileMap.SizeY - 1 - X);
-            OutTilemap.SetTile(Tile, X, Y);
-            //SetTileAtXY(OutTilemap, GetTileAtXY(Tilemap, y, Tilemap.SizeY - 1 - x), x, y);
-        }
-    }
-    return OutTilemap;
+    return FTileMap::Rotate(TileMap);
 }
 
 UTexture2D* USLTilemapLib::TileMapToTexture(FTileMap& TileMap)
 {
     TArray<FColor> Colors;
-    const int32 SizeX = TileMap.SizeX;
-    const int32 SizeY = TileMap.SizeY;
-    const int32 PixelCount = SizeX * SizeY;
+    const int32 Width = TileMap.Width;
+    const int32 Height = TileMap.Height;
+    const int32 PixelCount = Width * Height;
     for (const auto& Tile : TileMap.Data)
     {
         Colors.Add(TileToColor(Tile));
     }
 
-    UTexture2D* Texture = UTexture2D::CreateTransient(SizeX, SizeY, PF_B8G8R8A8, "");
+    UTexture2D* Texture = UTexture2D::CreateTransient(Width, Height, PF_B8G8R8A8, "");
     void* Data = Texture->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
 
     FMemory::Memcpy(Data, Colors.GetData(), PixelCount * 4);
