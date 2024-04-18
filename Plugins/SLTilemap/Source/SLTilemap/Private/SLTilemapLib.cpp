@@ -64,6 +64,16 @@ int32 USLTilemapLib::XYToIndex(const int32 X, const int32 Y, const int32 Width)
     return inline_XYToIndex(X, Y, Width);
 }
 
+int32 USLTilemapLib::IndexToX(const int32 Index, const int32 Width)
+{
+    return inline_IndexToX(Index, Width);
+}
+
+int32 USLTilemapLib::IndexToY(const int32 Index, const int32 Width)
+{
+    return inline_IndexToY(Index, Width);
+}
+
 FTileMap USLTilemapLib::CreateTileMap(const int32 NewWidth, const int32 NewHeight, const uint8 InitialValue)
 {
     return FTileMap(NewWidth, NewHeight, InitialValue);
@@ -116,50 +126,6 @@ void USLTilemapLib::SetBorder(FTileMap& TileMap, const uint8 Tile)
         TileMap.SetTile(Tile, LastX, i);
     }
 }
-
-/*
-void USLTilemapLib::FloodFill(FTileMap& TileMap, const int32 X, const int32 Y, const uint8 Tile)
-{
-	
-	const int32 StartIndex = TileMap.GetIndex(X, Y);
-	const uint8 TileToFill = TileMap.Data[StartIndex];
-	
-	TArray<int32> IndicesOfTilesToFill;
-
-	//IndicesOfTilesToFill.Add(StartIndex);
-	TQueue<int32> FloodQueue;
-	FloodQueue.Enqueue(StartIndex);
-	while (!FloodQueue.IsEmpty())
-	{
-		int32 ThisCellIndex;
-		FloodQueue.Dequeue(ThisCellIndex);
-		IndicesOfTilesToFill.Add(ThisCellIndex);
-
-		//const int32 ThisCellX = ThisCellIndex % TileMap.Width;
-		//const int32 ThisCellY = ThisCellIndex / TileMap.Width;
-		const int32 ThisCellX = TileMap.GetX(ThisCellIndex);
-		const int32 ThisCellY = TileMap.GetY(ThisCellIndex);
-		
-		int32 NeighborX = ThisCellX - 1; 
-		if (NeighborX >= 0)
-		{
-			if (TileMap.GetTile(NeighborX, ThisCellY) == TileToFill)
-			{
-				FloodQueue.Enqueue(TileMap.GetIndex(NeighborX, ThisCellY));
-			}
-		}
-		if (TileMap.Data[ThisCellIndex] == TileToFill && IndicesOfTilesToFill.Contains(ThisCellIndex))
-		{
-			FloodQueue.Enqueue(ThisCellIndex);
-		}
-	}
-
-	for (const auto& i : IndicesOfTilesToFill)
-	{
-		TileMap.Data[i] = TileToFill;
-	}
-}
-*/
 
 void USLTilemapLib::FloodFill(FTileMap& TileMap, const int32 X, const int32 Y, const uint8 Tile, const uint8 TileToReplace)
 {
@@ -231,11 +197,20 @@ FColor USLTilemapLib::TileToColor(const uint8 Tile)
     const uint8 Window = EnumHasAnyFlags(Flags, ETileState::Window | ETileState::RoofedWindow);
     const uint8 Roofed = EnumHasAnyFlags(Flags, ETileState::RoofedVoid | ETileState::RoofedGround | ETileState::RoofedWall | ETileState::RoofedWindow);
     const uint8 IsPow2 = (Tile & (Tile - 1)) == 0;
-
+    /*
     const uint8 R = (6 * IsPow2 + 2) * (Wall * 16 + Window * 16);
     const uint8 G = (6 * IsPow2 + 2) * (Window * 16 + Ground * 16);
     const uint8 B = (6 * IsPow2 + 2) * (Void * 16 + Ground * 8 + Window * 8);
     const uint8 A = 255 * Roofed;
+    */
 
+    uint8 R = (6 * IsPow2 + 2) * (Wall * 16 + Window * 16);
+    uint8 G = (6 * IsPow2 + 2) * (Window * 16 + Ground * 16);
+    uint8 B = (6 * IsPow2 + 2) * (Void * 16 + Ground * 8 + Window * 8);
+    const uint8 A = 255 * Roofed;
+    R *= IsPow2;
+    G *= IsPow2;
+    B *= IsPow2;
+    
     return FColor(R, G, B, A);
 }

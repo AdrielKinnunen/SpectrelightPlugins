@@ -302,7 +302,11 @@ public:
     
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
     static int32 XYToIndex(const int32 X, const int32 Y, const int32 Width);
-
+    UFUNCTION(BlueprintPure, Category = "SLTileMap")
+    static int32 IndexToX(const int32 Index, const int32 Width);
+    UFUNCTION(BlueprintPure, Category = "SLTileMap")
+    static int32 IndexToY(const int32 Index, const int32 Width);
+    
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
     static FTileMap CreateTileMap(const int32 NewWidth, const int32 NewHeight, const uint8 InitialValue);
     UFUNCTION(BlueprintPure, Category = "SLTileMap")

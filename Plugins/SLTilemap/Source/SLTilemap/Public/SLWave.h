@@ -50,10 +50,16 @@ public:
     bool Run();
 
     UFUNCTION(Blueprintcallable, Category = "SLTilemap")
+    TArray<FTileMap> GetPatternsAsTileMaps();
+
+    UFUNCTION(Blueprintcallable, Category = "SLTilemap")
     TArray<float> GetEntropy();
-
-
-
+    UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
+    int32 CellObservedLastStep;
+    UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
+    TArray<int32> CellsUpdatedLastStep;
+    
+    
     
 private:
     //Wave
@@ -74,11 +80,9 @@ private:
 
     void GeneratePatterns();
     void InitPatternCells();
-    void RegisterPattern(const FTilePattern Pattern);
     bool UpdateCell(const int32 CellIndex);
     void OnFailed();
     void ObserveCell(const int32 CellIndex);
-    void WritePatternToMapData(const FTilePattern& Pattern, int32 x, int32 y);
     bool CanPatternFitAtThisLocation(const FTilePattern& Pattern, int32 x, int32 y) const;
     FTilePattern OrCellPatternsTogether(const int32 CellIndex);
 };
