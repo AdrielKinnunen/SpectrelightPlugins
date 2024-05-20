@@ -48,6 +48,8 @@ void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 void USLMechatronicsSubsystem::Tick(float DeltaTime)
 {
     //Graph maintenance
+	SCOPED_NAMED_EVENT(SLMechatronicsEntireTick, FColor::Green);
+
     DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Entire Tick"), STAT_EntireTick, STATGROUP_SLMechatronics)
     {
         DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Cleanup"), STAT_Cleanup, STATGROUP_SLMechatronics)

@@ -46,6 +46,8 @@ void USLMDeviceSubsystemWheel::OnWorldBeginPlay(UWorld& InWorld)
 
 void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
 {
+	SCOPED_NAMED_EVENT(SLMWheelPreSimulate, FColor::Green);
+
     for (auto& Wheel : DeviceModels)
     {
         if (Wheel.Collider)
@@ -67,6 +69,8 @@ void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
 
 void USLMDeviceSubsystemWheel::Simulate(float DeltaTime, float SubstepScalar)
 {
+	SCOPED_NAMED_EVENT(SLMWheelSimulate, FColor::Green);
+
     for (auto& Wheel : DeviceModels)
     {
         auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
@@ -111,6 +115,8 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime, float SubstepScalar)
 
 void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
 {
+	SCOPED_NAMED_EVENT(SLMWheelPostSimulate, FColor::Green);
+
     for (auto It = DeviceModels.CreateIterator(); It; ++It)
     {
         if (It->Collider)

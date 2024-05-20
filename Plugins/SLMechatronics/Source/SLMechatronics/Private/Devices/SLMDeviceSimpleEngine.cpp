@@ -37,6 +37,8 @@ void USLMDeviceSubsystemSimpleEngine::PreSimulate(const float DeltaTime)
 
 void USLMDeviceSubsystemSimpleEngine::Simulate(const float DeltaTime, const float SubstepScalar)
 {
+	SCOPED_NAMED_EVENT(SLMSimpleEngineSimulate, FColor::Green);
+
     for (const auto& Model : DeviceModels)
     {
         const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
