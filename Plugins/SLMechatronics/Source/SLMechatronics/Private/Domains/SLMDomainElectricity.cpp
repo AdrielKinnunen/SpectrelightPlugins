@@ -4,7 +4,7 @@
 
 USLMDomainElectricity::USLMDomainElectricity()
 {
-    DomainColor = FColor::Yellow;
+    DebugColor = FColor::Yellow;
 }
 
 int32 USLMDomainElectricity::AddPort(const FSLMPortElectricity& Port)

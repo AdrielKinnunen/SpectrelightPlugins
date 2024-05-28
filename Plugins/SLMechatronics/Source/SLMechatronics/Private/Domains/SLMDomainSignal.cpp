@@ -4,7 +4,7 @@
 
 USLMDomainSignal::USLMDomainSignal()
 {
-    DomainColor = FColor::White;
+    DebugColor = FColor::White;
 }
 
 int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)

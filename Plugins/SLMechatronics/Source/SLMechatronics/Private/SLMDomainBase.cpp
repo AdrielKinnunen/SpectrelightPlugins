@@ -28,68 +28,60 @@ void USLMDomainSubsystemBase::PostSimulate(const float DeltaTime)
 {
 }
 
+FString USLMDomainSubsystemBase::GetDebugString(int32 PortIndex)
+{
+	return "Hello World!";
+}
+
+void USLMDomainSubsystemBase::DebugDraw()
+{
+	const auto Max = PortsMetaData.GetMaxIndex();
+	for (int32 i = 0; i < Max; i++)
+	{
+		if (PortsMetaData.IsValidIndex(i))
+		{
+			const auto MetaData = PortsMetaData[i];
+			const auto Transform = PortMetaDataToWorldTransform(MetaData);
+			const auto Location = Transform.GetLocation();
+			const FRotator Rotation = Transform.Rotator();
+			DrawDebugCoordinateSystem(GetWorld(), Location, Rotation, 200);
+			DrawDebugString(GetWorld(), Location, GetDebugString(i), nullptr, FColor::White, 0.0, true, 1.5);
+		}
+	}
+	for (const auto Pair : Adjacencies)
+	{
+		const FVector Start = PortIndexToWorldLocation(Pair.Key);
+		const FVector End = PortIndexToWorldLocation(Pair.Value);
+		DrawDebugLine(GetWorld(), Start, End, DebugColor, false, -1, 0, 10);
+	}
+}
 void USLMDomainSubsystemBase::DebugPrint()
 {
-    //GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, TEXT("-----------------------------------------------"));
-    GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, TEXT("-----------------------------------------------"), false);
-    const auto ObjectName = this->GetName();
-    GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, ObjectName, false);
-    TArray<int32> AdjacencyKeys;
-    Adjacencies.GetKeys(AdjacencyKeys);
-    for (const auto Key : AdjacencyKeys)
-    {
-        TArray<int32> Values;
-        Adjacencies.MultiFind(Key, Values);
-        for (const auto Value : Values)
-        {
-            GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT(
-                                                 "Port %i is adjacent to port %i"
-                                             ), Key, Value), false);
-        }
-    }
-    const auto Max = PortIndexToNetworkIndex.GetMaxIndex();
-    for (int32 i = 0; i < Max; i++)
-    {
-        if (PortIndexToNetworkIndex.IsValidIndex(i))
-        {
-            const auto Network = PortIndexToNetworkIndex[i];
-            GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT(
-                                                 "Port %i maps to network %i"
-                                             ), i, Network), false);
-        }
-    }
-}
-
-void USLMDomainSubsystemBase::DebugDrawPorts()
-{
-    const auto Max = PortsMetaData.GetMaxIndex();
-    for (int32 i = 0; i < Max; i++)
-    {
-        if (PortsMetaData.IsValidIndex(i))
-        {
-            const auto MetaData = PortsMetaData[i];
-            const auto Transform = PortMetaDataToWorldTransform(MetaData);
-            const auto Location = Transform.GetLocation();
-            const FRotator Rotation = Transform.Rotator();
-            DrawDebugCoordinateSystem(GetWorld(), Location, Rotation, 200);
-            DrawDebugString(GetWorld(), Location, GetDebugString(i), nullptr, FColor::White, 0.0, true, 1.5);
-        }
-    }
-}
-
-void USLMDomainSubsystemBase::DebugDrawConnections()
-{
-    for (const auto Pair : Adjacencies)
-    {
-        const FVector Start = PortIndexToWorldLocation(Pair.Key);
-        const FVector End = PortIndexToWorldLocation(Pair.Value);
-        DrawDebugLine(GetWorld(), Start, End, DomainColor, false, -1, 0, 10);
-    }
-}
-
-FString USLMDomainSubsystemBase::GetDebugString(const int32 PortIndex)
-{
-    return "Hello World!";
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, TEXT("-----------------------------------------------"), false);
+	const auto ObjectName = this->GetName();
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, ObjectName, false);
+	TArray<int32> AdjacencyKeys;
+	Adjacencies.GetKeys(AdjacencyKeys);
+	for (const auto Key : AdjacencyKeys)
+	{
+		TArray<int32> Values;
+		Adjacencies.MultiFind(Key, Values);
+		for (const auto Value : Values)
+		{
+			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT("Port %i is adjacent to port %i"), Key, Value), false);
+		}
+	}
+	const auto Max = PortIndexToNetworkIndex.GetMaxIndex();
+	for (int32 i = 0; i < Max; i++)
+	{
+		if (PortIndexToNetworkIndex.IsValidIndex(i))
+		{
+			const auto Network = PortIndexToNetworkIndex[i];
+			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT(
+												 "Port %i maps to network %i"
+											 ), i, Network), false);
+		}
+	}
 }
 
 FVector USLMDomainSubsystemBase::PortIndexToWorldLocation(const int32 PortIndex)

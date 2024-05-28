@@ -51,7 +51,7 @@ UCLASS(Abstract, BlueprintType)
 class SLMECHATRONICS_API USLMDomainSubsystemBase : public UWorldSubsystem
 {
     GENERATED_BODY()
-public:
+public:	
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
     void ConnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
@@ -68,19 +68,22 @@ public:
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
     FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
 
-    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-    virtual void DebugPrint();
-    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-    virtual void DebugDrawPorts();
-    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-    virtual void DebugDrawConnections();
-    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-    virtual FString GetDebugString(const int32 PortIndex);
-
     virtual void CheckForCleanUp();
     virtual void PreSimulate(const float DeltaTime);
     virtual void Simulate(const float DeltaTime, const float SubstepScalar);
     virtual void PostSimulate(const float DeltaTime);
+
+	//Debug
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	bool bDebugDraw = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	bool bDebugPrint = false;
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual FString GetDebugString(int32 PortIndex);
+	virtual void DebugDraw();
+	virtual void DebugPrint();
+	FColor DebugColor = FColor::Black;
+	
 protected:
     TMultiMap<int32, int32> Adjacencies;
     TSparseArray<int32> PortIndexToNetworkIndex;
@@ -101,8 +104,6 @@ protected:
     virtual void RemovePortAtIndex(int32 PortIndex);
     virtual void RemoveNetworkAtIndex(int32 NetworkIndex);
 
-    //Debug
-    FColor DomainColor = FColor::Black;
 private:
     void CleanUpGraph();
     TSet<int32> GetConnectedPorts(const TSet<int32>& Roots) const;

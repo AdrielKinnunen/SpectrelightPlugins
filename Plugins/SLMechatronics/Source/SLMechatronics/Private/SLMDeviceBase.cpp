@@ -28,3 +28,16 @@ void USLMDeviceSubsystemBase::Simulate(const float DeltaTime, const float Subste
 void USLMDeviceSubsystemBase::PostSimulate(const float DeltaTime)
 {
 }
+
+FString USLMDeviceSubsystemBase::GetDebugString(int32 PortIndex)
+{
+	return "Hello World!";
+}
+
+void USLMDeviceSubsystemBase::DebugDraw()
+{
+}
+
+void USLMDeviceSubsystemBase::DebugPrint()
+{
+}

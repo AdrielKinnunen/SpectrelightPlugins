@@ -40,14 +40,8 @@ class SLMECHATRONICS_API USLMechatronicsSubsystem : public UWorldSubsystem
 public:
     //Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    int32 StepCount = 1;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    bool DebugDrawPorts = false;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    bool DebugDrawConnections = false;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    bool DebugPrint = false;
-
+    int32 StepCount = 5;
+    
     //Functions
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
@@ -55,7 +49,6 @@ public:
 private:
     //Properties
     FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
-    //TSparseArray<USLMDeviceComponentBase*> DeviceComponents;
     TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
     TArray<USLMDomainSubsystemBase*> DomainSubsystems;
 };

@@ -4,7 +4,7 @@
 
 USLMDomainAir::USLMDomainAir()
 {
-    DomainColor = FColor::Blue;
+    DebugColor = FColor::Blue;
 }
 
 int32 USLMDomainAir::AddPort(const FSLMPortAir& Port)

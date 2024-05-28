@@ -55,11 +55,14 @@ void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
             const auto SteerSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Steer), -1, 1);
             Wheel.SteerAngle = FMath::FInterpConstantTo(Wheel.SteerAngle, Wheel.MaxSteerAngle * SteerSignal, DeltaTime, Wheel.SteerRate);
 
-            Wheel.DirectionWheelAxis = Wheel.Collider->GetRightVector().RotateAngleAxis(Wheel.SteerAngle, Wheel.Collider->GetUpVector());
+        	//Wheel.DirectionWheelAxis = Wheel.Collider->GetRightVector().RotateAngleAxis(Wheel.SteerAngle, Wheel.Collider->GetUpVector());
+        	Wheel.DirectionWheelAxis = FVector(1,0,0);
             Wheel.DirectionLong = FVector::CrossProduct(Wheel.DirectionWheelAxis, Wheel.ContactPatchNormal);
             Wheel.DirectionLat = FVector::CrossProduct(Wheel.ContactPatchNormal, Wheel.DirectionLong);
-            Wheel.Velocity = Wheel.Collider->GetComponentVelocity();
-            Wheel.WheelMass = Wheel.Collider->GetMass();
+        	//Wheel.Velocity = Wheel.Collider->GetComponentVelocity();
+        	Wheel.Velocity = FVector(10,0,0);
+        	//Wheel.WheelMass = Wheel.Collider->GetMass();
+        	Wheel.WheelMass = 100;
             Wheel.ImpulseBudget = Wheel.NormalImpulseMagnitude * Wheel.FrictionCoefficient;
 
             Wheel.ImpulseAccumulator = FVector::ZeroVector;
@@ -123,13 +126,14 @@ void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
         {
             const FVector Impulse = It->ImpulseAccumulator;
             const FVector AngularImpulse = It->DirectionWheelAxis * FVector::DotProduct(It->DirectionLong, Impulse) * -1;
-            It->Collider->AddImpulseAtLocation(Impulse, It->ContactPatchLocation);
-            It->Collider->AddAngularImpulseInRadians(AngularImpulse);
+            //It->Collider->AddImpulseAtLocation(Impulse, It->ContactPatchLocation);
+            //It->Collider->AddAngularImpulseInRadians(AngularImpulse);
 
+            
             //Debug
             const FVector DrawDebugStartPoint = It->ContactPatchLocation + FVector(0, 0, 120);
-            DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ContactPatchNormal * It->NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
-            DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ImpulseAccumulator * 0.1, FColor::Red, false, -1, 0, 5);
+            //DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ContactPatchNormal * It->NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
+            //DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ImpulseAccumulator * 0.1, FColor::Red, false, -1, 0, 5);
 
             It->NormalImpulseMagnitude = 0;
         }

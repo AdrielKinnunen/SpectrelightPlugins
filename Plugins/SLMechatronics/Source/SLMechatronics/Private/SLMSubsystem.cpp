@@ -2,6 +2,8 @@
 
 #include "SLMSubsystem.h"
 
+#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
+
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
 
@@ -47,43 +49,20 @@ void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 void USLMechatronicsSubsystem::Tick(float DeltaTime)
 {
-    //Graph maintenance
-	SCOPED_NAMED_EVENT(SLMechatronicsEntireTick, FColor::Green);
+	TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick);
 
-    DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Entire Tick"), STAT_EntireTick, STATGROUP_SLMechatronics)
+	//Graph maintenance
     {
-        DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Cleanup"), STAT_Cleanup, STATGROUP_SLMechatronics)
+		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::Cleanup); 
         for (const auto DomainSubsystem : DomainSubsystems)
         {
             DomainSubsystem->CheckForCleanUp();
         }
     }
 
-    //Debug
-    {
-        DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Debug"), STAT_Debug, STATGROUP_SLMechatronics)
-        for (const auto DomainSubsystem : DomainSubsystems)
-        {
-            if (DebugDrawPorts)
-            {
-                DomainSubsystem->DebugDrawPorts();
-            }
-            
-            if (DebugDrawConnections)
-            {
-                DomainSubsystem->DebugDrawConnections();
-            }
-            if (DebugPrint)
-            {
-                DomainSubsystem->DebugPrint();
-            }
-            DomainSubsystem->PreSimulate(DeltaTime);
-        }
-    }
-
     //PreSimulate, runs once per frame, sets up state for calculations
     {
-        DECLARE_SCOPE_CYCLE_COUNTER(TEXT("PreSimulate"), STAT_PreSimulate, STATGROUP_SLMechatronics)
+		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::PreSimulate);
         for (const auto DomainSubsystem : DomainSubsystems)
         {
             DomainSubsystem->PreSimulate(DeltaTime);
@@ -96,7 +75,7 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 
     //Simulate, substeps StepCount times per frame, this is where the bulk of simulation happens
     {
-        DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Simulate"), STAT_Simulate, STATGROUP_SLMechatronics)
+		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::Simulate);
         const float SubstepDeltaTime = DeltaTime / StepCount;
         const float SubstepScalar = 1.0 / StepCount;
         for (int32 i = 0; i < StepCount; i++)
@@ -114,7 +93,7 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 
     //PostSimulate, this is where results are ready for usage outside of SLMechactronics
     {
-        DECLARE_SCOPE_CYCLE_COUNTER(TEXT("PostSimulate"), STAT_PostSimulate, STATGROUP_SLMechatronics)
+		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::PostSimulate);
         for (const auto DomainSubsystem : DomainSubsystems)
         {
             DomainSubsystem->PostSimulate(DeltaTime);
@@ -124,4 +103,31 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
             DeviceSubsystem->PostSimulate(DeltaTime);
         }
     }
+
+	//Debug
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::Debug);
+		for (const auto DomainSubsystem : DomainSubsystems)
+		{
+			if (DomainSubsystem->bDebugDraw)
+			{
+				DomainSubsystem->DebugDraw();	
+			}
+			if (DomainSubsystem->bDebugPrint)
+			{
+				DomainSubsystem->DebugPrint();
+			}
+		}
+		for (const auto& DeviceSubsystem : DeviceSubsystems)
+		{
+			if (DeviceSubsystem->bDebugDraw)
+			{
+				DeviceSubsystem->DebugDraw();	
+			}
+			if (DeviceSubsystem->bDebugPrint)
+			{
+				DeviceSubsystem->DebugPrint();
+			}
+		}
+	}
 }

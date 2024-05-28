@@ -6,7 +6,7 @@
 
 USLMDomainRotation::USLMDomainRotation()
 {
-    DomainColor = FColor::Black;
+    DebugColor = FColor::Black;
 }
 
 int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port)
