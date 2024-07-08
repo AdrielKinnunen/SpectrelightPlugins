@@ -54,6 +54,7 @@ FString USLMDomainSignal::GetDebugString(const int32 PortIndex)
     check(Networks.IsValidIndex(NetworkIndex));
     const auto Network = Networks[NetworkIndex];
     FString Result;
+	Result += PortsMetaData[PortIndex].PortName.ToString();
     Result += "Signal\n";
     Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
     Result += FString::Printf(TEXT("Read = %f\n"), Network.Read);

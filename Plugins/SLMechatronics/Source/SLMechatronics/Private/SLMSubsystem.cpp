@@ -122,12 +122,21 @@ void USLMechatronicsSubsystem::Tick(float DeltaTime)
 		{
 			if (DeviceSubsystem->bDebugDraw)
 			{
-				DeviceSubsystem->DebugDraw();	
+				DeviceSubsystem->DebugDraw();
 			}
 			if (DeviceSubsystem->bDebugPrint)
 			{
 				DeviceSubsystem->DebugPrint();
 			}
 		}
+	}
+}
+
+void USLMechatronicsSubsystem::PropagateSettings()
+{
+	for (const auto DomainSubsystem : DomainSubsystems)
+	{
+		DomainSubsystem->bDebugDraw = bDebugDraw;
+		DomainSubsystem->bDebugPrint = bDebugPrint;
 	}
 }

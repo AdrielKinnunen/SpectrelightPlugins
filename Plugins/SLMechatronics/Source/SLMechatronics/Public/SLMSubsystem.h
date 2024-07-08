@@ -41,11 +41,17 @@ public:
     //Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     int32 StepCount = 5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	bool bDebugDraw = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	bool bDebugPrint = false;
     
     //Functions
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
     void Tick(float DeltaTime);
+	UFUNCTION(BlueprintCallable)
+	void PropagateSettings();
 private:
     //Properties
     FSLMechatronicsSubsystemTickFunction PrimarySystemTick;

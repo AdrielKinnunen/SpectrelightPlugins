@@ -35,6 +35,15 @@ FString USLMDomainSubsystemBase::GetDebugString(int32 PortIndex)
 
 void USLMDomainSubsystemBase::DebugDraw()
 {
+	for (const auto Pair : Adjacencies)
+	{
+		const FVector Start = PortIndexToWorldLocation(Pair.Key);
+		const FVector End = PortIndexToWorldLocation(Pair.Value);
+		DrawDebugLine(GetWorld(), Start, End, DebugColor, false, -1, 0, 2);
+	}
+}
+void USLMDomainSubsystemBase::DebugPrint()
+{
 	const auto Max = PortsMetaData.GetMaxIndex();
 	for (int32 i = 0; i < Max; i++)
 	{
@@ -48,15 +57,6 @@ void USLMDomainSubsystemBase::DebugDraw()
 			DrawDebugString(GetWorld(), Location, GetDebugString(i), nullptr, FColor::White, 0.0, true, 1.5);
 		}
 	}
-	for (const auto Pair : Adjacencies)
-	{
-		const FVector Start = PortIndexToWorldLocation(Pair.Key);
-		const FVector End = PortIndexToWorldLocation(Pair.Value);
-		DrawDebugLine(GetWorld(), Start, End, DebugColor, false, -1, 0, 10);
-	}
-}
-void USLMDomainSubsystemBase::DebugPrint()
-{
 	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, TEXT("-----------------------------------------------"), false);
 	const auto ObjectName = this->GetName();
 	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, ObjectName, false);
@@ -71,8 +71,8 @@ void USLMDomainSubsystemBase::DebugPrint()
 			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT("Port %i is adjacent to port %i"), Key, Value), false);
 		}
 	}
-	const auto Max = PortIndexToNetworkIndex.GetMaxIndex();
-	for (int32 i = 0; i < Max; i++)
+	const auto Max2 = PortIndexToNetworkIndex.GetMaxIndex();
+	for (int32 i = 0; i < Max2; i++)
 	{
 		if (PortIndexToNetworkIndex.IsValidIndex(i))
 		{
