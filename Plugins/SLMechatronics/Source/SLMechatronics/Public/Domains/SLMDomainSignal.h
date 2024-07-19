@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "SLMDomainSignal.generated.h"
 
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_SIGNAL)
 
 USTRUCT(BlueprintType)
 struct FSLMDataSignal

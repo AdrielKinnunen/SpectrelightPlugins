@@ -3,8 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NativeGameplayTags.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMDomainBase.generated.h"
+
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN)
+
+
+class USLMDomainSubsystemBase;
+class USLMDeviceComponentBase;
 
 
 USTRUCT(BlueprintType)
@@ -12,46 +19,82 @@ struct FSLMPortMetaData
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    FName PortName;
-    UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortMetaData()
+    {
+    	DeviceComponent = nullptr;
+	    AssociatedActor = nullptr;
+    	AssociatedSceneComponent = nullptr;
+    	PortName = NAME_None;
+    	DeviceComponentName = NAME_None;
+    	SceneComponentName = NAME_None;
+    	SocketName = NAME_None;
+    	OffsetLocal = FVector::ZeroVector;
+    }
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SLMechatronics")
+	const USLMDeviceComponentBase* DeviceComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     const AActor* AssociatedActor;
-    UPROPERTY(BlueprintReadWrite, Category = "SLMechatronics")
-    const USceneComponent* AssociatedSceneComponent;
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SLMechatronics")
-    FName SceneComponentName;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "SLMechatronics")
+	const USceneComponent* AssociatedSceneComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FName PortName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FName DeviceComponentName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FName SceneComponentName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     FName SocketName;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     FVector OffsetLocal;
 };
 
 
 USTRUCT(BlueprintType)
+struct FSLMConnectionByMetaData
+{
+    GENERATED_BODY()
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	//TSubclassOf<USLMDomainSubsystemBase> Domain;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta = (Categories = "SlectrelightDynamics.Domain"))
+	FGameplayTag DomainTag;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+    FSLMPortMetaData FirstMetaData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortMetaData SecondMetaData;
+};
+
+USTRUCT(BlueprintType)
 struct FSLMConnection
 {
-    FSLMConnection()
-    {
-    }
+	FSLMConnection()
+	{
+	}
 
-    FSLMConnection(const int32 FirstIndex, const int32 SecondIndex): FirstIndex(FirstIndex), SecondIndex(SecondIndex)
-    {
-    }
+	FSLMConnection(const int32 FirstIndex, const int32 SecondIndex): FirstIndex(FirstIndex), SecondIndex(SecondIndex)
+	{
+	}
 
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    int32 FirstIndex = -1;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    int32 SecondIndex = -1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 FirstIndex = -1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	int32 SecondIndex = -1;
 };
+
+
 
 
 UCLASS(Abstract, BlueprintType)
 class SLMECHATRONICS_API USLMDomainSubsystemBase : public UWorldSubsystem
 {
     GENERATED_BODY()
-public:	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FGameplayTag DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN;	
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
     void ConnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex);
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics|Connections")
@@ -61,10 +104,8 @@ public:
 
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
     FVector PortIndexToWorldLocation(const int32 PortIndex);
-    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-    int32 GetClosestPortIndexGlobal(const FVector WorldLocation);
-    UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
-    int32 GetClosestPortIndexActor(const FVector WorldLocation, const AActor* Actor);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	int32 GetPortIndex(const FSLMPortMetaData Filter, const FVector WorldLocation);
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
     FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
 

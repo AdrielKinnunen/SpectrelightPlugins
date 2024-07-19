@@ -2,6 +2,9 @@
 
 #include "SLMDomainBase.h"
 
+UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN, "SpectrelightDynamics.Domain")
+
+
 void USLMDomainSubsystemBase::CheckForCleanUp()
 {
     if (bNeedsCleanup)
@@ -93,50 +96,36 @@ FVector USLMDomainSubsystemBase::PortIndexToWorldLocation(const int32 PortIndex)
     return FVector();
 }
 
-int32 USLMDomainSubsystemBase::GetClosestPortIndexGlobal(const FVector WorldLocation)
+int32 USLMDomainSubsystemBase::GetPortIndex(const FSLMPortMetaData Filter, const FVector WorldLocation)
 {
-    float DistanceSquared = UE_BIG_NUMBER;
-    int32 PortIndex = -1;
-
-    const auto Max = PortsMetaData.GetMaxIndex();
-    for (int32 i = 0; i < Max; i++)
-    {
-        if (PortsMetaData.IsValidIndex(i))
-        {
-            const FVector PortLocation = PortMetaDataToWorldTransform(PortsMetaData[i]).GetLocation();
-            const float ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
-            if (ThisPortDistanceSquared < DistanceSquared)
-            {
-                DistanceSquared = ThisPortDistanceSquared;
-                PortIndex = i;
-            }
-        }
-    }
-    return PortIndex;
-}
-
-int32 USLMDomainSubsystemBase::GetClosestPortIndexActor(const FVector WorldLocation, const AActor* Actor)
-{
-    float DistanceSquared = UE_BIG_NUMBER;
-    int32 PortIndex = -1;
-
-    TArray<int32> Indices;
-    ActorToPorts.MultiFind(Actor, Indices);
-
-    for (const auto i : Indices)
-    {
-        if (PortsMetaData.IsValidIndex(i))
-        {
-            const FVector PortLocation = PortMetaDataToWorldTransform(PortsMetaData[i]).GetLocation();
-            const float ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
-            if (ThisPortDistanceSquared < DistanceSquared)
-            {
-                DistanceSquared = ThisPortDistanceSquared;
-                PortIndex = i;
-            }
-        }
-    }
-    return PortIndex;
+	int32 PortIndex = -1;
+	float DistanceSquared = UE_BIG_NUMBER;
+	const auto Max = PortsMetaData.GetMaxIndex();
+	
+	for (int32 i = 0; i < Max; i++)
+	{
+		if (PortsMetaData.IsValidIndex(i))
+		{
+			const FSLMPortMetaData PortData = PortsMetaData[i];
+			
+			const bool bActor = Filter.AssociatedActor == PortData.AssociatedActor || Filter.AssociatedActor == nullptr;
+			const bool bScene = Filter.AssociatedSceneComponent == PortData.AssociatedSceneComponent || Filter.AssociatedSceneComponent == nullptr;
+			const bool bDevice = Filter.DeviceComponent == PortData.DeviceComponent || Filter.DeviceComponent == nullptr;
+			const bool bName = Filter.PortName == PortData.PortName || Filter.PortName.IsNone();
+			
+			if (bActor && bScene && bDevice && bName)
+			{
+				const FVector PortLocation = PortMetaDataToWorldTransform(PortsMetaData[i]).GetLocation();
+				const float ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
+				if (ThisPortDistanceSquared < DistanceSquared)
+				{
+					DistanceSquared = ThisPortDistanceSquared;
+					PortIndex = i;
+				}
+			}
+		}
+	}
+	return PortIndex;
 }
 
 FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData)

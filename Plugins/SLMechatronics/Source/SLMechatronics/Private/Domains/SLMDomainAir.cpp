@@ -2,9 +2,12 @@
 
 #include "Domains/SLMDomainAir.h"
 
+UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR, "SpectrelightDynamics.Domain.Air")
+
 USLMDomainAir::USLMDomainAir()
 {
     DebugColor = FColor::Blue;
+	DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR;
 }
 
 int32 USLMDomainAir::AddPort(const FSLMPortAir& Port)

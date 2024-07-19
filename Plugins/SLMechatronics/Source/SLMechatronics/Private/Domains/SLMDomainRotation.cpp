@@ -2,11 +2,12 @@
 
 #include "Domains/SLMDomainRotation.h"
 
-
+UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ROTATION, "SpectrelightDynamics.Domain.Rotation")
 
 USLMDomainRotation::USLMDomainRotation()
 {
     DebugColor = FColor::Black;
+	DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ROTATION;
 }
 
 int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port)

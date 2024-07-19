@@ -2,10 +2,10 @@
 
 #include "SLMSubsystem.h"
 
-#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
 
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
+#include "ProfilingDebugging/StallDetector.h"
 
 void FSLMechatronicsSubsystemTickFunction::ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph)
 {
@@ -138,5 +138,23 @@ void USLMechatronicsSubsystem::PropagateSettings()
 	{
 		DomainSubsystem->bDebugDraw = bDebugDraw;
 		DomainSubsystem->bDebugPrint = bDebugPrint;
+	}
+}
+
+void USLMechatronicsSubsystem::MakeConnectionByMetadata(FSLMConnectionByMetaData Connection)
+{
+	USLMDomainSubsystemBase* TargetSubsystem = nullptr;
+	for (const auto DomainSubsystem : DomainSubsystems)
+	{
+		if (DomainSubsystem->DomainTag == Connection.DomainTag)
+		{
+			TargetSubsystem = DomainSubsystem;
+		}
+	}
+	if (TargetSubsystem)
+	{
+		const int32 FirstPortIndex = TargetSubsystem->GetPortIndex(Connection.FirstMetaData, FVector::ZeroVector);
+		const int32 SecondPortIndex = TargetSubsystem->GetPortIndex(Connection.SecondMetaData, FVector::ZeroVector);
+		TargetSubsystem->ConnectPorts(FirstPortIndex, SecondPortIndex);
 	}
 }

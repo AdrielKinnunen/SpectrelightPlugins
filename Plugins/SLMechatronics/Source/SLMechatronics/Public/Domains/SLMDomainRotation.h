@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "SLMDomainRotation.generated.h"
 
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ROTATION)
 
 USTRUCT(BlueprintType)
 struct FSLMDataRotation
@@ -36,6 +37,13 @@ struct FSLMDataRotation
         const float ApparentMomentOfInertia = GearRatio * GearRatio * MomentOfInertia;
         return FSLMDataRotation(ApparentAngularVelocity, ApparentMomentOfInertia);
     }
+
+	float GetRPM() const
+    {
+	    return AngularVelocity * 9.54929658551;
+    }
+	
+	
 };
 
 

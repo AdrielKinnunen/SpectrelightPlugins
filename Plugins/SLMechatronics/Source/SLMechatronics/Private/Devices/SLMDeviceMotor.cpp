@@ -67,7 +67,7 @@ void USLMDeviceSubsystemMotor::Simulate(const float DeltaTime, const float Subst
         const float CrankRPS_Out = Crank.AngularVelocity + ActualTorque * DeltaTime / Crank.MomentOfInertia;
 
         DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
-        //DomainElectricity->SetJoulesByPortIndex(Model.Index_Electricity, Electricity.StoredJoules + EnergyDemandClamped);
+        DomainElectricity->SetJoulesByPortIndex(Model.Index_Electricity, Electricity.StoredJoules + EnergyDemandClamped);
     }
 }
 

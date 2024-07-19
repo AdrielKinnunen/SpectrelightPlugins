@@ -1,8 +1,12 @@
 ﻿// Copyright Spectrelight Studios, LLC
+
 #pragma once
+
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
 #include "SLMDomainAir.generated.h"
+
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR)
 
 constexpr float SLMGammaAir                 = 1.4;                          //Specific heat ratio for air
 constexpr float SLMIdealGasConstant         = 0.0831446;                    //Ideal gas constant for atm*L/(mol*K)

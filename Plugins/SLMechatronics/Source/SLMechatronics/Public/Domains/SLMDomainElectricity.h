@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "SLMDomainElectricity.generated.h"
 
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ELECTRICITY)
 
 USTRUCT(BlueprintType)
 struct FSLMDataElectricity

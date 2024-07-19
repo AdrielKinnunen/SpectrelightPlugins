@@ -6,6 +6,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMSubsystem.generated.h"
 
+struct FSLMConnectionByMetaData;
 class USLMechatronicsSubsystem;
 class USLMDeviceComponentBase;
 class USLMDeviceSubsystemBase;
@@ -52,6 +53,8 @@ public:
     void Tick(float DeltaTime);
 	UFUNCTION(BlueprintCallable)
 	void PropagateSettings();
+	UFUNCTION(BlueprintCallable)
+	void MakeConnectionByMetadata(FSLMConnectionByMetaData Connection);
 private:
     //Properties
     FSLMechatronicsSubsystemTickFunction PrimarySystemTick;

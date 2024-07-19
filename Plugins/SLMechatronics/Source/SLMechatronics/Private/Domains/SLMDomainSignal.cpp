@@ -2,9 +2,12 @@
 
 #include "Domains/SLMDomainSignal.h"
 
+UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_SIGNAL, "SpectrelightDynamics.Domain.Signal")
+
 USLMDomainSignal::USLMDomainSignal()
 {
     DebugColor = FColor::White;
+	DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN_SIGNAL;
 }
 
 int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)

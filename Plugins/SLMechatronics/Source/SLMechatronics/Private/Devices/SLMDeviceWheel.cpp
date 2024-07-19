@@ -128,9 +128,9 @@ void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
 
             
             //Debug
-            const FVector DrawDebugStartPoint = It->ContactPatchLocation + FVector(0, 0, 120);
-            DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ContactPatchNormal * It->NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
-            DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ImpulseAccumulator * 0.1, FColor::Red, false, -1, 0, 5);
+            //const FVector DrawDebugStartPoint = It->ContactPatchLocation + FVector(0, 0, 120);
+            //DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ContactPatchNormal * It->NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
+            //DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ImpulseAccumulator * 0.1, FColor::Red, false, -1, 0, 5);
 
             It->NormalImpulseMagnitude = 0;
         }

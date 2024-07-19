@@ -2,9 +2,12 @@
 
 #include "Domains/SLMDomainElectricity.h"
 
+UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ELECTRICITY, "SpectrelightDynamics.Domain.Electricity")
+
 USLMDomainElectricity::USLMDomainElectricity()
 {
     DebugColor = FColor::Yellow;
+	DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ELECTRICITY;
 }
 
 int32 USLMDomainElectricity::AddPort(const FSLMPortElectricity& Port)
