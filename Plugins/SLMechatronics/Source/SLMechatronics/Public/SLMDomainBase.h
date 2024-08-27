@@ -108,6 +108,8 @@ public:
 	int32 GetPortIndex(const FSLMPortMetaData Filter, const FVector WorldLocation);
     UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
     FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData MetaData);
+	
+	TArray<FSLMConnectionByMetaData> GetAllConnections();
 
     virtual void CheckForCleanUp();
     virtual void PreSimulate(const float DeltaTime);

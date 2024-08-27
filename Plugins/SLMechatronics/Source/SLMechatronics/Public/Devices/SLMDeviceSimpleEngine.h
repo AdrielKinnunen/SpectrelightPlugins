@@ -19,9 +19,9 @@ struct FSLMDeviceModelSimpleEngine
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float MaxTorque = 1000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float DragTorque = 500;
+	float MaxRPM = 7500;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float RevLimiter = 7500;
+	float IdleRPM = 1000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	bool bIgnition = true;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")

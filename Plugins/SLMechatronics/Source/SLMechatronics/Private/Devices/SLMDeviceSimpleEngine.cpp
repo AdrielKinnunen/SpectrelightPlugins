@@ -44,16 +44,16 @@ void USLMDeviceSubsystemSimpleEngine::Simulate(const float DeltaTime, const floa
         const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
         const float Throttle = FMath::Clamp(DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle), 0, 1.0);
     	const float RPM = Crank.GetRPM();
-        if (RPM > Model.RevLimiter)
+        if (RPM > Model.MaxRPM)
         {
 	        Model.bIgnition = false;
         }
-    	if (RPM < Model.RevLimiter - 500)
+    	if (RPM < Model.MaxRPM - 500)
     	{
     		Model.bIgnition = true;
     	}
-    	
-        const float Torque = Model.bIgnition * Model.MaxTorque * Throttle - Model.DragTorque * (1 - Throttle);
+    	const float DragTorque = 0.1 * Model.MaxTorque;
+        const float Torque = Throttle * Model.bIgnition * Model.MaxTorque + (1 - Throttle) * DragTorque * FMath::Sign(Model.IdleRPM - RPM);
         const float CrankRPS_Out = Crank.AngularVelocity + Torque * DeltaTime / Crank.MomentOfInertia;
 
         DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);

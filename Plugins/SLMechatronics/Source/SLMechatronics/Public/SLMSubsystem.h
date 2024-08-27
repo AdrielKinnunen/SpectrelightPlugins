@@ -55,6 +55,8 @@ public:
 	void PropagateSettings();
 	UFUNCTION(BlueprintCallable)
 	void MakeConnectionByMetadata(FSLMConnectionByMetaData Connection);
+	UFUNCTION(BlueprintCallable)
+	TArray<FSLMConnectionByMetaData> GetAllConnectionsByMetadata();
 private:
     //Properties
     FSLMechatronicsSubsystemTickFunction PrimarySystemTick;

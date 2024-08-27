@@ -39,7 +39,9 @@ void USLMDomainAir::AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd)
     check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
     const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
     check(Networks.IsValidIndex(NetworkIndex));
-    Networks[NetworkIndex] = AirToAdd;
+	FSLMDataAir MixedAir = FSLMDataAir::Mix(Networks[NetworkIndex], AirToAdd);
+	MixedAir.ChangeVolumeIsentropically(Networks[NetworkIndex].Volume_l);
+	Networks[NetworkIndex] = MixedAir;
 }
 
 FSLMDataAir USLMDomainAir::RemoveAir(const int32 PortIndex, const float VolumeLiters)
@@ -71,26 +73,31 @@ void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
 {
     const int32 NetworkIndex = Networks.Add(FSLMDataAir());
     float SumVolume = 0.0;
-    float SumTemp = 0.0;
+    float SumPV = 0.0;
+	float SumMoles = 0.0;
+	float SumOxygen = 0.0;
     for (const auto& PortIndex : PortIndices)
     {
         const auto Data = Ports[PortIndex];
-
         SumVolume += Data.Volume_l;
-        SumTemp += Data.Temp_K;
-
+        SumPV += Data.Pressure_bar * Data.Volume_l;
+    	SumMoles += Data.GetMoles();
+    	SumOxygen += Data.OxygenRatio * Data.GetMoles();
         PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
     }
+	const float FinalOxygen = SumOxygen / SumMoles;
+	const float FinalPressure = SumPV / SumVolume;
+	const float FinalTemp = (FinalPressure * SumVolume) / (SumMoles * SLMIdealGasConstant);
+	Networks[NetworkIndex] = FSLMDataAir(SumVolume, FinalPressure, FinalTemp, FinalOxygen);
 }
 
 void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
 {
     const FSLMDataAir Network = Networks[NetworkIndex];
     FSLMDataAir& PortData = Ports[PortIndex];
-
     PortData.Pressure_bar = Network.Pressure_bar;
     PortData.Temp_K = Network.Temp_K;
-    //PortData.Oxygen = NetworkData.Oxygen;
+    PortData.OxygenRatio = Network.OxygenRatio;
 }
 
 void USLMDomainAir::RemovePortAtIndex(const int32 PortIndex)

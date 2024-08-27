@@ -46,15 +46,23 @@ void USLMDeviceSubsystemDifferential::Simulate(const float DeltaTime, const floa
         const float D = DomainRotation->GetData(Model.Index_Rotation_Right).AngularVelocity;
         const float O = DomainRotation->GetData(Model.Index_Rotation_Right).MomentOfInertia;
 
-        const float Divisor = M * N + M * O + 4 * N * O;
+        const float Divisor = M*N + M*O + 4*N*O;
 
-        const float LeftShaftVel_Out = (2 * B * M * O + C * M * N + 4 * C * N * O - D * M * O) / Divisor;
-        const float RightShaftVel_Out = (2 * B * M * N - C * M * N + D * M * O + 4 * D * N * O) / Divisor;
+    	const float LeftShaftVel_Out = (2*B*M*O + C*M*N + 4*C*N*O - D*M*O) / Divisor;
+    	const float RightShaftVel_Out = (2*B*M*N - C*M*N + D*M*O + 4*D*N*O) / Divisor;
         const float InputShaftVel_Out = 0.5 * (RightShaftVel_Out + LeftShaftVel_Out);
 
-        DomainRotation->SetAngularVelocity(Model.Index_Rotation_Input, InputShaftVel_Out);
-        DomainRotation->SetAngularVelocity(Model.Index_Rotation_Left, LeftShaftVel_Out);
-        DomainRotation->SetAngularVelocity(Model.Index_Rotation_Right, RightShaftVel_Out);
+    	const float InputImpulse = M*(InputShaftVel_Out - B);
+    	const float LeftImpulse = N*(LeftShaftVel_Out - C);
+    	const float RightImpulse = O*(RightShaftVel_Out - D);
+
+    	DomainRotation->AddAngularImpulse(Model.Index_Rotation_Input, InputImpulse);
+    	DomainRotation->AddAngularImpulse(Model.Index_Rotation_Left, LeftImpulse);
+    	DomainRotation->AddAngularImpulse(Model.Index_Rotation_Right, RightImpulse);
+    	
+        //DomainRotation->SetAngularVelocity(Model.Index_Rotation_Input, InputShaftVel_Out);
+        //DomainRotation->SetAngularVelocity(Model.Index_Rotation_Left, LeftShaftVel_Out);
+        //DomainRotation->SetAngularVelocity(Model.Index_Rotation_Right, RightShaftVel_Out);
     }
 }
 

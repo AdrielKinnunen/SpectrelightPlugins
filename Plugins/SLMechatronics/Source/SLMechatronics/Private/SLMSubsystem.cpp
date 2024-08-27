@@ -5,7 +5,7 @@
 
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
-#include "ProfilingDebugging/StallDetector.h"
+#include "Domains/SLMDomainRotation.h"
 
 void FSLMechatronicsSubsystemTickFunction::ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph)
 {
@@ -157,4 +157,14 @@ void USLMechatronicsSubsystem::MakeConnectionByMetadata(FSLMConnectionByMetaData
 		const int32 SecondPortIndex = TargetSubsystem->GetPortIndex(Connection.SecondMetaData, FVector::ZeroVector);
 		TargetSubsystem->ConnectPorts(FirstPortIndex, SecondPortIndex);
 	}
+}
+
+TArray<FSLMConnectionByMetaData> USLMechatronicsSubsystem::GetAllConnectionsByMetadata()
+{
+	TArray<FSLMConnectionByMetaData> Out;
+	for (const auto& Domain : DomainSubsystems)
+	{
+		Out.Append(Domain->GetAllConnections());
+	}
+	return Out;
 }

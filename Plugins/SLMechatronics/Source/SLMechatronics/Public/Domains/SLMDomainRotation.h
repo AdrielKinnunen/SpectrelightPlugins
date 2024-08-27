@@ -42,8 +42,11 @@ struct FSLMDataRotation
     {
 	    return AngularVelocity * 9.54929658551;
     }
-	
-	
+
+	void AddImpulse(const float Impulse)
+    {
+    	AngularVelocity += Impulse / MomentOfInertia;
+    }
 };
 
 
@@ -75,6 +78,8 @@ public:
     FSLMDataRotation GetData(const int32 PortIndex);
     UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
     void SetAngularVelocity(const int32 PortIndex, const float NewAngVel);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void AddAngularImpulse(const int32 PortIndex, const float Impulse);
 
     virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
     virtual FString GetDebugString(const int32 PortIndex) override;

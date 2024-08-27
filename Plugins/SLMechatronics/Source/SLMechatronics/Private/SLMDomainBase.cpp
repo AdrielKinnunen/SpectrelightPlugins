@@ -148,6 +148,20 @@ FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortM
     return Result;
 }
 
+TArray<FSLMConnectionByMetaData> USLMDomainSubsystemBase::GetAllConnections()
+{
+	TArray<FSLMConnectionByMetaData> Out;
+	for (const auto Pair : Adjacencies)
+	{
+		FSLMConnectionByMetaData Entry;
+		Entry.DomainTag = DomainTag;
+		Entry.FirstMetaData = PortsMetaData[Pair.Key];
+		Entry.SecondMetaData = PortsMetaData[Pair.Value];
+		Out.Add(Entry);
+	}
+	return Out;
+}
+
 void USLMDomainSubsystemBase::ConnectPorts(const int32 FirstPortIndex, const int32 SecondPortIndex)
 {
     if (FirstPortIndex != SecondPortIndex)
