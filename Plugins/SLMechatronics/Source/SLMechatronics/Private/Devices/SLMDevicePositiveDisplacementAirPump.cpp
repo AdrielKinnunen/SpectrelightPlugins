@@ -41,21 +41,33 @@ void USLMDeviceSubsystemPositiveDisplacementAirPump::Simulate(const float DeltaT
     for (const auto& Model : DeviceModels)
     {
         const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
-        const FSLMDataAir Intake = DomainAir->GetData(Model.Index_Air_Intake);
-        const FSLMDataAir Exhaust = DomainAir->GetData(Model.Index_Air_Exhaust);
-
-        const float PressureDifference = Intake.Pressure_bar - Exhaust.Pressure_bar;
-        const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * SLMOneOverTwoPi;
-
-        const float LitersMoved = Model.DisplacementPerRev * FMath::Abs(Crank.AngularVelocity) * DeltaTime;
         const bool bIsNormalDirection = Crank.AngularVelocity >= 0.0;
         const int32 FromPort = bIsNormalDirection ? Model.Index_Air_Intake : Model.Index_Air_Exhaust;
         const int32 ToPort = bIsNormalDirection ? Model.Index_Air_Exhaust : Model.Index_Air_Intake;
-        const FSLMDataAir Charge = DomainAir->RemoveAir(FromPort, LitersMoved);
-        DomainAir->AddAir(ToPort, Charge);
+    	FSLMDataAir Intake = DomainAir->GetData(FromPort);
+    	FSLMDataAir Exhaust = DomainAir->GetData(ToPort);
 
-        const float CrankRPS_Out = Crank.AngularVelocity + (PumpingTorque * DeltaTime) / Crank.MomentOfInertia;
-        DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+    	const float LitersMoved = Model.DisplacementPerRev * FMath::Abs(Crank.AngularVelocity) * DeltaTime * SLMRadToRev;
+
+    	const float IntakeOriginalVolume = Intake.Volume_l;
+    	//const float IntakeEnergyBeforeExpansion = Intake.GetInternalEnergy();
+    	Intake.CompressOrExpandToVolume(Intake.Volume_l + LitersMoved);
+    	//const float IntakeWork = Intake.GetInternalEnergy() - IntakeEnergyBeforeExpansion;
+    	FSLMDataAir Charge = Intake;
+    	Intake.Volume_l = IntakeOriginalVolume;
+    	Charge.Volume_l = LitersMoved;					//Intake and Charge should be in good states at this point
+
+    	const float ExhaustOriginalVolume = Exhaust.Volume_l;
+    	//const float ExhaustEnergyBeforeCompression = Exhaust.GetInternalEnergy();
+    	Charge.CompressOrExpandToPressure(Exhaust.Pressure_bar);
+    	Exhaust.MixWith(Charge);
+    	Exhaust.CompressOrExpandToVolume(ExhaustOriginalVolume);
+    	//float ExhaustWork = Exhaust.GetInternalEnergy() - ExhaustEnergyBeforeCompression;
+
+    	DomainAir->SetData(FromPort, Intake);
+    	DomainAir->SetData(ToPort, Exhaust);
+    	const float PumpingTorque = (Intake.Pressure_bar - Exhaust.Pressure_bar) * Model.DisplacementPerRev * SLMRadToRev;
+    	DomainRotation->AddTorque(Model.Index_Rotation_Crankshaft, PumpingTorque, DeltaTime);
     }
 }
 

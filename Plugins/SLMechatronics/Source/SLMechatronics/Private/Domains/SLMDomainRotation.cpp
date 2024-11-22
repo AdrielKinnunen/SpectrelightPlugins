@@ -50,6 +50,15 @@ void USLMDomainRotation::AddAngularImpulse(const int32 PortIndex, const float Im
 	Networks[NetworkIndex].AddImpulse(Impulse);
 }
 
+void USLMDomainRotation::AddTorque(const int32 PortIndex, const float Torque, const float DeltaTime)
+{
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
+	Networks[NetworkIndex].AddTorque(Torque, DeltaTime);
+}
+
+
 void USLMDomainRotation::Simulate(const float DeltaTime, const float SubstepScalar)
 {
     for (auto& Network : Networks)

@@ -123,6 +123,8 @@ public:
 	bool bDebugPrint = false;
 	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
 	virtual FString GetDebugString(int32 PortIndex);
+	UFUNCTION(Blueprintcallable, Category = "SLMechatronics")
+	virtual void RunTests();
 	virtual void DebugDraw();
 	virtual void DebugPrint();
 	FColor DebugColor = FColor::Black;

@@ -5,7 +5,6 @@
 
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
-#include "Domains/SLMDomainRotation.h"
 
 void FSLMechatronicsSubsystemTickFunction::ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph)
 {
@@ -41,8 +40,9 @@ void USLMechatronicsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
-    DeviceSubsystems = GetWorld()->GetSubsystemArray<USLMDeviceSubsystemBase>();
-    DomainSubsystems = GetWorld()->GetSubsystemArray<USLMDomainSubsystemBase>();
+	//DeviceSubsystems = GetWorld()->GetSubsystemArray<USLMDeviceSubsystemBase>();
+	DeviceSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDeviceSubsystemBase>();
+    DomainSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDomainSubsystemBase>();
     UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems and %i Domain Subsystems"), DeviceSubsystems.Num(), DomainSubsystems.Num());
     Super::OnWorldBeginPlay(InWorld);
 }

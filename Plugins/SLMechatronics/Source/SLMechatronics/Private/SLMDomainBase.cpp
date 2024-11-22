@@ -36,6 +36,10 @@ FString USLMDomainSubsystemBase::GetDebugString(int32 PortIndex)
 	return "Hello World!";
 }
 
+void USLMDomainSubsystemBase::RunTests()
+{
+}
+
 void USLMDomainSubsystemBase::DebugDraw()
 {
 	for (const auto Pair : Adjacencies)
@@ -315,7 +319,8 @@ TSet<int32> USLMDomainSubsystemBase::GetConnectedPorts(const TSet<int32>& Roots)
     TArray<int32> Neighbors;
     while (!Stack.IsEmpty())
     {
-        const int32 Index = Stack.Pop(false);
+        //const int32 Index = Stack.Pop(false);
+    	const int32 Index = Stack.Pop(EAllowShrinking::No);
         Adjacencies.MultiFind(Index, Neighbors);
         for (auto& Neighbor : Neighbors)
         {

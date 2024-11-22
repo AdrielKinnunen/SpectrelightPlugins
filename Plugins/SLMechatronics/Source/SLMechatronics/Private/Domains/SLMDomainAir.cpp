@@ -34,23 +34,107 @@ FSLMDataAir USLMDomainAir::GetData(const int32 PortIndex)
     return Networks[NetworkIndex];
 }
 
-void USLMDomainAir::AddAir(const int32 PortIndex, const FSLMDataAir AirToAdd)
+void USLMDomainAir::SetData(const int32 PortIndex, const FSLMDataAir Data)
+{
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
+	Networks[NetworkIndex] = Data;
+}
+
+void USLMDomainAir::RunTests()
+{
+	const FSLMDataAir Original = FSLMDataAir(1.0, 1.0, 300, 0.3, false);
+	FSLMDataAir A = Original;
+	FSLMDataAir B = Original;
+	check(A.NearlyEqualWith(B));		//null case
+	A.CompressOrExpandToVolume(Original.Volume_l / 10);
+	B.CompressOrExpandToPressure(A.Pressure_bar);
+	check(A.NearlyEqualWith(B));
+	A = Original;
+	B = Original;
+	A.CompressOrExpandToVolume(Original.Volume_l * 10);
+	B.CompressOrExpandToPressure(A.Pressure_bar);
+	check(A.NearlyEqualWith(B));
+	A.UpdateVolume();
+	check(A.NearlyEqualWith(B));
+	A.UpdatePressure();
+	check(A.NearlyEqualWith(B));
+	A.UpdateTemperature();
+	check(A.NearlyEqualWith(B));
+	A.UpdateMoles();
+	check(A.NearlyEqualWith(B));
+
+
+	
+	FSLMDataAir Air = Original;
+	FString Out;
+	
+	Out += "Air domain test results\n";
+	Out += "Original state was:\n" + Air.GetDebugString() + "................................\n";
+	
+	Air.CompressOrExpandToVolume(Original.Volume_l / 2);
+	Out += "After compressing to half original volume:\n" + Air.GetDebugString() + "................................\n";
+	
+	Air.CompressOrExpandToVolume(Original.Volume_l * 2);
+	Out += "After expanding to double original volume:\n" + Air.GetDebugString() + "................................\n";
+	
+	Air.CompressOrExpandToVolume(Original.Volume_l);
+	Out += "After compressing back to original volume:\n" + Air.GetDebugString() + "................................\n";
+
+	Air.CompressOrExpandToPressure(Original.Pressure_bar * 2);
+	Out += "After compressing to double original pressure:\n" + Air.GetDebugString() + "................................\n";
+
+	Air.CompressOrExpandToPressure(Original.Pressure_bar / 2);
+	Out += "After compressing to half original pressure:\n" + Air.GetDebugString() + "................................\n";
+
+	Air.CompressOrExpandToPressure(Original.Pressure_bar);
+	Out += "After compressing back to original pressure:\n" + Air.GetDebugString() + "................................\n";
+	
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *Out);
+}
+
+/*
+void USLMDomainAir::MixAndCompressIntoByIndex(const int32 PortIndex, const FSLMDataAir AirToAdd)
 {
     check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
     const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
     check(Networks.IsValidIndex(NetworkIndex));
-	FSLMDataAir MixedAir = FSLMDataAir::Mix(Networks[NetworkIndex], AirToAdd);
-	MixedAir.ChangeVolumeIsentropically(Networks[NetworkIndex].Volume_l);
-	Networks[NetworkIndex] = MixedAir;
+	Networks[NetworkIndex].Inject(AirToAdd);
+	//FSLMDataAir MixedAir = FSLMDataAir::Mix(Networks[NetworkIndex], AirToAdd);
+	//MixedAir.ChangeVolumeIsentropically(Networks[NetworkIndex].Volume_l);
+	//Networks[NetworkIndex] = MixedAir;
 }
 
 FSLMDataAir USLMDomainAir::RemoveAir(const int32 PortIndex, const float VolumeLiters)
 {
-    return FSLMDataAir();
+	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
+	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
+	check(Networks.IsValidIndex(NetworkIndex));
+	FSLMDataAir& Network = Networks[NetworkIndex];
+    return Network.Extract(VolumeLiters);
+	
+	const float OriginalVolume = Network.Volume_l;
+	const float ExpandedVolume = OriginalVolume + VolumeLiters;
+	Network.ChangeVolumeIsentropically(ExpandedVolume);
+	FSLMDataAir Result = Network;
+	Network.Volume_l = OriginalVolume;
+	Result.Volume_l = VolumeLiters;
+	
 }
+*/
 
 void USLMDomainAir::Simulate(const float DeltaTime, const float SubstepScalar)
 {
+	for (auto& Network : Networks)
+	{
+		if (Network.bConnectedToAtmosphere)
+		{
+			Network.Pressure_bar = 1;
+			Network.Temp_K = 300;
+			Network.OxygenRatio = 0.21;
+		}
+	}
 }
 
 FString USLMDomainAir::GetDebugString(const int32 PortIndex)
@@ -65,7 +149,8 @@ FString USLMDomainAir::GetDebugString(const int32 PortIndex)
     Result += FString::Printf(TEXT("Pressure(bar) = %f\n"), Network.Pressure_bar);
     Result += FString::Printf(TEXT("Volume(l) = %f\n"), Network.Volume_l);
     Result += FString::Printf(TEXT("Temperature(K) = %f\n"), Network.Temp_K);
-    Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * Network.OxygenRatio);
+	Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * Network.OxygenRatio);
+	Result += FString::Printf(TEXT("Connected To Atmosphere = %i\n"), Network.bConnectedToAtmosphere);
     return Result;
 }
 
@@ -81,14 +166,15 @@ void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
         const auto Data = Ports[PortIndex];
         SumVolume += Data.Volume_l;
         SumPV += Data.Pressure_bar * Data.Volume_l;
-    	SumMoles += Data.GetMoles();
-    	SumOxygen += Data.OxygenRatio * Data.GetMoles();
+    	SumMoles += Data.N_Moles;
+    	SumOxygen += Data.OxygenRatio * Data.N_Moles;
         PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
     }
-	const float FinalOxygen = SumOxygen / SumMoles;
-	const float FinalPressure = SumPV / SumVolume;
-	const float FinalTemp = (FinalPressure * SumVolume) / (SumMoles * SLMIdealGasConstant);
-	Networks[NetworkIndex] = FSLMDataAir(SumVolume, FinalPressure, FinalTemp, FinalOxygen);
+	const float FinalOxygen = 0.21;//SumOxygen / SumMoles;
+	const float FinalPressure = 1;//SumPV / SumVolume;
+	const float FinalTemp = 300;//(FinalPressure * SumVolume) / (SumMoles * SLMIdealGasConstant);
+	const bool bConnectedToAtmosphere = PortIndices.Num() == 1;
+	Networks[NetworkIndex] = FSLMDataAir(SumVolume, FinalPressure, FinalTemp, FinalOxygen, bConnectedToAtmosphere);
 }
 
 void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)

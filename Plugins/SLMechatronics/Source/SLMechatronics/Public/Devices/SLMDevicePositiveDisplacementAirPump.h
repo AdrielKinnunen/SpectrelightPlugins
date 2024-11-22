@@ -10,7 +10,6 @@
 
 class USLMDeviceSubsystemPositiveDisplacementAirPump;
 
-
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelPositiveDisplacementAirPump
 {

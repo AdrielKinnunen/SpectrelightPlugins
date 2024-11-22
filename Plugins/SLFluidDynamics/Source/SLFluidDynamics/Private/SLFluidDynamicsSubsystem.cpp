@@ -2,7 +2,7 @@
 
 #include "SLFluidDynamicsSubsystem.h"
 
-#include "Kismet/KismetSystemLibrary.h"
+
 
 bool USLFluidDynamicsSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
 {
@@ -28,6 +28,7 @@ void USLFluidDynamicsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void USLFluidDynamicsSubsystem::Deinitialize()
 {
+	Super::Deinitialize();
 }
 
 void USLFluidDynamicsSubsystem::RegisterProbeComponent(USLFluidDynamicsProbeComponent* ProbeComponentToRegister)

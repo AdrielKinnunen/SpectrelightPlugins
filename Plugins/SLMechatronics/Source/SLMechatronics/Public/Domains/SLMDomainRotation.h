@@ -9,6 +9,8 @@
 
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ROTATION)
 
+constexpr float SLMRadToRPM				= 9.54929658551;			//Convert rad/s to RPM
+
 USTRUCT(BlueprintType)
 struct FSLMDataRotation
 {
@@ -40,12 +42,17 @@ struct FSLMDataRotation
 
 	float GetRPM() const
     {
-	    return AngularVelocity * 9.54929658551;
+	    return AngularVelocity * SLMRadToRPM;
     }
 
 	void AddImpulse(const float Impulse)
     {
     	AngularVelocity += Impulse / MomentOfInertia;
+    }
+
+	void AddTorque(const float Torque, const float DeltaTime)
+    {
+    	AngularVelocity += Torque * DeltaTime / MomentOfInertia;
     }
 };
 
@@ -80,6 +87,8 @@ public:
     void SetAngularVelocity(const int32 PortIndex, const float NewAngVel);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void AddAngularImpulse(const int32 PortIndex, const float Impulse);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void AddTorque(const int32 PortIndex, const float Torque, const float DeltaTime);
 
     virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
     virtual FString GetDebugString(const int32 PortIndex) override;

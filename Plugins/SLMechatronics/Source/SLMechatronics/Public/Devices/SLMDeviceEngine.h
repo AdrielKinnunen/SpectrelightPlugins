@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-/*
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -19,7 +19,7 @@ struct FSLMDeviceModelEngine
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	float DisplacementPerRev = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float Efficiency = 0.35;
+	float CompressionRatio = 10;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 Index_Rotation_Crankshaft = -1;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
@@ -76,9 +76,9 @@ class SLMECHATRONICS_API USLMDeviceSubsystemEngine : public USLMDeviceSubsystemB
 	
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	virtual void PreSimulate(float DeltaTime) override;
-	virtual void Simulate(float DeltaTime) override;
-	virtual void PostSimulate(float DeltaTime) override;
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
+	virtual void PostSimulate(const float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	int32 AddDevice(FSLMDeviceEngine Device);
@@ -93,4 +93,3 @@ private:
 	TWeakObjectPtr<USLMDomainAir> DomainAir;
 	TSparseArray<FSLMDeviceModelEngine> DeviceModels;
 };
-*/

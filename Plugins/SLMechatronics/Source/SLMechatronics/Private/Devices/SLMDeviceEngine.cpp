@@ -1,7 +1,6 @@
 ﻿// Copyright Spectrelight Studios, LLC
-/*
-#include "Devices/SLMDeviceEngine.h"
 
+#include "Devices/SLMDeviceEngine.h"
 
 FSLMDeviceModelEngine USLMDeviceComponentEngine::GetDeviceState()
 {
@@ -39,36 +38,45 @@ void USLMDeviceSubsystemEngine::PreSimulate(const float DeltaTime)
 {
 }
 
-void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime)
+void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime, const float SubstepScalar)
 {
-	for (const auto& Model : DeviceModels)
+for (const auto& Model : DeviceModels)
 	{
+	/*
 		const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
-		const FSLMDataAir Intake = DomainAir->GetByPortIndex(Model.Index_Air_Intake);
-		const FSLMDataAir Exhaust = DomainAir->GetByPortIndex(Model.Index_Air_Exhaust);
+		const FSLMDataAir Intake = DomainAir->GetData(Model.Index_Air_Intake);
+		const FSLMDataAir Exhaust = DomainAir->GetData(Model.Index_Air_Exhaust);
 		const float Throttle = DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle);
 		
-		const float PressureDifference = Intake.Pressure_bar - Exhaust.Pressure_bar;
-		const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * SLMOneOverTwoPi;
+		//const float PressureDifference = Intake.Pressure_bar - Exhaust.Pressure_bar;
+		//const float PumpingTorque = PressureDifference * Model.DisplacementPerRev * SLMOneOverTwoPi;
 
-		const float RotationDelta = Crank.AngularVelocity * DeltaTime;
-		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Model.DisplacementPerRev * FMath::Abs(RotationDelta);
+		const float RotationThisStep = Crank.AngularVelocity * DeltaTime;
+		const float LitersIngested = FMath::Clamp(Throttle, 0, 1) * Model.DisplacementPerRev * FMath::Abs(RotationThisStep);
 		const bool bIsNormalDirection = Crank.AngularVelocity >= 0.0;
 		const int32 FromPort = bIsNormalDirection ? Model.Index_Air_Intake : Model.Index_Air_Exhaust;
 		const int32 ToPort = bIsNormalDirection ? Model.Index_Air_Exhaust : Model.Index_Air_Intake;
 		
 		FSLMDataAir Charge = DomainAir->RemoveAir(FromPort, LitersIngested);
+		const float EnergyBeforeCompression = Charge.GetInternalEnergy();
+		Charge.CompressOrExpandToVolume(Charge.Volume_l / Model.CompressionRatio);
+		const float EnergyAfterCompression = Charge.GetInternalEnergy();
 		const float OxygenGrams = Charge.GetMassGrams() * Charge.OxygenRatio;
-		const float FuelGrams = OxygenGrams * SLMFuelPerAirGrams;																			//TODO Add fuel consumption
-		const float CombustionEnergy = SLMFuelJoulesPerGram * FuelGrams;
-		const float CombustionWork = CombustionEnergy * Model.Efficiency;
-		const float CombustionTorque = CombustionWork / RotationDelta;
-		Charge.AddHeatJoules(CombustionEnergy - CombustionWork);
-		DomainAir->AddAir(ToPort, Charge);
+		const float FuelGrams = OxygenGrams * SLMFuelPerAirGrams;
+		Charge.AddHeatJoules(SLMFuelJoulesPerGram * FuelGrams);
+		const float EnergyAfterCombustion = Charge.GetInternalEnergy();
+		Charge.CompressOrExpandToVolume(Charge.Volume_l * Model.CompressionRatio);
+		const float EnergyAfterExpansion = Charge.GetInternalEnergy();
+		const float NetWork = EnergyBeforeCompression - EnergyAfterCompression + EnergyAfterCombustion - EnergyAfterExpansion;
+		
+		//const float CombustionTorque = CombustionWork / RotationThisStep;
+		//Charge.AddHeatJoules(CombustionEnergy - CombustionWork);
+		//DomainAir->AddAir(ToPort, Charge);
 
-		const float TotalTorque = PumpingTorque + CombustionTorque;
-		const float CrankRPS_Out = Crank.AngularVelocity + (TotalTorque * DeltaTime) / Crank.MomentOfInertia;
-		DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+		//const float TotalTorque = PumpingTorque + CombustionTorque;
+		//const float CrankRPS_Out = Crank.AngularVelocity + (TotalTorque * DeltaTime) / Crank.MomentOfInertia;
+		//DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, CrankRPS_Out);
+		*/
 	}
 }
 
@@ -98,4 +106,3 @@ FSLMDeviceModelEngine USLMDeviceSubsystemEngine::GetDeviceState(const int32 Devi
 {
 	return DeviceModels[DeviceIndex];
 }
-*/

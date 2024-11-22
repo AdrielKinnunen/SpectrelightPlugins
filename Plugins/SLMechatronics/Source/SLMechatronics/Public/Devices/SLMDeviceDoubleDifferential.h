@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-/*
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,6 +8,7 @@
 #include "SLMDeviceDoubleDifferential.generated.h"
 
 class USLMDeviceSubsystemDoubleDifferential;
+
 
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelDoubleDifferential
@@ -51,16 +52,14 @@ UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
 class SLMECHATRONICS_API USLMDeviceComponentDoubleDifferential : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
-	
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	USLMDeviceSubsystemDoubleDifferential* Subsystem;	
+	USLMDeviceSubsystemDoubleDifferential* Subsystem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceDoubleDifferential DeviceSettings;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDeviceModelDoubleDifferential GetDeviceState();
-	
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -74,7 +73,7 @@ class SLMECHATRONICS_API USLMDeviceSubsystemDoubleDifferential : public USLMDevi
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PreSimulate(const float DeltaTime) override;
-	virtual void Simulate(const float DeltaTime) override;
+    virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
 	virtual void PostSimulate(const float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
@@ -83,10 +82,7 @@ public:
 	void RemoveDevice(const int32 DeviceIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	FSLMDeviceModelDoubleDifferential GetDeviceState(const int32 DeviceIndex);
-	
 private:
 	TWeakObjectPtr<USLMDomainRotation> DomainRotation;
 	TSparseArray<FSLMDeviceModelDoubleDifferential> DeviceModels;
-	TSparseArray<USLMDeviceComponentDoubleDifferential*> DeviceComponents;
 };
-*/
