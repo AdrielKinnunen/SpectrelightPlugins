@@ -14,7 +14,7 @@ constexpr float SLMMolarMassAir             = 28.97;                        //Mo
 constexpr float SLMCvAir                    = 250 * SLMIdealGasConstant;    //Molar heat capacity at constant volume
 constexpr float SLMFuelPerAirGrams          = 0.323939;                     //Grams of fuel per gram of air for stoichiometric combustion
 constexpr float SLMFuelJoulesPerGram        = 45000;                        //Combustion Energy per gram of fuel
-constexpr float SLMRadToRev					= 0.159155;				        //Convert rad/s to rev/s
+constexpr float SLMRadToRev					= 0.15915494309;		        //Convert rad/s to rev/s
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -114,6 +114,7 @@ struct FSLMDataAir
     	const float FinalPressure = (Pressure_bar * Volume_l + Other.Pressure_bar * Other.Volume_l) / FinalVolume;
 		UpdateTemperature();
     	const float FinalTemp = (FinalPressure * FinalVolume) / (FinalMoles * SLMIdealGasConstant);
+		N_Moles = FinalMoles;
     	Volume_l = FinalVolume;
     	Pressure_bar = FinalPressure;
 		Temp_K = FinalTemp;

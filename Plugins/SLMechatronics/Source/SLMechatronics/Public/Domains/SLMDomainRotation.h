@@ -10,6 +10,8 @@
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ROTATION)
 
 constexpr float SLMRadToRPM				= 9.54929658551;			//Convert rad/s to RPM
+constexpr float SLMTorqueUnrealToSI		= 0.0001;					//Convert Unreal torque to SI
+constexpr float SLMTorqueSIToUnreal		= 10000;					//Convert SI torque to Unreal
 
 USTRUCT(BlueprintType)
 struct FSLMDataRotation

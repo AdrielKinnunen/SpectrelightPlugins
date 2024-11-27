@@ -63,7 +63,7 @@ void USLMDomainRotation::Simulate(const float DeltaTime, const float SubstepScal
 {
     for (auto& Network : Networks)
     {
-        Network.AngularVelocity = FMath::FInterpConstantTo(Network.AngularVelocity, 0.0, DeltaTime, Network.StaticFriction + Network.DynamicFriction * Network.AngularVelocity);
+        //Network.AngularVelocity = FMath::FInterpConstantTo(Network.AngularVelocity, 0.0, DeltaTime, Network.StaticFriction + Network.DynamicFriction * Network.AngularVelocity);
         //const float Min = (Network.AngularVelocity > 0.0) ? 0.0 : Network.AngularVelocity;
         //const float Max = (Network.AngularVelocity > 0.0) ? Network.AngularVelocity : 0.0;
         //const float Desired = Network.AngularVelocity - Network.AngularVelocity * Network.FrictionCoefficient * DeltaTime;

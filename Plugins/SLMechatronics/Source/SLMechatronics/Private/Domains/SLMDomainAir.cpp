@@ -133,6 +133,7 @@ void USLMDomainAir::Simulate(const float DeltaTime, const float SubstepScalar)
 			Network.Pressure_bar = 1;
 			Network.Temp_K = 300;
 			Network.OxygenRatio = 0.21;
+			Network.UpdateMoles();
 		}
 	}
 }
@@ -149,6 +150,7 @@ FString USLMDomainAir::GetDebugString(const int32 PortIndex)
     Result += FString::Printf(TEXT("Pressure(bar) = %f\n"), Network.Pressure_bar);
     Result += FString::Printf(TEXT("Volume(l) = %f\n"), Network.Volume_l);
     Result += FString::Printf(TEXT("Temperature(K) = %f\n"), Network.Temp_K);
+	Result += FString::Printf(TEXT("Moles = %f\n"), Network.N_Moles);
 	Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * Network.OxygenRatio);
 	Result += FString::Printf(TEXT("Connected To Atmosphere = %i\n"), Network.bConnectedToAtmosphere);
     return Result;
