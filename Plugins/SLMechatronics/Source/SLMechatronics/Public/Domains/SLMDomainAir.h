@@ -9,12 +9,15 @@
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR)
 
 constexpr float SLMGammaAir                 = 1.4;                          //Specific heat ratio for air
-constexpr float SLMIdealGasConstant         = 0.0831446261815324;           //Ideal gas constant for atm*L/(mol*K)
-constexpr float SLMMolarMassAir             = 28.97;                        //Molar mass of air in g/mol
-constexpr float SLMCvAir                    = 250 * SLMIdealGasConstant;    //Molar heat capacity at constant volume
+constexpr float SLMIdealGasConstant         = 8.31446261815324;				//Ideal gas constant for Pa*m3/(mol*K)
+constexpr float SLMMolarMassAir             = 28.97;				        //Molar mass of air in g/mol
+constexpr float SLMCvAir                    = 2.5 * SLMIdealGasConstant;    //Molar heat capacity at constant volume
 constexpr float SLMFuelPerAirGrams          = 0.323939;                     //Grams of fuel per gram of air for stoichiometric combustion
 constexpr float SLMFuelJoulesPerGram        = 45000;                        //Combustion Energy per gram of fuel
 constexpr float SLMRadToRev					= 0.15915494309;		        //Convert rad/s to rev/s
+constexpr float SLMSTPMoles					= 44.61;						//Moles of air in 1 m3 at STP
+constexpr float SLMSTPEnergy				= 253313;						//Energy of air in 1 m3 at STP
+constexpr float SLMSTPOxygen				= 0.21;
 
 USTRUCT(BlueprintType)
 struct FSLMDataAir
@@ -23,7 +26,7 @@ struct FSLMDataAir
     FSLMDataAir()
     {
     }
-	
+	/*
     FSLMDataAir(const float Volume_l, const float Pressure_bar, const float Temp_K, const float OxygenRatio, const bool bConnectedToAtmosphere):
 		Volume_l(Volume_l),
 		Pressure_bar(Pressure_bar),
@@ -31,130 +34,104 @@ struct FSLMDataAir
 		OxygenRatio(OxygenRatio),
 		bConnectedToAtmosphere(bConnectedToAtmosphere)
     {
-    }
+    }*/
 	
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Volume in liters"))
-    float Volume_l = 1.0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Absolute pressure in bar"))
-	float Pressure_bar = 1.0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Temperature in Kelvin"))
-	float Temp_K = 300;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Volume in Cubic Meters"))
+    float Volume = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Internal Energy in Joules"))
+	float Energy = Volume * SLMSTPEnergy;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="N in Moles"))
-	float N_Moles = Pressure_bar * Volume_l / (Temp_K * SLMIdealGasConstant);	//n = PV/RT
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Oxygen ratio"))
-    float OxygenRatio = 0.21;
+	float Moles = Volume * SLMSTPMoles;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Oxygen Ratio"))
+    float OxygenRatio = SLMSTPOxygen;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Indicates if this volume is connected to atmosphere"))
 	bool bConnectedToAtmosphere = true;
 
-	void UpdateVolume()
+	void SetToSTP()
 	{
-		Volume_l = N_Moles * SLMIdealGasConstant * Temp_K / Pressure_bar;		//V = nRT/P
+		Energy = Volume * SLMSTPEnergy;
+		Moles = Volume * SLMSTPMoles;
+		OxygenRatio = SLMSTPOxygen;
 	}
 	
-	void UpdatePressure()
+	void UpdateVolume()
 	{
-		Pressure_bar = N_Moles * SLMIdealGasConstant * Temp_K / Volume_l;		//P = nRT/V
+		Volume = 0.4 * Energy * Moles * SLMIdealGasConstant;
 	}
-
-	void UpdateTemperature()
+	
+	void UpdateEnergy()
 	{
-		Temp_K = Pressure_bar * Volume_l / (N_Moles * SLMIdealGasConstant);		//T = PV/nR
+		Energy = 2.5 * Volume / (Moles * SLMIdealGasConstant);
 	}
 
 	void UpdateMoles()
 	{
-		N_Moles = Pressure_bar * Volume_l / (Temp_K * SLMIdealGasConstant);		//n = PV/RT
+		Moles = 2.5 * Volume / (Energy * SLMIdealGasConstant);
 	}
-	
-	void SetSaneLimits()
+
+	float GetPressure() const
 	{
-		Pressure_bar = FMath::Clamp(Pressure_bar, 0.01, 1000);
-		Temp_K = FMath::Clamp(Temp_K, 1, 10000);
+		return 0.4 * Energy / Volume;
+	}
+
+	float GetTemperature() const
+	{
+		return Energy / (Moles * SLMCvAir);
 	}
 
     float GetMassGrams() const
     {
-        return N_Moles * SLMMolarMassAir;
+        return Moles * SLMMolarMassAir;
     }
 
-	float GetInternalEnergy() const
-    {
-	    return Pressure_bar * Volume_l * 250;
-    }
-
-    void AddHeatJoules(const float Joules)
-    {
-		Temp_K += Joules / (N_Moles * SLMCvAir);
-		UpdatePressure();
-    }
-
-    void CompressOrExpandToVolume(const float NewVolume)
-    {
-        check(NewVolume > 0.0);
-    	Pressure_bar = Pressure_bar * FMath::Pow(Volume_l / NewVolume, SLMGammaAir);
-    	Volume_l = NewVolume;
-        UpdateTemperature();
-		SetSaneLimits();
-    }
+	void CompressOrExpandToVolume(const float NewVolume)
+	{
+		check(NewVolume > 0.0);
+		const float Ratio = Volume / NewVolume;
+		Energy = Energy * FMath::Pow(Ratio, SLMGammaAir - 1);
+		Volume = NewVolume;
+	}
 
 	void CompressOrExpandToPressure(const float NewPressure)
-    {
-    	check(NewPressure > 0.0);
-    	Volume_l = Volume_l * FMath::Pow(Pressure_bar / NewPressure, 1/SLMGammaAir);
-		Pressure_bar = NewPressure;
-		UpdateTemperature();
-		SetSaneLimits();
-    }
-
-	void MixWith(const FSLMDataAir Other)
 	{
-    	const float FinalMoles = N_Moles + Other.N_Moles;
-    	const float FinalOxygen = (N_Moles * OxygenRatio + Other.N_Moles * Other.OxygenRatio) / FinalMoles;
-    	const float FinalVolume = Volume_l + Other.Volume_l;
-    	const float FinalPressure = (Pressure_bar * Volume_l + Other.Pressure_bar * Other.Volume_l) / FinalVolume;
-		UpdateTemperature();
-    	const float FinalTemp = (FinalPressure * FinalVolume) / (FinalMoles * SLMIdealGasConstant);
-		N_Moles = FinalMoles;
-    	Volume_l = FinalVolume;
-    	Pressure_bar = FinalPressure;
-		Temp_K = FinalTemp;
-    	OxygenRatio = FinalOxygen;
-		SetSaneLimits();
-    }
-
-	bool NearlyEqualWith( const FSLMDataAir Other) const
-	{
-		const bool V = FMath::IsNearlyEqual(Volume_l, Other.Volume_l);
-		const bool P = FMath::IsNearlyEqual(Pressure_bar, Other.Pressure_bar);
-		const bool T = FMath::IsNearlyEqual(Temp_K, Other.Temp_K);
-		const bool N = FMath::IsNearlyEqual(OxygenRatio, Other.OxygenRatio);
-		const bool A = bConnectedToAtmosphere == Other.bConnectedToAtmosphere;
-		return V && P && T && N && A;
+		check(NewPressure > 0.0);
+		const float PressureRatio = NewPressure / GetPressure();
+		Volume = Volume * FMath::Pow(1.0f / PressureRatio, 1.0f / SLMGammaAir);
+		Energy = Energy * FMath::Pow(PressureRatio, (SLMGammaAir - 1.0f) / SLMGammaAir);
 	}
 	
-	/*
-	void Inject(const FSLMDataAir Other)
-    {
-    	const float OriginalVolume = Volume_l;
-	    MixWith(Other);
-    	CompressOrExpandToVolume(OriginalVolume);
+	void MixWith(const FSLMDataAir Other)
+	{
+    	OxygenRatio = (Moles * OxygenRatio + Other.Moles * Other.OxygenRatio) / (Moles + Other.Moles);
+		Moles = Moles + Other.Moles;
+    	Volume = Volume + Other.Volume;
+		Energy = Energy + Other.Energy;
     }
 
-	FSLMDataAir Extract(const float VolumeToExtract)
-    {
-    	const float OriginalVolume = Volume_l;
-	    CompressOrExpandToVolume(OriginalVolume + VolumeToExtract);
-    	Volume_l = OriginalVolume;
-    	return FSLMDataAir(VolumeToExtract, Pressure_bar, Temp_K, OxygenRatio, false);
-    }
-    */
+	void Scale(const float Scalar)
+	{
+		Volume *= Scalar;
+		Moles *= Scalar;
+		Energy *= Scalar;
+	}
+	
+	bool NearlyEqualWith( const FSLMDataAir Other) const
+	{
+		const bool V = FMath::IsNearlyEqual(Volume, Other.Volume);
+		const bool E = FMath::IsNearlyEqual(Energy, Other.Energy);
+		const bool N = FMath::IsNearlyEqual(OxygenRatio, Other.OxygenRatio);
+		const bool A = bConnectedToAtmosphere == Other.bConnectedToAtmosphere;
+		return V && E && N && A;
+	}
+
+	
 
 	FString GetDebugString()
 	{
 		FString Result;
-		Result += FString::Printf(TEXT("Volume(l) = %f\n"), Volume_l);
-		Result += FString::Printf(TEXT("Pressure(bar) = %f\n"), Pressure_bar);
-		Result += FString::Printf(TEXT("Temperature(K) = %f\n"), Temp_K);
+		Result += FString::Printf(TEXT("Volume(m3) = %f\n"), Volume);
+		Result += FString::Printf(TEXT("Pressure(Pa) = %f\n"), GetPressure());
+		Result += FString::Printf(TEXT("Temperature(K) = %f\n"), GetTemperature());
 		Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * OxygenRatio);
 		Result += FString::Printf(TEXT("Connected To Atmosphere = %i\n"), bConnectedToAtmosphere);
 		return Result;
@@ -190,10 +167,9 @@ public:
     FSLMDataAir GetData(const int32 PortIndex);
 	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void SetData(const int32 PortIndex, const FSLMDataAir Data);
-	//UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	//void MixAndCompressIntoByIndex (const int32 PortIndex, const FSLMDataAir AirToAdd);
-    //UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    //FSLMDataAir RemoveAir(const int32 PortIndex, const float VolumeLiters);
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	void AddEnergyAndMoles(const int32 PortIndex, const float Energy, const float Moles);
+	
 
 	virtual void RunTests() override;
 

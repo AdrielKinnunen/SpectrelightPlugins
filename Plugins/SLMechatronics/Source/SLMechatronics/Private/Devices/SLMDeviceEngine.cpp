@@ -42,15 +42,36 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime, const float Subs
 {
     for (const auto& Model : DeviceModels)
     {
+    	//Setup
     	const float Throttle = DomainSignal->ReadByPortIndex(Model.Index_Signal_Throttle);
-        const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
-        const bool bIsNormalDirection = Crank.AngularVelocity >= 0.0;
-        const int32 FromPort = bIsNormalDirection ? Model.Index_Air_Intake : Model.Index_Air_Exhaust;
-        const int32 ToPort = bIsNormalDirection ? Model.Index_Air_Exhaust : Model.Index_Air_Intake;
-    	const float TorqueDirectionMultiplier = bIsNormalDirection ? 1.0 : -1.0;
+		const float ThermalEfficiency = 1 - FMath::Pow(Model.CompressionRatio, 1 - SLMGammaAir);
+    	//TODO Implement the rest of the engine lmao
+    	
+    	const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
+    	const bool bIsNormalDirection = Crank.AngularVelocity >= 0.0;
+    	const int32 FromPort = bIsNormalDirection ? Model.Index_Air_Intake : Model.Index_Air_Exhaust;
+    	const int32 ToPort = bIsNormalDirection ? Model.Index_Air_Exhaust : Model.Index_Air_Intake;
+    	const float DirectionScalar = bIsNormalDirection ? 1.0 : -1.0;
     	FSLMDataAir Intake = DomainAir->GetData(FromPort);
     	FSLMDataAir Exhaust = DomainAir->GetData(ToPort);
+    	//Air Transfer
+    	const float VolumeMoved = Model.DisplacementPerRev * FMath::Abs(Crank.AngularVelocity) * DeltaTime * SLMRadToRev;
+    	const float ExpansionRatio = (Intake.Volume + VolumeMoved) / Intake.Volume;
+    	const float TransferRatio = VolumeMoved / (Intake.Volume + VolumeMoved);
+    	const float MolesMoved = Intake.Moles * TransferRatio;
+    	const float EnergyMoved = Intake.Energy * TransferRatio;
+    	//Torque and Work, work is always work DONE on the shaft
+    	const float PressureDifference = Intake.GetPressure() - Exhaust.GetPressure();
+    	const float ShaftTorque = PressureDifference * Model.DisplacementPerRev * SLMRadToRev;
+    	const float ShaftWork = VolumeMoved * PressureDifference;
+    	const float ExpansionWork = Intake.Energy * (1 - FMath::Pow(ExpansionRatio, 1 - SLMGammaAir));
+    	const float HeatIntoExhaust = ExpansionWork - ShaftWork;
+    	//Update State
+    	DomainAir->AddEnergyAndMoles(FromPort, -EnergyMoved - ExpansionWork, -MolesMoved);
+    	DomainAir->AddEnergyAndMoles(ToPort, EnergyMoved + HeatIntoExhaust, MolesMoved);
+    	DomainRotation->AddTorque(Model.Index_Rotation_Crankshaft, ShaftTorque * DirectionScalar, DeltaTime);
 
+    	/*
     	const float LitersMoved = Model.DisplacementPerRev * FMath::Abs(Crank.AngularVelocity) * DeltaTime * SLMRadToRev;
     	const float PumpingTorque = (Intake.Pressure_bar - Exhaust.Pressure_bar) * Model.DisplacementPerRev * SLMRadToRev * 100 * TorqueDirectionMultiplier;
     	float CombustionTorque = 0;
@@ -74,7 +95,7 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime, const float Subs
 	    	//Ignition
 	    	const float OxygenGrams = Charge.GetMassGrams() * Charge.OxygenRatio;
 	    	const float FuelGrams = OxygenGrams * SLMFuelPerAirGrams * Throttle;
-	    	Charge.AddHeatJoules(SLMFuelJoulesPerGram * FuelGrams);
+	    	Charge.AddInternalEnergyJoules(SLMFuelJoulesPerGram * FuelGrams);
 	    	const float EnergyAfterCombustion = Charge.GetInternalEnergy();
 
 	    	//Expansion

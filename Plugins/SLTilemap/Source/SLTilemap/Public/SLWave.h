@@ -16,14 +16,12 @@ struct FCell
     {
     }
 
-    FCell(const TArray<int32>& NewAllowedPatternIndices, const TArray<int32>& NewNeighborIndices)
+    FCell(const TArray<int32>& NewAllowedPatternIndices)
     {
         AllowedPatternIndices = NewAllowedPatternIndices;
-        NeighborIndices = NewNeighborIndices;
     }
 
     TArray<int32> AllowedPatternIndices;
-    TArray<int32> NeighborIndices;
 };
 
 
@@ -38,7 +36,7 @@ public:
     FRandomStream RandomStream;
 
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
-    FTileMap InputTileMap;
+    FTilePatternSet PatternSet;
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
     FTileMap OutputTileMap;
 
@@ -48,9 +46,6 @@ public:
     bool Step();
     UFUNCTION(Blueprintcallable, Category = "SLTilemap")
     bool Run();
-
-    UFUNCTION(Blueprintcallable, Category = "SLTilemap")
-    TArray<FTileMap> GetPatternsAsTileMaps();
 
     UFUNCTION(Blueprintcallable, Category = "SLTilemap")
     TArray<float> GetEntropy();
@@ -63,26 +58,22 @@ public:
     
 private:
     //Wave
-    TArray<FTilePattern> Patterns;
-    TArray<int32> Counts;
-    TArray<float> Weights;
-    TArray<float> PlogP;
+	FTileMapCoords WaveSize = FTileMapCoords();
     bool Failed = false;
     int32 FailedAtIndex = -1;
 
     //Cells
     TArray<FCell> CellArray;
-    TArray<int32> CellXArray;
-    TArray<int32> CellYArray;
+	TArray<FTileMapCoords> CellCoordsArray;
     TArray<float> CellEntropyArray;
     TArray<float> CellSumWeightsArray;
     TArray<bool> CellIsObservedArray;
 
-    void GeneratePatterns();
     void InitPatternCells();
-    bool UpdateCell(const int32 CellIndex);
+    bool UpdateCell(int32 CellIndex);
     void OnFailed();
-    void ObserveCell(const int32 CellIndex);
-    bool CanPatternFitAtThisLocation(const FTilePattern& Pattern, int32 x, int32 y) const;
+    void ObserveCell(int32 CellIndex);
+	void EnqueueUnobservedNeighbors(int32 CellIndex, TQueue<int32>& Queue) const;
+    bool CanPatternFitAtThisLocation(const FTilePattern& Pattern, const FTileMapCoords Coords) const;
     FTilePattern OrCellPatternsTogether(const int32 CellIndex);
 };

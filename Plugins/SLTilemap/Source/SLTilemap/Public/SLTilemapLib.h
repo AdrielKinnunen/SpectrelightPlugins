@@ -24,57 +24,65 @@ ENUM_CLASS_FLAGS(ETileState);
 
 
 
-
-
-FORCEINLINE int32 inline_IndexToX(const int32 Index, const int32 Width)
+USTRUCT(BlueprintType)
+struct FTileMapCoords
 {
-    return Index % Width;
+	GENERATED_BODY()
+	FTileMapCoords()
+	{
+		X = 0;
+		Y = 0;
+	}
+	FTileMapCoords(const int32 NewX, const int32 NewY)
+	{
+		X = NewX;
+		Y = NewY;
+	}
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	int32 X;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	int32 Y;
+};
+
+
+
+FORCEINLINE int32 inline_CoordsToIndex(const FTileMapCoords Coords, const FTileMapCoords Size)
+{
+	return Coords.Y * Size.X + Coords.X;
 }
 
-FORCEINLINE int32 inline_IndexToY(const int32 Index, const int32 Width)
+FORCEINLINE FTileMapCoords inline_IndexToCoords(const int32 Index, const FTileMapCoords Size)
 {
-    return Index / Width;
-}
-
-FORCEINLINE int32 inline_XYToIndex(const int32 X, const int32 Y, const int32 Width)
-{
-    return Y * Width + X;
-}
-
-FORCEINLINE int32 inline_IndexToIndexReflected(const int32 Index, const int32 Width)
-{
-    const int32 X = inline_IndexToX(Index, Width);
-    const int32 Y = inline_IndexToY(Index, Width);
-    const int32 XReflected = Width - X - 1;
-    const int32 YReflected = Y;
-    const int32 WidthReflected = Width;
-    const int32 IndexReflected = inline_XYToIndex(XReflected, YReflected, WidthReflected);
-    return IndexReflected;
-}
-
-FORCEINLINE int32 inline_IndexToIndexTransposed(const int32 Index, const int32 Width, const int32 Height)
-{
-    const int32 X = inline_IndexToX(Index, Width);
-    const int32 Y = inline_IndexToY(Index, Width);
-    const int32 XTransposed = Y;
-    const int32 YTransposed = X;
-    const int32 WidthTransposed = Height;
-    const int32 IndexTransposed = inline_XYToIndex(XTransposed, YTransposed, WidthTransposed);
-    return IndexTransposed;
-}
-
-FORCEINLINE int32 inline_IndexToIndexRotated(const int32 Index, const int32 Width, const int32 Height)
-{
-    const int32 X = inline_IndexToX(Index, Width);
-    const int32 Y = inline_IndexToY(Index, Width);
-    const int32 XRotated = Height - Y - 1;
-    const int32 YRotated = X;
-    const int32 WidthRotated = Height;
-    const int32 IndexTransposed = inline_XYToIndex(XRotated, YRotated, WidthRotated);
-    return IndexTransposed;
+	return FTileMapCoords(Index % Size.X, Index / Size.X);
 }
 
 
+FORCEINLINE FColor inline_TileToColor(const uint8 Tile)
+{
+	const ETileState Flags = static_cast<ETileState>(Tile);
+	const uint8 Void = EnumHasAnyFlags(Flags, ETileState::Void | ETileState::RoofedVoid);
+	const uint8 Ground = EnumHasAnyFlags(Flags, ETileState::Ground | ETileState::RoofedGround);
+	const uint8 Wall = EnumHasAnyFlags(Flags, ETileState::Wall | ETileState::RoofedWall);
+	const uint8 Window = EnumHasAnyFlags(Flags, ETileState::Window | ETileState::RoofedWindow);
+	const uint8 Roofed = EnumHasAnyFlags(Flags, ETileState::RoofedVoid | ETileState::RoofedGround | ETileState::RoofedWall | ETileState::RoofedWindow);
+	const uint8 IsPow2 = (Tile & (Tile - 1)) == 0;
+	/*
+	const uint8 R = (6 * IsPow2 + 2) * (Wall * 16 + Window * 16);
+	const uint8 G = (6 * IsPow2 + 2) * (Window * 16 + Ground * 16);
+	const uint8 B = (6 * IsPow2 + 2) * (Void * 16 + Ground * 8 + Window * 8);
+	const uint8 A = 255 * Roofed;
+	*/
+
+	uint8 R = (6 * IsPow2 + 2) * (Wall * 16 + Window * 16);
+	uint8 G = (6 * IsPow2 + 2) * (Window * 16 + Ground * 16);
+	uint8 B = (6 * IsPow2 + 2) * (Void * 16 + Ground * 8 + Window * 8);
+	const uint8 A = 255 * Roofed;
+	R *= IsPow2;
+	G *= IsPow2;
+	B *= IsPow2;
+    
+	return FColor(R, G, B, A);
+}
 
 
 
@@ -84,58 +92,75 @@ struct FTilePattern
     GENERATED_BODY()
     uint8 Data[9] = {};
 
-    static FTilePattern Reflect(const FTilePattern In)
-    {
-        FTilePattern Result;
-        for (int i = 0; i < 9; i++)
-        {
-            const int32 Index = inline_IndexToIndexReflected(i, 3);
-            Result.Data[i] = In.Data[Index];
-        }
-        return Result;
-    }
+	void Reflect()
+	{
+		uint8 Result[9];
+		Result[0] = Data[2];
+		Result[1] = Data[1];
+		Result[2] = Data[0];
+		Result[3] = Data[5];
+		Result[4] = Data[4];
+		Result[5] = Data[3];
+		Result[6] = Data[8];
+		Result[7] = Data[7];
+		Result[8] = Data[6];
+		for (int i = 0; i < 9; i++)
+		{
+			Data[i] = Result[i];
+		}
+	}
 
-    static FTilePattern Transpose(const FTilePattern In)
-    {
-        FTilePattern Result;
-        for (int i = 0; i < 9; i++)
-        {
-            const int32 Index = inline_IndexToIndexTransposed(i, 3, 3);
-            Result.Data[i] = In.Data[Index];
-        }
-        return Result;
-    }
+	void Transpose()
+	{
+		uint8 Result[9];
+		Result[0] = Data[0];
+		Result[1] = Data[3];
+		Result[2] = Data[6];
+		Result[3] = Data[1];
+		Result[4] = Data[4];
+		Result[5] = Data[7];
+		Result[6] = Data[2];
+		Result[7] = Data[5];
+		Result[8] = Data[8];
+		for (int i = 0; i < 9; i++)
+		{
+			Data[i] = Result[i];
+		}
+	}
 
-    static FTilePattern Rotate(const FTilePattern In)
-    {
-        FTilePattern Result;
-        for (int i = 0; i < 9; i++)
-        {
-            const int32 Index = inline_IndexToIndexRotated(i, 3, 3);
-            Result.Data[i] = In.Data[Index];
-        }
-        return Result;
-    }
+	void Rotate()
+	{
+		uint8 Result[9];
+		Result[0] = Data[2];
+		Result[1] = Data[5];
+		Result[2] = Data[8];
+		Result[3] = Data[1];
+		Result[4] = Data[4];
+		Result[5] = Data[7];
+		Result[6] = Data[0];
+		Result[7] = Data[3];
+		Result[8] = Data[6];
+		for (int i = 0; i < 9; i++)
+		{
+			Data[i] = Result[i];
+		}
+	}
+	
+	void AndWith(FTilePattern Other)
+	{
+		for (int i = 0; i < 9; i++)
+		{
+			Data[i] = Data[i] & Other.Data[i];
+		}
+	}
 
-    static FTilePattern And(const FTilePattern A, const FTilePattern B)
-    {
-        FTilePattern Result;
-        for (int i = 0; i < 9; i++)
-        {
-            Result.Data[i] = A.Data[i] & B.Data[i];
-        }
-        return Result;
-    }
-
-    static FTilePattern Or(const FTilePattern A, const FTilePattern B)
-    {
-        FTilePattern Result;
-        for (int i = 0; i < 9; i++)
-        {
-            Result.Data[i] = A.Data[i] | B.Data[i];
-        }
-        return Result;
-    }
+	void OrWith(FTilePattern Other)
+	{
+		for (int i = 0; i < 9; i++)
+		{
+			Data[i] = Data[i] | Other.Data[i];
+		}
+	}
 };
 
 FORCEINLINE bool operator ==(const FTilePattern& A, const FTilePattern& B)
@@ -152,6 +177,18 @@ FORCEINLINE bool operator ==(const FTilePattern& A, const FTilePattern& B)
 
 
 
+USTRUCT(BlueprintType)
+struct FTilePatternSet
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	TArray<FTilePattern> Patterns;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	TArray<float> Weights;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	TArray<float> PlogP;
+};
+
 
 
 USTRUCT(BlueprintType)
@@ -160,135 +197,239 @@ struct FTileMap
     GENERATED_BODY()
     FTileMap()
     {
-        Width = 3;
-        Height = 3;
-        Data.Init(0, Width * Height);
+        Size = FTileMapCoords(3,3);
+        Data.Init(0, Size.X * Size.Y);
+    	TileSizeUU = 100;
+    	Origin = FVector::ZeroVector;
     }
 
-    FTileMap(const int32 NewWidth, const int32 NewHeight)
+    FTileMap(const FTileMapCoords NewSize)
     {
-        Width = NewWidth;
-        Height = NewHeight;
-        Data.Init(0, Width * Height);
+    	Size = NewSize;
+    	Data.Init(0, Size.X * Size.Y);
+    	TileSizeUU = 100;
+    	Origin = FVector::ZeroVector;
     }
 
-    FTileMap(const int32 NewWidth, const int32 NewHeight, const uint8 InitialValue)
+    FTileMap(const FTileMapCoords NewSize, const uint8 InitialValue)
     {
-        Width = NewWidth;
-        Height = NewHeight;
-        Data.Init(InitialValue, Width * Height);
+    	Size = NewSize;
+    	Data.Init(InitialValue, Size.X * Size.Y);
+    	TileSizeUU = 100;
+    	Origin = FVector::ZeroVector;
     }
-
-    FTileMap(const int32 NewWidth, const int32 NewHeight, const TArray<uint8>& NewData)
-    {
-        Width = NewWidth;
-        Height = NewHeight;
-        Data = NewData;
-    }
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
-    int32 Width;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
-    int32 Height;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	FTileMapCoords Size;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	float TileSizeUU;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	FVector Origin;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap", meta = (Bitmask, BitmaskEnum = "ETileState"))
     TArray<uint8> Data;
 
-    uint8 GetTile(const int32 X, const int32 Y) const
+    uint8 GetTile(const FTileMapCoords Coords) const
     {
-        return Data[inline_XYToIndex(X, Y, Width)];
+        return Data[inline_CoordsToIndex(Coords, Size)];
+    }
+	
+    void SetTile(const uint8 Tile, const FTileMapCoords Coords)
+    {
+        Data[inline_CoordsToIndex(Coords, Size)] = Tile;
     }
 
-    void SetTile(const uint8 Tile, const int32 X, const int32 Y)
-    {
-        Data[inline_XYToIndex(X, Y, Width)] = Tile;
+	FVector CoordsToWorldLocation(const FTileMapCoords Coords) const
+	{
+	    return FVector(Coords.X, Coords.Y, 0) * TileSizeUU + Origin;
+    }
+
+	FTileMapCoords WorldLocationToCoords(const FVector& Location) const
+	{
+    	FTileMapCoords Result;
+    	Result.X = (Location - Origin).X / TileSizeUU;
+    	Result.Y = (Location - Origin).Y / TileSizeUU;
+    	return Result;
+    }
+
+	FTileMap GetTilemapSection(const FTileMapCoords Coords, const FTileMapCoords SectionSize) const
+	{
+    	FTileMap OutSection = FTileMap(SectionSize);
+    	for (int32 j = 0; j < SectionSize.Y; j++)
+    	{
+    		for (int32 i = 0; i < SectionSize.X; i++)
+    		{
+    			const uint8 Tile = GetTile(FTileMapCoords(Coords.X + i, Coords.Y + j));
+    			OutSection.SetTile(Tile, FTileMapCoords(i, j));
+    		}
+    	}
+    	return OutSection;
     }
     
-    static FTileMap Reflect(const FTileMap In)
-    {
-        FTileMap Result = FTileMap(In.Width, In.Height);
-        for (int i = 0; i < In.Data.Num(); i++)
-        {
-            const int32 Index = inline_IndexToIndexReflected(i, In.Width);
-            Result.Data[i] = In.Data[Index];
-        }
-        return Result;
-    }
 
-    static FTileMap Transpose(const FTileMap In)
-    {
-        FTileMap Result = FTileMap(In.Height, In.Width);
-        for (int i = 0; i < In.Data.Num(); i++)
-        {
-            const int32 Index = inline_IndexToIndexTransposed(i, In.Height, In.Width);
-            Result.Data[i] = In.Data[Index];
-        }
-        return Result;
-    }
-
-    static FTileMap Rotate(const FTileMap In)
-    {
-        FTileMap Result = FTileMap(In.Height, In.Width);
-        for (int i = 0; i < In.Data.Num(); i++)
-        {
-            const int32 Index = inline_IndexToIndexRotated(i, In.Height, In.Width);
-            Result.Data[i] = In.Data[Index];
-        }
-        return Result;
-    }
-
-    FTilePattern ReadPattern(const int32 StartX, const int32 StartY) const
+    FTilePattern ReadPattern(const FTileMapCoords StartCoords) const
     {
         FTilePattern Result = FTilePattern();
         for (int32 Y = 0; Y < 3; Y++)
         {
             for (int32 X = 0; X < 3; X++)
             {
-                const uint8 Tile = GetTile(X + StartX, Y + StartY);
-                Result.Data[inline_XYToIndex(X, Y, 3)] = Tile;
+            	const FTileMapCoords Coords = FTileMapCoords(X + StartCoords.X, Y + StartCoords.Y);
+                const uint8 Tile = GetTile(Coords);
+            	const int32 Index = inline_CoordsToIndex(FTileMapCoords(X, Y), FTileMapCoords(3,3));
+                Result.Data[Index] = Tile;
             }
         }
         return Result;
     }
 
-    void WritePattern(const FTilePattern Pattern, const int32 StartX, const int32 StartY)
+    void WritePattern(const FTilePattern Pattern, const FTileMapCoords Coords)
     {
         for (int32 Y = 0; Y < 3; Y++)
         {
             for (int32 X = 0; X < 3; X++)
             {
-                const int32 PatternIndex = inline_XYToIndex(X, Y, 3);
+            	const int32 PatternIndex = inline_CoordsToIndex(FTileMapCoords(X, Y), FTileMapCoords(3, 3));
                 const uint8 Tile = Pattern.Data[PatternIndex];
-                SetTile(Tile, X + StartX, Y + StartY);
+                SetTile(Tile, FTileMapCoords(X + Coords.X, Y + Coords.Y));
             }
         }
+    }
+
+	bool bIsValid() const
+	{
+    	return Data.Num() == Size.X * Size.Y;
+    }
+	
+	FTilePatternSet GeneratePatternSet() const
+	{
+	    FTilePatternSet PatternSet;
+    	//PatternSet.Patterns.Empty();
+    	//PatternSet.Counts.Empty();
+    	TArray<FTilePattern> Variants;
+    	TArray<int32> Counts;
+    	Variants.Reserve(8);
+    	Counts.Reserve(8);
+
+    	for (int32 y = 0; y < Size.Y - 3 + 1; y++)
+    	{
+    		for (int32 x = 0; x < Size.X - 3 + 1; x++)
+    		{
+    			Variants.Reset();
+    			FTilePattern Pattern = ReadPattern(FTileMapCoords(x,y));
+    			Variants.AddUnique(Pattern);
+    			Pattern.Transpose();
+    			Variants.AddUnique(Pattern);
+    			Pattern.Reflect();
+    			Variants.AddUnique(Pattern);
+    			Pattern.Transpose();
+    			Variants.AddUnique(Pattern);
+    			Pattern.Reflect();
+    			Variants.AddUnique(Pattern);
+    			Pattern.Transpose();
+    			Variants.AddUnique(Pattern);
+    			Pattern.Reflect();
+    			Variants.AddUnique(Pattern);
+    			Pattern.Transpose();
+    			Variants.AddUnique(Pattern);
+    			for (const auto& Variant : Variants)
+    			{
+    				if (const int Index = PatternSet.Patterns.Find(Variant); Index > -1)
+    				{
+    					Counts[Index]++;
+    				}
+    				else
+    				{
+    					PatternSet.Patterns.Add(Variant);
+    					Counts.Add(1);
+    				}
+    			}
+    		}
+    	}
+
+    	float SumCounts = 0;
+    	for (const auto& Count : Counts)
+    	{
+    		SumCounts += Count;
+    	}
+
+    	PatternSet.Weights.SetNum(Counts.Num());
+    	PatternSet.PlogP.SetNum(Counts.Num());
+    	for (int32 i = 0; i < Counts.Num(); i++)
+    	{
+    		const float Probability = Counts[i] / SumCounts;
+    		PatternSet.Weights[i] = Probability;
+    		PatternSet.PlogP[i] = Probability * log2(Probability);
+    		//UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, probability %f, and PlogP %f"), i, Counts[i], Probability, PlogP[i]);
+    	}
+    	return PatternSet;
+    }
+
+	void SetBorder(const uint8 Tile)
+    {
+    	const int32 LastX = Size.X - 1;
+    	const int32 LastY = Size.Y - 1;
+    	for (int32 i = 0; i < Size.X; i++)
+    	{
+    		SetTile(Tile, FTileMapCoords(i, 0));
+    		SetTile(Tile, FTileMapCoords(i, LastY));
+    	}
+    	for (int32 i = 0; i < Size.Y; i++)
+    	{
+    		SetTile(Tile, FTileMapCoords(0, i));
+    		SetTile(Tile, FTileMapCoords(LastX, i));
+    	}
+    }
+	
+	void FloodFill(const FTileMapCoords Coords, const uint8 Tile, const uint8 TileToReplace)
+    {
+    	if (GetTile(Coords) == TileToReplace && TileToReplace != Tile)
+    	{
+    		SetTile(Tile, Coords);
+    		if (Coords.Y > 0)
+    		{
+    			FloodFill(FTileMapCoords(Coords.X, Coords.Y - 1), Tile, TileToReplace);
+    		}
+    		if (Coords.X > 0)
+    		{
+    			FloodFill(FTileMapCoords(Coords.X - 1, Coords.Y), Tile, TileToReplace);
+    		}
+    		if (Coords.Y < Size.Y - 1)
+    		{
+    			FloodFill(FTileMapCoords(Coords.X, Coords.Y + 1), Tile, TileToReplace);
+    		}
+    		if (Coords.X < Size.X - 1)
+    		{
+    			FloodFill(FTileMapCoords(Coords.X + 1, Coords.Y), Tile, TileToReplace);
+    		}
+    	}
+    }
+
+	UTexture2D* TileMapToTexture()
+    {
+    	const int32 PixelCount = Size.X * Size.Y;
+    	TArray<FColor> Colors;
+    	Colors.Reserve(Data.Num());
+    	for (const auto& Tile : Data)
+    	{
+    		Colors.Add(inline_TileToColor(Tile));
+    	}
+
+    	UTexture2D* Texture = UTexture2D::CreateTransient(Size.X, Size.Y, PF_B8G8R8A8, "");
+    	void* TextureData = Texture->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+
+    	FMemory::Memcpy(TextureData, Colors.GetData(), PixelCount * 4);
+    	Texture->GetPlatformData()->Mips[0].BulkData.Unlock();
+    	Texture->Filter = TF_Nearest;
+    	Texture->UpdateResource();
+
+    	return Texture;
     }
 };
 
 FORCEINLINE bool operator ==(const FTileMap& A, const FTileMap& B)
 {
-    return A.Width == B.Width && A.Data == B.Data;
+    return A.Size.X == B.Size.X && A.Data == B.Data;
 }
-
-
-
-
-
-USTRUCT(BlueprintType)
-struct FTileMapInfo
-{
-    GENERATED_BODY()
-    FTileMapInfo()
-    {
-        //TileMap = FTileMap();
-    }
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
-    FName Name;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
-    FTileMap TileMap;
-};
-
-
 
 
 
@@ -297,40 +438,33 @@ class SLTILEMAP_API USLTilemapLib : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+	//Tests
     UFUNCTION(BlueprintCallable, Category = "SLTileMap")
     static void RunTests();
-    
+	
+    //Coordinates
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static int32 XYToIndex(const int32 X, const int32 Y, const int32 Width);
+    static int32 CoordsToIndex(const FTileMapCoords Coords, const FTileMapCoords Size);
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static int32 IndexToX(const int32 Index, const int32 Width);
+    static FTileMapCoords IndexToCoords(const int32 Index, const FTileMapCoords Size);
+	
+    //TileMap
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static int32 IndexToY(const int32 Index, const int32 Width);
-    
-    UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static FTileMap CreateTileMap(const int32 NewWidth, const int32 NewHeight, const uint8 InitialValue);
+    static FTileMap CreateTileMap(const FTileMapCoords Size, const uint8 InitialValue);
     UFUNCTION(BlueprintPure, Category = "SLTileMap")
     static bool IsTilemapValid(const FTileMap& TileMap);
-
-    UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static uint8 GetTileAtXY(const FTileMap& TileMap, const int32 X, const int32 Y);
-    UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static FTileMap GetTilemapSection(const FTileMap& TileMap, const int32 X, const int32 Y, const int32 SectionWidth, const int32 SectionHeight);
-
-    UFUNCTION(BlueprintCallable, Category = "SLTileMap")
-    static void SetTileAtXY(UPARAM(ref) FTileMap& TileMap, const uint8 Tile, const int32 X, const int32 Y);
+	UFUNCTION(BlueprintPure, Category = "SLTileMap")
+	static uint8 GetTileAtCoords(const FTileMap& TileMap, const FTileMapCoords Coords);
+	UFUNCTION(BlueprintCallable, Category = "SLTileMap")
+	static void SetTileAtCoords(UPARAM(ref) FTileMap& TileMap, const uint8 Tile, const FTileMapCoords Coords);
+	UFUNCTION(BlueprintPure, Category = "SLTileMap")
+	static FVector CoordsToWorldLocation(const FTileMap& TileMap, const FTileMapCoords Coords);
+	UFUNCTION(BlueprintPure, Category = "SLTileMap")
+	static FTileMapCoords WorldLocationToCoords(const FTileMap& TileMap, const FVector& Location);
     UFUNCTION(BlueprintCallable, Category = "SLTileMap")
     static void SetBorder(UPARAM(ref) FTileMap& TileMap, const uint8 Tile);
-    UFUNCTION(BlueprintCallable, Category = "SLTileMap")
-    static void FloodFill(UPARAM(ref) FTileMap& TileMap, const int32 X, const int32 Y, const uint8 Tile, const uint8 TileToReplace);
-
-    UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static FTileMap ReflectTilemap(const FTileMap& TileMap);
-    UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static FTileMap TransposeTilemap(const FTileMap& TileMap);
-    UFUNCTION(BlueprintPure, Category = "SLTileMap")
-    static FTileMap RotateTilemap(const FTileMap& TileMap);
-
+	
+	//Visualization
     UFUNCTION(BlueprintCallable, Category = "SLTileMap")
     static UTexture2D* TileMapToTexture(UPARAM(ref) FTileMap& TileMap);
     UFUNCTION(BlueprintCallable, Category = "SLTileMap")
