@@ -42,6 +42,16 @@ struct FTileMapCoords
 	int32 X;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
 	int32 Y;
+	
+	bool operator== (const FTileMapCoords& Other) const
+	{
+		return X == Other.X && Y == Other.Y;
+	}
+	
+	friend uint32 GetTypeHash (const FTileMapCoords& Other)
+	{
+		return HashCombineFast(GetTypeHash(Other.X), GetTypeHash(Other.Y));
+	}
 };
 
 
@@ -91,7 +101,13 @@ struct FTilePattern
 {
     GENERATED_BODY()
     uint8 Data[9] = {};
-
+	
+	friend uint32 GetTypeHash (const FTilePattern& Other)
+	{
+		return GetArrayHash(Other.Data, 9);
+		//return GetTypeHash(Other.Data[0]);
+	}
+	
 	void Reflect()
 	{
 		uint8 Result[9];
@@ -219,6 +235,8 @@ struct FTileMap
     	Origin = FVector::ZeroVector;
     }
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
+	FName Name;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
 	FTileMapCoords Size;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
@@ -359,11 +377,60 @@ struct FTileMap
     		const float Probability = Counts[i] / SumCounts;
     		PatternSet.Weights[i] = Probability;
     		PatternSet.PlogP[i] = Probability * log2(Probability);
-    		//UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, probability %f, and PlogP %f"), i, Counts[i], Probability, PlogP[i]);
+    		UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, probability %f, and PlogP %f"), i, Counts[i], Probability, PatternSet.PlogP[i]);
     	}
     	return PatternSet;
     }
 
+	void Fill(const uint8 Tile)
+    {
+    	for (auto& Element : Data)
+    	{
+    		Element = Tile;
+    	}
+    }
+
+	TArray<FTileMapCoords> GetConnectedCoords(const FTileMapCoords Coords) const
+	{
+    	const uint8 Tile = GetTile(Coords);
+    	TSet<FTileMapCoords> ConnectedCoords;
+		//ConnectedCoords.Add(Coords);
+    	TQueue<FTileMapCoords> NeighborsToCheck;
+    	NeighborsToCheck.Enqueue(Coords);
+    	//NeighborsToCheck.Enqueue(FTileMapCoords(Coords.X - 1, Coords.Y));
+    	//NeighborsToCheck.Enqueue(FTileMapCoords(Coords.X + 1, Coords.Y));
+    	//NeighborsToCheck.Enqueue(FTileMapCoords(Coords.X, Coords.Y - 1));
+    	//NeighborsToCheck.Enqueue(FTileMapCoords(Coords.X, Coords.Y + 1));
+	    while (!NeighborsToCheck.IsEmpty())
+	    {
+		    FTileMapCoords Neighbor;
+		    NeighborsToCheck.Dequeue(Neighbor);
+		    if (Neighbor.X >= 0 && Neighbor.X < Size.X && Neighbor.Y >= 0 && Neighbor.Y < Size.Y)
+		    {
+			    uint8 NeighborTile = GetTile(Neighbor);
+			    if (NeighborTile == Tile && !ConnectedCoords.Contains(Neighbor))
+			    {
+				    ConnectedCoords.Add(Neighbor);
+			    	NeighborsToCheck.Enqueue(FTileMapCoords(Neighbor.X - 1, Neighbor.Y));
+			    	NeighborsToCheck.Enqueue(FTileMapCoords(Neighbor.X + 1, Neighbor.Y));
+			    	NeighborsToCheck.Enqueue(FTileMapCoords(Neighbor.X, Neighbor.Y - 1));
+			    	NeighborsToCheck.Enqueue(FTileMapCoords(Neighbor.X, Neighbor.Y + 1));
+			    }
+		    }
+	    }
+    	return ConnectedCoords.Array();
+    }
+	
+	void Flood(const uint8 Tile, const FTileMapCoords Coords)
+    {
+    	const uint8 TileToReplace = GetTile(Coords);
+    	const TArray<FTileMapCoords> ConnectedCoords = GetConnectedCoords(Coords);
+    	for (const auto Coord : ConnectedCoords)
+    	{
+    		SetTile(Tile, Coord);
+    	}
+    }
+	
 	void SetBorder(const uint8 Tile)
     {
     	const int32 LastX = Size.X - 1;
@@ -380,30 +447,6 @@ struct FTileMap
     	}
     }
 	
-	void FloodFill(const FTileMapCoords Coords, const uint8 Tile, const uint8 TileToReplace)
-    {
-    	if (GetTile(Coords) == TileToReplace && TileToReplace != Tile)
-    	{
-    		SetTile(Tile, Coords);
-    		if (Coords.Y > 0)
-    		{
-    			FloodFill(FTileMapCoords(Coords.X, Coords.Y - 1), Tile, TileToReplace);
-    		}
-    		if (Coords.X > 0)
-    		{
-    			FloodFill(FTileMapCoords(Coords.X - 1, Coords.Y), Tile, TileToReplace);
-    		}
-    		if (Coords.Y < Size.Y - 1)
-    		{
-    			FloodFill(FTileMapCoords(Coords.X, Coords.Y + 1), Tile, TileToReplace);
-    		}
-    		if (Coords.X < Size.X - 1)
-    		{
-    			FloodFill(FTileMapCoords(Coords.X + 1, Coords.Y), Tile, TileToReplace);
-    		}
-    	}
-    }
-
 	UTexture2D* TileMapToTexture()
     {
     	const int32 PixelCount = Size.X * Size.Y;
@@ -461,8 +504,14 @@ public:
 	static FVector CoordsToWorldLocation(const FTileMap& TileMap, const FTileMapCoords Coords);
 	UFUNCTION(BlueprintPure, Category = "SLTileMap")
 	static FTileMapCoords WorldLocationToCoords(const FTileMap& TileMap, const FVector& Location);
-    UFUNCTION(BlueprintCallable, Category = "SLTileMap")
-    static void SetBorder(UPARAM(ref) FTileMap& TileMap, const uint8 Tile);
+	UFUNCTION(BlueprintCallable, Category = "SLTileMap")
+	static void Fill(UPARAM(ref) FTileMap& TileMap, const uint8 Tile);
+	UFUNCTION(BlueprintCallable, Category = "SLTileMap")
+	static void Flood(UPARAM(ref) FTileMap& TileMap, const uint8 Tile, const FTileMapCoords Coords);
+	UFUNCTION(BlueprintCallable, Category = "SLTileMap")
+	static void SetBorder(UPARAM(ref) FTileMap& TileMap, const uint8 Tile);
+	UFUNCTION(BlueprintCallable, Category = "SLTileMap")
+    static FTilePatternSet GeneratePatternSet(UPARAM(ref) FTileMap& TileMap);
 	
 	//Visualization
     UFUNCTION(BlueprintCallable, Category = "SLTileMap")

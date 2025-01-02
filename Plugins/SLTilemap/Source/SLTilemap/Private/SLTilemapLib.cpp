@@ -124,9 +124,24 @@ FTileMapCoords USLTilemapLib::WorldLocationToCoords(const FTileMap& TileMap, con
 	return TileMap.WorldLocationToCoords(Location);
 }
 
+void USLTilemapLib::Fill(FTileMap& TileMap, const uint8 Tile)
+{
+	TileMap.Fill(Tile);
+}
+
+void USLTilemapLib::Flood(FTileMap& TileMap, const uint8 Tile, const FTileMapCoords Coords)
+{
+	TileMap.Flood(Tile, Coords);
+}
+
 void USLTilemapLib::SetBorder(FTileMap& TileMap, const uint8 Tile)
 {
 	TileMap.SetBorder(Tile);
+}
+
+FTilePatternSet USLTilemapLib::GeneratePatternSet(FTileMap& TileMap)
+{
+	return TileMap.GeneratePatternSet();
 }
 
 UTexture2D* USLTilemapLib::TileMapToTexture(FTileMap& TileMap)

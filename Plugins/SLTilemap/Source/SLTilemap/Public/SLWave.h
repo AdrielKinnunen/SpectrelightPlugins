@@ -22,10 +22,11 @@ struct FCell
     }
 
     TArray<int32> AllowedPatternIndices;
+	int32 Neighbors[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
 };
 
 
-UCLASS()
+UCLASS(BlueprintType)
 class SLTILEMAP_API USLWave : public UObject
 {
     GENERATED_BODY()
@@ -67,13 +68,13 @@ private:
 	TArray<FTileMapCoords> CellCoordsArray;
     TArray<float> CellEntropyArray;
     TArray<float> CellSumWeightsArray;
-    TArray<bool> CellIsObservedArray;
+    //TArray<bool> CellIsObservedArray;
+	TBitArray<> CellIsObservedArray;
 
     void InitPatternCells();
     bool UpdateCell(int32 CellIndex);
     void OnFailed();
     void ObserveCell(int32 CellIndex);
-	void EnqueueUnobservedNeighbors(int32 CellIndex, TQueue<int32>& Queue) const;
     bool CanPatternFitAtThisLocation(const FTilePattern& Pattern, const FTileMapCoords Coords) const;
     FTilePattern OrCellPatternsTogether(const int32 CellIndex);
 };
