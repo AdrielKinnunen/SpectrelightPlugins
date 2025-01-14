@@ -177,6 +177,21 @@ struct FTilePattern
 			Data[i] = Data[i] | Other.Data[i];
 		}
 	}
+
+	bool Allows(FTilePattern Other) const
+	{
+		FTilePattern Temp;
+		for (int i = 0; i < 9; i++)
+		{
+			Temp.Data[i]= (Data[i] & Other.Data[i]) ^ Other.Data[i];
+		}
+		int Sum = 0;
+		for (int i = 0; i < 9; i++)
+		{
+			Sum += Temp.Data[i];
+		}
+		return Sum == 0;
+	}
 };
 
 FORCEINLINE bool operator ==(const FTilePattern& A, const FTilePattern& B)
@@ -201,8 +216,6 @@ struct FTilePatternSet
 	TArray<FTilePattern> Patterns;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
 	TArray<float> Weights;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilemap")
-	TArray<float> PlogP;
 };
 
 
@@ -371,13 +384,11 @@ struct FTileMap
     	}
 
     	PatternSet.Weights.SetNum(Counts.Num());
-    	PatternSet.PlogP.SetNum(Counts.Num());
     	for (int32 i = 0; i < Counts.Num(); i++)
     	{
     		const float Probability = Counts[i] / SumCounts;
     		PatternSet.Weights[i] = Probability;
-    		PatternSet.PlogP[i] = Probability * log2(Probability);
-    		UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, probability %f, and PlogP %f"), i, Counts[i], Probability, PatternSet.PlogP[i]);
+    		UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, and probability %f"), i, Counts[i], Probability);
     	}
     	return PatternSet;
     }
@@ -423,7 +434,6 @@ struct FTileMap
 	
 	void Flood(const uint8 Tile, const FTileMapCoords Coords)
     {
-    	const uint8 TileToReplace = GetTile(Coords);
     	const TArray<FTileMapCoords> ConnectedCoords = GetConnectedCoords(Coords);
     	for (const auto Coord : ConnectedCoords)
     	{

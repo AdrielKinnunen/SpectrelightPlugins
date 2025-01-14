@@ -2,6 +2,8 @@
 
 #include "Devices/SLMDeviceWheel.h"
 
+#include "PhysicsEngine/ConstraintInstance.h"
+
 
 FSLMDeviceModelWheel USLMDeviceComponentWheel::GetDeviceState()
 {

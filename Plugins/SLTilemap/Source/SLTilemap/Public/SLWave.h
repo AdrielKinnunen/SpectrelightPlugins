@@ -8,23 +8,56 @@
 #include "SLWave.generated.h"
 
 
-USTRUCT(BlueprintType)
-struct FCell
+USTRUCT()
+struct FCellAllowedPatterns
 {
     GENERATED_BODY()
-    FCell()
-    {
-    }
+    //FCellAllowedPatterns()
+    //{
+    //}
 
-    FCell(const TArray<int32>& NewAllowedPatternIndices)
-    {
-        AllowedPatternIndices = NewAllowedPatternIndices;
-    }
-
-    TArray<int32> AllowedPatternIndices;
-	int32 Neighbors[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
+    //FCellAllowedPatterns(const TArray<int32>& NewAllowedPatternIndices)
+    //{
+     //   AllowedPatterns = NewAllowedPatternIndices;
+    //}
+    TArray<int32> AllowedPatterns;
 };
 
+USTRUCT()
+struct FCellsSOA
+{
+	GENERATED_BODY()
+	
+	TArray<FCellAllowedPatterns> AllowedPatterns;
+	TArray<FTileMapCoords> Coords;
+	TArray<float> Entropy;
+	TBitArray<> IsObserved;
+	TArray<int32> Dirty;
+	int32 Num;
+
+	void Reset(int32 NewNum)
+	{
+		Num = NewNum;
+		AllowedPatterns.SetNumZeroed(Num);
+		Coords.SetNumZeroed(Num);
+		Entropy.SetNumZeroed(Num);
+		IsObserved.Init(false, Num);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FCellNeighbors
+{
+	GENERATED_BODY()
+	int32 Neighbors[8];
+};
+
+UENUM(BlueprintType)
+enum class ECellSelectionHeuristic : uint8
+{
+	Entropy,
+	Scanline
+};
 
 UCLASS(BlueprintType)
 class SLTILEMAP_API USLWave : public UObject
@@ -35,6 +68,8 @@ public:
     int32 RandomSeed = 133742069;
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
     FRandomStream RandomStream;
+	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+	ECellSelectionHeuristic SelectionHeuristic = ECellSelectionHeuristic::Scanline;
 
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
     FTilePatternSet PatternSet;
@@ -51,30 +86,27 @@ public:
     UFUNCTION(Blueprintcallable, Category = "SLTilemap")
     TArray<float> GetEntropy();
     UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
-    int32 CellObservedLastStep;
+    int32 LastCellObserved;
     UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
     TArray<int32> CellsUpdatedLastStep;
-    
-    
     
 private:
     //Wave
 	FTileMapCoords WaveSize = FTileMapCoords();
     bool Failed = false;
     int32 FailedAtIndex = -1;
-
-    //Cells
-    TArray<FCell> CellArray;
-	TArray<FTileMapCoords> CellCoordsArray;
-    TArray<float> CellEntropyArray;
-    TArray<float> CellSumWeightsArray;
-    //TArray<bool> CellIsObservedArray;
-	TBitArray<> CellIsObservedArray;
+	FCellsSOA Cells;
 
     void InitPatternCells();
-    bool UpdateCell(int32 CellIndex);
+    void UpdateCell(int32 CellIndex);
+	int32 SelectCellToObserve();
+	void UpdateCellEntropy(int32 CellIndex);
+	float GetEntropy(TArray<int32> PatternIndices);
     void OnFailed();
+	void Propagate();
     void ObserveCell(int32 CellIndex);
-    bool CanPatternFitAtThisLocation(const FTilePattern& Pattern, const FTileMapCoords Coords) const;
-    FTilePattern OrCellPatternsTogether(const int32 CellIndex);
+	void DirtyUnobservedNeighbors(int32 CellIndex);
+	bool CellNeedsUpdate(int32 CellIndex);
 };
+
+

@@ -2,39 +2,67 @@
 
 #include "SLWave.h"
 
+/*
+ Pseudocode for overlapping WFC
+
+Initialize
+	For each Cell
+		If cell needs update
+			Mark Cell dirty
+	while any dirty
+		pop DirtyCell
+		DirtyCell.Update
+			if update ends up with 1 pattern
+				mark DirtyCell solved
+			if DirtyCell changed
+				mark unsolved neighbors dirty
+			
+Step
+	Select Cell by heuristic
+	Collapse Cell, mark as solved
+	if Cell changed
+		mark its unsolved neighbors dirty
+	while any dirty
+		pop DirtyCell
+		DirtyCell.Update
+			if update ends up with 1 pattern
+				mark DirtyCell solved
+			if DirtyCell changed
+				mark unsolved neighbors dirty
+	
+ */
+
 bool USLWave::Initialize()
 {
     const double StartTime = FPlatformTime::Seconds();
-    Failed = false;
-    RandomStream.Initialize(RandomSeed);
 	
+    Failed = false;
+	LastCellObserved = -1;
+    RandomStream.Initialize(RandomSeed);
+	Cells.Dirty.Reset(128);
     if (!OutputTileMap.bIsValid())
     {
         return false;
     }
 
     InitPatternCells();
-    
-    for (int32 i = 0; i < CellArray.Num(); i++)
+	
+    for (int32 i = 0; i < Cells.Num; i++)
     {
-        UpdateCell(i);
-        if (Failed)
+        if (CellNeedsUpdate(i))
         {
-            OnFailed();
-            break;
+            Cells.Dirty.Add(i);
         }
     }
+	
+	Propagate();
     
     const double EndTime = FPlatformTime::Seconds();
     const double TotalTimems = 1000 * (EndTime - StartTime);
     UE_LOG(LogTemp, Warning, TEXT("Initialization took %f ms"), TotalTimems);
-    UE_LOG(LogTemp, Warning, TEXT("There are %d cells"), CellArray.Num());
+    UE_LOG(LogTemp, Warning, TEXT("There are %d cells"), Cells.Num);
     UE_LOG(LogTemp, Warning, TEXT("There are %d patterns"), PatternSet.Patterns.Num());
-
-    for (int32 i = 0; i < PatternSet.Patterns.Num(); i++)
-    {
-        //UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, probability %f, and PlogP %f"), i, Counts[i], Probabilities[i], PlogP[i]);
-    }
+	
     return true;
 }
 
@@ -42,87 +70,22 @@ bool USLWave::Step()
 {
     if (Failed)
     {
-        return false;
+	    return false;
     }
-    
-    //Find unobserved PatternCell with lowest entropy
-    int32 CellToObserve = -1;
-    float LowestEntropy = BIG_NUMBER;
-    for (int32 i = 0; i < CellArray.Num(); i++)
-    {
-        if (!CellIsObservedArray[i] && CellEntropyArray[i] < LowestEntropy)
-        {
-            LowestEntropy = CellEntropyArray[i];
-            CellToObserve = i;
-        }
-    }
-    CellObservedLastStep = CellToObserve;
-    CellsUpdatedLastStep.Empty();
 
-    //Check for no unobserved cells found
-    if (CellToObserve == -1)
+	Cells.Dirty.Reset(128);
+	
+    LastCellObserved = SelectCellToObserve();
+	
+	if (LastCellObserved == -1)
     {
         UE_LOG(LogTemp, Warning, TEXT("No unobserved cell was found"));
         return false;
     }
+	//UE_LOG(LogTemp, Warning, TEXT("Observing Cell %i"), LastCellObserved);
 
-    //Observe Pattern cell with lowest entropy if found and propagate
-    ObserveCell(CellToObserve);
-
-    //Enqueue unobserved neighbors
-    TArray<int32> CellsToUpdate;
-	int32 UpdateIndex = 0;
-
-	for (int32 i = 0; i < 8; i++)
-	{
-		const int32 NeighborIndex = CellArray[CellToObserve].Neighbors[i];
-		if (NeighborIndex >= 0)
-		{
-			if (!CellIsObservedArray[NeighborIndex])
-			{
-				CellsToUpdate.Add(NeighborIndex);
-			}
-		}
-	}
-	
-
-    //Update Cells in queue, enqueuing their unobserved neighbors if cell changes
-    while (UpdateIndex < CellsToUpdate.Num())
-    {
-        //Get next cell in queue
-        int32 ThisCellIndex = CellsToUpdate[UpdateIndex];
-        
-        //Update cell, enqueuing neighbors if cell changed
-        const bool CellChanged = UpdateCell(ThisCellIndex);
-        if (Failed)
-        {
-            OnFailed();
-            break;
-        }
-        if (CellChanged)
-        {
-            CellsUpdatedLastStep.Add(ThisCellIndex);
-        	
-            //Update Map Data with new cell state
-            const FTilePattern CombinedPatterns = OrCellPatternsTogether(ThisCellIndex);
-            OutputTileMap.WritePattern(CombinedPatterns, CellCoordsArray[ThisCellIndex]);
-
-            //Enqueue unobserved neighbors
-        	for (int32 i = 0; i < 8; i++)
-        	{
-        		const int32 NeighborIndex = CellArray[ThisCellIndex].Neighbors[i];
-        		if (NeighborIndex >= 0)
-        		{
-        			if (!CellIsObservedArray[NeighborIndex])
-        			{
-        				CellsToUpdate.Add(NeighborIndex);
-        			}
-        		}
-        	}
-        }
-    	UpdateIndex++;
-    }
-	UE_LOG(LogTemp, Warning, TEXT("UpdateIndex got to %i"), UpdateIndex);
+	ObserveCell(LastCellObserved);
+	Propagate();
     return true;
 }
 
@@ -144,7 +107,7 @@ bool USLWave::Run()
 
 TArray<float> USLWave::GetEntropy()
 {
-    return CellEntropyArray;
+    return Cells.Entropy;
 }
 
 void USLWave::InitPatternCells()
@@ -154,27 +117,15 @@ void USLWave::InitPatternCells()
     const int32 ArrayNum = WaveSize.X * WaveSize.Y;
 
     //Clear Arrays
-    CellArray.Empty();
-	CellCoordsArray.Empty();
-    CellEntropyArray.Empty();
-    CellSumWeightsArray.Empty();
-    CellIsObservedArray.Empty();
-    
-    //Size Arrays
-    CellArray.SetNum(ArrayNum);
-	CellCoordsArray.SetNum(ArrayNum);
-    CellEntropyArray.SetNum(ArrayNum);
-    CellSumWeightsArray.SetNum(ArrayNum);
-    //CellIsObservedArray.SetNum(ArrayNum);
-	CellIsObservedArray.SetNum(ArrayNum, false);
-
-    //Cache AllowedPatternIndices
+	Cells.Reset(WaveSize.X * WaveSize.Y);
+	
+    //Cache AllowedPatternIndices and initial Entropy
     TArray<int32> AllowedPatternIndices;
     for (int32 i = 0; i < PatternSet.Patterns.Num(); i++)
     {
         AllowedPatternIndices.Add(i);
-    }
-
+    }	
+	
     //Create PatternCells and initialize them    
     for (int32 Y = 0; Y < WaveSize.Y; Y++)
     {
@@ -182,107 +133,162 @@ void USLWave::InitPatternCells()
         {
         	//const int32 CellIndex = inline_XYToIndex(X, Y, WaveWidth);
         	const int32 CellIndex = inline_CoordsToIndex(FTileMapCoords(X, Y), WaveSize);
-        	CellCoordsArray[CellIndex] = FTileMapCoords(X, Y);
-            CellArray[CellIndex] = FCell(AllowedPatternIndices);
-
-        	constexpr int32 XOffsets[8] = {-1,0,1,-1,1,-1,0,1};
-        	constexpr int32 YOffsets[8] = {-1,-1,-1,0,0,1,1,1};
-        	for (int32 i = 0; i < 8; i++)
-        	{
-        		const FTileMapCoords NeighborCoords = FTileMapCoords(X + XOffsets[i], Y + YOffsets[i]);
-        		if (NeighborCoords.X > -1 && NeighborCoords.X < WaveSize.X && NeighborCoords.Y > -1 && NeighborCoords.Y < WaveSize.Y)
-        		{
-        			const int32 NeighborIndex = inline_CoordsToIndex(NeighborCoords, WaveSize);
-        			CellArray[CellIndex].Neighbors[i] = NeighborIndex;
-        		}
-        	}
+        	Cells.Coords[CellIndex] = FTileMapCoords(X, Y);
+            Cells.AllowedPatterns[CellIndex].AllowedPatterns = AllowedPatternIndices;
         }
     }
 }
 
-bool USLWave::UpdateCell(const int32 CellIndex)
+void USLWave::UpdateCell(const int32 CellIndex)
 {
-    // Updates Cell state based on underlying OutputTileMap state
+    // Updates Cell state based on underlying OutputTileMap state, then "stamps" Cell state into the OutputTileMap
 
     //Cache values
-	const FTileMapCoords CellCoords = CellCoordsArray[CellIndex];
-    const int32 PreNumPatterns = CellArray[CellIndex].AllowedPatternIndices.Num();
+	const FTileMapCoords Coords = Cells.Coords[CellIndex];
+    const int32 PreNumPatterns = Cells.AllowedPatterns[CellIndex].AllowedPatterns.Num();
 
     //PreNumPatterns should never be 0
-    //check(PreNumPatterns > 0);
-    if (PreNumPatterns < 1)
-    {
-        int a = 3;
-    }
-    //Update allowed patterns
+    check(PreNumPatterns > 0);
+
+	//Update allowed patterns
     TArray<int32> NewAllowedPatterns;
-    for (const auto Index : CellArray[CellIndex].AllowedPatternIndices)
+	NewAllowedPatterns.Reserve(PreNumPatterns);
+	const FTilePattern LocationAsPattern = OutputTileMap.ReadPattern(Coords);
+    for (const auto Index : Cells.AllowedPatterns[CellIndex].AllowedPatterns)
     {
-        if (CanPatternFitAtThisLocation(PatternSet.Patterns[Index], CellCoords))
-        {
-            NewAllowedPatterns.Add(Index);
-        }
+	    if (LocationAsPattern.Allows(PatternSet.Patterns[Index]))
+	    {
+	    	NewAllowedPatterns.Add(Index);
+	    }
     }
-    CellArray[CellIndex].AllowedPatternIndices = NewAllowedPatterns;
-    const int32 PostNumPatterns = CellArray[CellIndex].AllowedPatternIndices.Num();
-
-    //Check if cell changed state
-    const bool CellChangedState = (PreNumPatterns != PostNumPatterns);
-
-    //Check for failure
+	NewAllowedPatterns.Shrink();
+    Cells.AllowedPatterns[CellIndex].AllowedPatterns = NewAllowedPatterns;
+    const int32 PostNumPatterns = Cells.AllowedPatterns[CellIndex].AllowedPatterns.Num();
+	
+    //Check if cell changed state, update stuff if so
+	if (PreNumPatterns != PostNumPatterns)
+	{
+		UpdateCellEntropy(CellIndex);
+		DirtyUnobservedNeighbors(CellIndex);
+		FTilePattern CombinedPatterns = FTilePattern();
+		for (const auto PatternIndex : Cells.AllowedPatterns[CellIndex].AllowedPatterns)
+		{
+			CombinedPatterns.OrWith(PatternSet.Patterns[PatternIndex]);
+		}
+		OutputTileMap.WritePattern(CombinedPatterns, Coords);
+	}
+	
+	//Check for failure
     if (PostNumPatterns < 1)
     {
         Failed = true;
         FailedAtIndex = CellIndex;
-        return CellChangedState;
     }
 
-    
-    //Check for implicit observation
+	//Check for implicit observation
     if (PostNumPatterns == 1)
     {
-        ObserveCell(CellIndex);
-        return CellChangedState;
+    	Cells.IsObserved[CellIndex] = true;
     }
+}
 
-    //Update Entropy
-    float SumP = 0;
-    float SumPlogP = 0;
-    for (const auto& i : CellArray[CellIndex].AllowedPatternIndices)
+int32 USLWave::SelectCellToObserve()
+{
+	int32 CellToObserve = -1;
+
+	switch (SelectionHeuristic)
     {
-        SumP += PatternSet.Weights[i];
-        SumPlogP += PatternSet.PlogP[i];
+		case ECellSelectionHeuristic::Entropy:
+			{
+				float LowestEntropy = BIG_NUMBER;
+				for (int32 i = 0; i < Cells.Num; i++)
+				{
+					if (!Cells.IsObserved[i] && Cells.Entropy[i] < LowestEntropy)
+					{
+						LowestEntropy = Cells.Entropy[i];
+						CellToObserve = i;
+					}
+				}
+			}
+        break;
+		case ECellSelectionHeuristic::Scanline:
+			{
+				for (int32 i = LastCellObserved + 1; i < Cells.Num; i++)
+				{
+					if (!Cells.IsObserved[i])
+					{
+						return i;
+					}
+					CellToObserve = LastCellObserved + 1;
+				}
+			}
+        break;
+		//default: break;
     }
-    CellSumWeightsArray[CellIndex] = SumP;
-    CellEntropyArray[CellIndex] = log2(SumP) - SumPlogP / SumP + RandomStream.FRand() * KINDA_SMALL_NUMBER;
-    return CellChangedState;
+	return CellToObserve;
+}
+
+void USLWave::UpdateCellEntropy(int32 CellIndex)
+{
+	Cells.Entropy[CellIndex] = GetEntropy(Cells.AllowedPatterns[CellIndex].AllowedPatterns);
+}
+
+float USLWave::GetEntropy(TArray<int32> PatternIndices)
+{
+	//Update Entropy
+	float SumOfWeights = 0;
+	for (const auto i : PatternIndices)
+	{
+		SumOfWeights += PatternSet.Weights[i];
+	}
+	float InvSumOfWeights = 1 / SumOfWeights;
+	float Entropy = 0;
+	for (const auto i : PatternIndices)
+	{
+		float P = PatternSet.Weights[i] * InvSumOfWeights;
+		Entropy -= P * log2(P);
+	}
+	return Entropy;// + RandomStream.FRand() * KINDA_SMALL_NUMBER;
 }
 
 void USLWave::OnFailed()
 {
-    UE_LOG(LogTemp, Warning, TEXT("Failed at cell %d location %d, %d"), FailedAtIndex, CellCoordsArray[FailedAtIndex].X, CellCoordsArray[FailedAtIndex].Y);
+    UE_LOG(LogTemp, Warning, TEXT("Failed at cell %d location %d, %d"), FailedAtIndex, Cells.Coords[FailedAtIndex].X, Cells.Coords[FailedAtIndex].Y);
 }
 
-bool USLWave::CanPatternFitAtThisLocation(const FTilePattern& Pattern, const FTileMapCoords Coords) const
+
+void USLWave::Propagate()
 {
-    FTilePattern LocationAsPattern = OutputTileMap.ReadPattern(Coords);
-	LocationAsPattern.AndWith(Pattern);
-    return LocationAsPattern == Pattern;
+	//Update Cells in queue, enqueuing their unobserved neighbors if cell changes
+	int32 QueueIndex = 0;
+	while (QueueIndex < Cells.Dirty.Num())
+	{
+		int32 CellIndex = Cells.Dirty[QueueIndex];
+		UpdateCell(CellIndex);
+		if (Failed)
+		{
+			OnFailed();
+			break;
+		}
+		QueueIndex++;
+	}
 }
+
+
 
 void USLWave::ObserveCell(const int32 CellIndex)
 {
-    int32 PatternIndex = CellArray[CellIndex].AllowedPatternIndices[0];
-    if (CellArray[CellIndex].AllowedPatternIndices.Num() > 1)
+    int32 PatternIndex = Cells.AllowedPatterns[CellIndex].AllowedPatterns[0];
+    if (Cells.AllowedPatterns[CellIndex].AllowedPatterns.Num() > 1)
     {
         PatternIndex = -1;
         float SumP = 0;
-        for (const auto& i : CellArray[CellIndex].AllowedPatternIndices)
+        for (const auto& i : Cells.AllowedPatterns[CellIndex].AllowedPatterns)
         {
             SumP += PatternSet.Weights[i];
         }
         float RandomFloat = SumP * RandomStream.FRand();
-        for (const auto& i : CellArray[CellIndex].AllowedPatternIndices)
+        for (const auto& i : Cells.AllowedPatterns[CellIndex].AllowedPatterns)
         {
             RandomFloat -= PatternSet.Weights[i];
             if (RandomFloat < 0)
@@ -297,18 +303,42 @@ void USLWave::ObserveCell(const int32 CellIndex)
     check(PatternIndex > -1);
 
     const FTilePattern ObservedPattern = PatternSet.Patterns[PatternIndex];
-    OutputTileMap.WritePattern(ObservedPattern, CellCoordsArray[CellIndex]);
-    CellIsObservedArray[CellIndex] = true;
-    CellEntropyArray[CellIndex] = 0.0;
+    OutputTileMap.WritePattern(ObservedPattern, Cells.Coords[CellIndex]);
+    Cells.IsObserved[CellIndex] = true;
+    Cells.Entropy[CellIndex] = 0.0;
+	DirtyUnobservedNeighbors(CellIndex);
 }
 
-//TODO Make Sure this is correct
-FTilePattern USLWave::OrCellPatternsTogether(const int32 CellIndex)
+void USLWave::DirtyUnobservedNeighbors(int32 CellIndex)
 {
-    FTilePattern Out = FTilePattern();
-	for (const auto PatternIndex : CellArray[CellIndex].AllowedPatternIndices)
+	FTileMapCoords Coords = Cells.Coords[CellIndex];
+	constexpr int32 NeighborXOffsets[8] = {-1,0,1,-1,1,-1,0,1};
+	constexpr int32 NeighborYOffsets[8] = {-1,-1,-1,0,0,1,1,1};
+	//constexpr int32 NeighborXOffsets[8] = {-1,0,1,-1,1,-1,0,1,-2,-1,0,1,2,-2,2,-2,2,-2,2,-2,-1,0,1,2};
+	//constexpr int32 NeighborYOffsets[8] = {-1,-1,-1,0,0,1,1,1,-2,-2,-2,-2,-2,-1,-1,0,0,1,1,2,2,2,2,2};
+	for (int32 i = 0; i < 8; i++)
 	{
-		Out.OrWith(PatternSet.Patterns[PatternIndex]);
+		const FTileMapCoords NeighborCoords = FTileMapCoords(Coords.X + NeighborXOffsets[i], Coords.Y + NeighborYOffsets[i]);
+		if (NeighborCoords.X > -1 && NeighborCoords.X < WaveSize.X && NeighborCoords.Y > -1 && NeighborCoords.Y < WaveSize.Y)
+		{
+			const int32 NeighborIndex = inline_CoordsToIndex(NeighborCoords, WaveSize);
+			if (!Cells.IsObserved[NeighborIndex])
+			{
+				Cells.Dirty.Add(NeighborIndex);	
+			}
+		}
 	}
-    return Out;
+}
+
+bool USLWave::CellNeedsUpdate(int32 CellIndex)
+{
+	const FTilePattern LocationAsPattern = OutputTileMap.ReadPattern(Cells.Coords[CellIndex]);
+	for (const auto Index : Cells.AllowedPatterns[CellIndex].AllowedPatterns)
+	{
+		if (!LocationAsPattern.Allows(PatternSet.Patterns[Index]))
+		{
+			return true;
+		}
+	}
+	return false;
 }
