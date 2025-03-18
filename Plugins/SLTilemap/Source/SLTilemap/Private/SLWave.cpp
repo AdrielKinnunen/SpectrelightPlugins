@@ -39,7 +39,7 @@ bool USLWave::Initialize()
     Failed = false;
 	LastCellObserved = -1;
     RandomStream.Initialize(RandomSeed);
-	Cells.Dirty.Reset(128);
+	Cells.Dirty.Reset();
     if (!OutputTileMap.bIsValid())
     {
         return false;
@@ -56,6 +56,7 @@ bool USLWave::Initialize()
     }
 	
 	Propagate();
+	PrintState();
     
     const double EndTime = FPlatformTime::Seconds();
     const double TotalTimems = 1000 * (EndTime - StartTime);
@@ -73,7 +74,7 @@ bool USLWave::Step()
 	    return false;
     }
 
-	Cells.Dirty.Reset(128);
+	Cells.Dirty.Reset();
 	
     LastCellObserved = SelectCellToObserve();
 	
@@ -82,8 +83,7 @@ bool USLWave::Step()
         UE_LOG(LogTemp, Warning, TEXT("No unobserved cell was found"));
         return false;
     }
-	//UE_LOG(LogTemp, Warning, TEXT("Observing Cell %i"), LastCellObserved);
-
+	
 	ObserveCell(LastCellObserved);
 	Propagate();
     return true;
@@ -114,7 +114,6 @@ void USLWave::InitPatternCells()
 {
     //Calculate constants
 	WaveSize = FTileMapCoords(OutputTileMap.Size.X - 2, OutputTileMap.Size.Y - 2);
-    const int32 ArrayNum = WaveSize.X * WaveSize.Y;
 
     //Clear Arrays
 	Cells.Reset(WaveSize.X * WaveSize.Y);
@@ -124,7 +123,8 @@ void USLWave::InitPatternCells()
     for (int32 i = 0; i < PatternSet.Patterns.Num(); i++)
     {
         AllowedPatternIndices.Add(i);
-    }	
+    }
+	const float InitialEntropy = GetEntropy(AllowedPatternIndices);
 	
     //Create PatternCells and initialize them    
     for (int32 Y = 0; Y < WaveSize.Y; Y++)
@@ -135,6 +135,7 @@ void USLWave::InitPatternCells()
         	const int32 CellIndex = inline_CoordsToIndex(FTileMapCoords(X, Y), WaveSize);
         	Cells.Coords[CellIndex] = FTileMapCoords(X, Y);
             Cells.AllowedPatterns[CellIndex].AllowedPatterns = AllowedPatternIndices;
+        	Cells.Entropy[CellIndex] = InitialEntropy;
         }
     }
 }
@@ -219,11 +220,9 @@ int32 USLWave::SelectCellToObserve()
 					{
 						return i;
 					}
-					CellToObserve = LastCellObserved + 1;
 				}
 			}
         break;
-		//default: break;
     }
 	return CellToObserve;
 }
@@ -260,17 +259,15 @@ void USLWave::OnFailed()
 void USLWave::Propagate()
 {
 	//Update Cells in queue, enqueuing their unobserved neighbors if cell changes
-	int32 QueueIndex = 0;
-	while (QueueIndex < Cells.Dirty.Num())
+	while (!Cells.Dirty.IsEmpty())
 	{
-		int32 CellIndex = Cells.Dirty[QueueIndex];
+		int32 CellIndex = Cells.Dirty.PopValue();
 		UpdateCell(CellIndex);
 		if (Failed)
 		{
 			OnFailed();
 			break;
 		}
-		QueueIndex++;
 	}
 }
 
@@ -324,7 +321,7 @@ void USLWave::DirtyUnobservedNeighbors(int32 CellIndex)
 			const int32 NeighborIndex = inline_CoordsToIndex(NeighborCoords, WaveSize);
 			if (!Cells.IsObserved[NeighborIndex])
 			{
-				Cells.Dirty.Add(NeighborIndex);	
+				Cells.Dirty.Add(NeighborIndex);
 			}
 		}
 	}
@@ -341,4 +338,13 @@ bool USLWave::CellNeedsUpdate(int32 CellIndex)
 		}
 	}
 	return false;
+}
+
+
+void USLWave::PrintState()
+{
+	for (int32 i = 0; i < Cells.Num; i++)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cell %d has entropy %f"), i, Cells.Entropy[i]);	
+	}
 }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SLTilemapLib.h"
+#include "Containers/RingBuffer.h"
 #include "UObject/Object.h"
 #include "SLWave.generated.h"
 
@@ -32,7 +33,7 @@ struct FCellsSOA
 	TArray<FTileMapCoords> Coords;
 	TArray<float> Entropy;
 	TBitArray<> IsObserved;
-	TArray<int32> Dirty;
+	TRingBuffer<int32> Dirty;
 	int32 Num;
 
 	void Reset(int32 NewNum)
@@ -69,7 +70,7 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
     FRandomStream RandomStream;
 	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
-	ECellSelectionHeuristic SelectionHeuristic = ECellSelectionHeuristic::Scanline;
+	ECellSelectionHeuristic SelectionHeuristic = ECellSelectionHeuristic::Entropy;
 
     UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
     FTilePatternSet PatternSet;
@@ -107,6 +108,7 @@ private:
     void ObserveCell(int32 CellIndex);
 	void DirtyUnobservedNeighbors(int32 CellIndex);
 	bool CellNeedsUpdate(int32 CellIndex);
+	void PrintState();
 };
 
 

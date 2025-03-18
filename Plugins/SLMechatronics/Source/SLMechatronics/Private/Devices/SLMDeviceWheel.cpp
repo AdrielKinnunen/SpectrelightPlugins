@@ -2,9 +2,6 @@
 
 #include "Devices/SLMDeviceWheel.h"
 
-#include "PhysicsEngine/ConstraintInstance.h"
-
-
 FSLMDeviceModelWheel USLMDeviceComponentWheel::GetDeviceState()
 {
     return Subsystem->GetDeviceState(DeviceIndex);
@@ -43,7 +40,10 @@ void USLMDeviceSubsystemWheel::OnWorldBeginPlay(UWorld& InWorld)
     DomainRotation = GetWorld()->GetSubsystem<USLMDomainRotation>();
     DomainSignal = GetWorld()->GetSubsystem<USLMDomainSignal>();
     //HitResultBuffer.Reserve(128);
-    Super::OnWorldBeginPlay(InWorld);
+	//TestThingCallback = GetWorld()->GetPhysicsScene()->GetSolver()->CreateAndRegisterSimCallbackObject_External<FTestThingCallback>();
+
+	Super::OnWorldBeginPlay(InWorld);
+
 }
 
 void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)

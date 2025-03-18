@@ -116,8 +116,8 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime, const float Subs
     	DomainAir->SetData(ToPort, Exhaust);
     	DomainRotation->AddTorque(Model.Index_Rotation_Crankshaft, PumpingTorque + CombustionTorque, DeltaTime);
     	//DomainRotation->SetAngularVelocity(Model.Index_Rotation_Crankshaft, 10);
+
     	
-		/*
     	//Thermo formulation
     	const FSLMDataRotation Crank = DomainRotation->GetData(Model.Index_Rotation_Crankshaft);
     	const bool bIsNormalDirection = Crank.AngularVelocity >= 0.0;

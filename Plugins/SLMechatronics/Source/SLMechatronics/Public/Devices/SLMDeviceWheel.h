@@ -10,12 +10,11 @@
 
 class USLMDeviceSubsystemWheel;
 
-
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelWheel
 {
     GENERATED_BODY()
-
+	
     //Settings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float Radius = 50;
@@ -154,6 +153,8 @@ private:
     TWeakObjectPtr<USLMDomainSignal> DomainSignal;
     TSparseArray<FSLMDeviceModelWheel> DeviceModels;
     TSparseArray<FSLMDeviceCosmeticsWheel> DeviceCosmetics;
+
+	//FTestThingCallback* TestThingCallback;
 
     //TMap<TWeakObjectPtr<UPrimitiveComponent>, int32> PrimitiveToIndex;
     //TArray<FHitResult> HitResultBuffer;
