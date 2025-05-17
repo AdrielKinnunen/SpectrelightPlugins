@@ -22,17 +22,17 @@ struct FSLMDeviceModelPropeller
     float BladePitch_Deg = 30;
 	
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    UPrimitiveComponent* Primitive;
+    UPrimitiveComponent* Primitive = nullptr;
 	
     //PreSimulate
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector DirectionPropellerAxis;
+    FVector DirectionPropellerAxis = FVector(1,0,0);
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    float AxialSpeed_ms;
+    float AxialSpeed_ms = 0.0;
 
     //Simulate
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    float ForceAccumulator_N;
+    float ForceAccumulator_N = 0.0;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Rotation_Drive = -1;
@@ -45,7 +45,7 @@ struct FSLMDeviceCosmeticsPropeller
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    float AngularVelocityDegrees;
+    float AngularVelocityDegrees = 0.0;
 };
 
 

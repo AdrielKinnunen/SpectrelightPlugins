@@ -31,7 +31,7 @@ void USLMechatronicsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     PrimarySystemTick.bHighPriority = true;
     PrimarySystemTick.bRunOnAnyThread = false;
     PrimarySystemTick.bTickEvenWhenPaused = false;
-    PrimarySystemTick.TickGroup = TG_PrePhysics;
+    PrimarySystemTick.TickGroup = TG_PostPhysics;
     PrimarySystemTick.TickInterval = 0.0;
     PrimarySystemTick.RegisterTickFunction(GetWorld()->PersistentLevel);
 

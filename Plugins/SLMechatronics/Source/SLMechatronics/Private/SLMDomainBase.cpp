@@ -13,7 +13,6 @@ void USLMDomainSubsystemBase::CheckForCleanUp()
         bNeedsCleanup = false;
     }
     //Sanity checks
-    check(PortsRecentlyAdded.Num() == 0);
     check(PortsToRemove.Num() == 0);
     check(ConnectionsToAdd.Num() == 0);
     check(ConnectionsToRemove.Num() == 0);
@@ -155,13 +154,21 @@ FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortM
 TArray<FSLMConnectionByMetaData> USLMDomainSubsystemBase::GetAllConnections()
 {
 	TArray<FSLMConnectionByMetaData> Out;
+	TArray<TPair<int, int>> CoveredPairs;
 	for (const auto Pair : Adjacencies)
 	{
-		FSLMConnectionByMetaData Entry;
-		Entry.DomainTag = DomainTag;
-		Entry.FirstMetaData = PortsMetaData[Pair.Key];
-		Entry.SecondMetaData = PortsMetaData[Pair.Value];
-		Out.Add(Entry);
+		TPair<int, int> Inverse;
+		Inverse.Key = Pair.Value;
+		Inverse.Value = Pair.Key;
+		if (!CoveredPairs.Contains(Inverse))
+		{
+			FSLMConnectionByMetaData Entry;
+			Entry.DomainTag = DomainTag;
+			Entry.FirstMetaData = PortsMetaData[Pair.Key];
+			Entry.SecondMetaData = PortsMetaData[Pair.Value];
+			Out.Add(Entry);
+			CoveredPairs.Add(Pair);
+		}
 	}
 	return Out;
 }
@@ -250,10 +257,6 @@ void USLMDomainSubsystemBase::CleanUpGraph()
     }
     ConnectionsToRemove.Empty();
 
-    //Handle PortsRecentlyAdded
-    PortsDirty.Append(PortsRecentlyAdded);
-    PortsRecentlyAdded.Empty();
-
     //Handle PortsToRemove
     PortsDirty.Append(GetConnectedPorts(PortsToRemove).Difference(PortsToRemove));
     for (const auto& PortIndex : PortsToRemove)
@@ -319,7 +322,6 @@ TSet<int32> USLMDomainSubsystemBase::GetConnectedPorts(const TSet<int32>& Roots)
     TArray<int32> Neighbors;
     while (!Stack.IsEmpty())
     {
-        //const int32 Index = Stack.Pop(false);
     	const int32 Index = Stack.Pop(EAllowShrinking::No);
         Adjacencies.MultiFind(Index, Neighbors);
         for (auto& Neighbor : Neighbors)

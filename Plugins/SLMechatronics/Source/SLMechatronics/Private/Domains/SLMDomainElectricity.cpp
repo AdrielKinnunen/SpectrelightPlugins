@@ -12,12 +12,11 @@ USLMDomainElectricity::USLMDomainElectricity()
 
 int32 USLMDomainElectricity::AddPort(const FSLMPortElectricity& Port)
 {
-    const int32 PortIndex = PortsData.Add(Port.PortData);
-    AddPortMetaData(Port.PortMetaData);
-    PortsRecentlyAdded.Add(PortIndex);
-    PortIndexToNetworkIndex.Add(-1);
-    bNeedsCleanup = true;
-    return PortIndex;
+	const int32 PortIndex = Ports.Add(Port.PortData);
+	AddPortMetaData(Port.PortMetaData);
+	const int32 NetworkIndex = Networks.Add(Port.PortData);
+	PortIndexToNetworkIndex.Add(NetworkIndex);
+	return PortIndex;
 }
 
 void USLMDomainElectricity::RemovePort(const int32 PortIndex)
@@ -63,8 +62,8 @@ void USLMDomainElectricity::CreateNetworkForPorts(const TArray<int32> PortIndice
     float SumCapacity = 0;
     for (const auto& PortIndex : PortIndices)
     {
-        SumStored += PortsData[PortIndex].StoredJoules;
-        SumCapacity += PortsData[PortIndex].CapacityJoules;
+        SumStored += Ports[PortIndex].StoredJoules;
+        SumCapacity += Ports[PortIndex].CapacityJoules;
         PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
     }
     Networks[NetworkIndex].StoredJoules = SumStored;
@@ -75,12 +74,12 @@ void USLMDomainElectricity::DissolveNetworkIntoPort(const int32 NetworkIndex, co
 {
     const FSLMDataElectricity Network = Networks[NetworkIndex];
     const float NetworkPercent = Network.StoredJoules / Network.CapacityJoules;
-    PortsData[PortIndex].StoredJoules = NetworkPercent * PortsData[PortIndex].CapacityJoules;
+    Ports[PortIndex].StoredJoules = NetworkPercent * Ports[PortIndex].CapacityJoules;
 }
 
 void USLMDomainElectricity::RemovePortAtIndex(const int32 PortIndex)
 {
-    PortsData.RemoveAt(PortIndex);
+    Ports.RemoveAt(PortIndex);
 }
 
 void USLMDomainElectricity::RemoveNetworkAtIndex(const int32 NetworkIndex)
@@ -90,5 +89,5 @@ void USLMDomainElectricity::RemoveNetworkAtIndex(const int32 NetworkIndex)
 
 void USLMDomainElectricity::CreateNetworkForPort(const int32 Port)
 {
-    PortIndexToNetworkIndex[Port] = Networks.Add(PortsData[Port]);
+    PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
 }

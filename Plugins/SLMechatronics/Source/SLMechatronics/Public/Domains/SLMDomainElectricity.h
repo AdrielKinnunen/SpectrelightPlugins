@@ -60,7 +60,7 @@ public:
 
     virtual FString GetDebugString(const int32 PortIndex) override;
 private:
-    TSparseArray<FSLMDataElectricity> PortsData;
+    TSparseArray<FSLMDataElectricity> Ports;
     TSparseArray<FSLMDataElectricity> Networks;
 
     void CreateNetworkForPort(const int32 Port);

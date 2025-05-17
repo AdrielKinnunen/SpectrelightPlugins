@@ -60,7 +60,7 @@ public:
     virtual void PostSimulate(const float DeltaTime) override;
     virtual FString GetDebugString(const int32 PortIndex) override;
 private:
-    TSparseArray<FSLMDataSignal> PortsData;
+    TSparseArray<FSLMDataSignal> Ports;
     TSparseArray<FSLMDataSignal> Networks;
 
     void CreateNetworkForPort(const int32 Port);

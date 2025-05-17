@@ -15,7 +15,7 @@ struct FSLBallisticsSubsystemTickFunction : public FTickFunction
 {
     GENERATED_BODY()
     UPROPERTY()
-    USLBallisticsSubsystem* Target;
+    USLBallisticsSubsystem* Target = nullptr;
     SLBALLISTICS_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph) override;
     SLBALLISTICS_API virtual FString DiagnosticMessage() override;
     SLBALLISTICS_API virtual FName DiagnosticContext(bool bDetailed) override;

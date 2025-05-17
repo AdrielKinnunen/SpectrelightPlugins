@@ -20,7 +20,7 @@ struct FSLMechatronicsSubsystemTickFunction : public FTickFunction
 {
     GENERATED_BODY()
     UPROPERTY()
-    USLMechatronicsSubsystem* Target;
+    USLMechatronicsSubsystem* Target = nullptr;
     SLMECHATRONICS_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph) override;
     SLMECHATRONICS_API virtual FString DiagnosticMessage() override;
     SLMECHATRONICS_API virtual FName DiagnosticContext(bool bDetailed) override;
@@ -51,11 +51,11 @@ public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
     void Tick(float DeltaTime);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void PropagateSettings();
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	void MakeConnectionByMetadata(FSLMConnectionByMetaData Connection);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
 	TArray<FSLMConnectionByMetaData> GetAllConnectionsByMetadata();
 private:
     //Properties

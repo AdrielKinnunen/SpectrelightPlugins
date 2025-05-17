@@ -56,8 +56,7 @@ USTRUCT(BlueprintType)
 struct FSLMConnectionByMetaData
 {
     GENERATED_BODY()
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	//TSubclassOf<USLMDomainSubsystemBase> Domain;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta = (Categories = "SlectrelightDynamics.Domain"))
 	FGameplayTag DomainTag;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
@@ -134,7 +133,6 @@ protected:
     TSparseArray<int32> PortIndexToNetworkIndex;
 
     bool bNeedsCleanup = false;
-    TSet<int32> PortsRecentlyAdded;
     TSet<int32> PortsToRemove;
     TArray<FSLMConnection> ConnectionsToAdd;
     TArray<FSLMConnection> ConnectionsToRemove;

@@ -29,33 +29,33 @@ struct FSLMDeviceModelWheel
 
     //Set by hit event
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    UPrimitiveComponent* Collider;
+    UPrimitiveComponent* Collider = nullptr;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector ContactPatchLocation;
+    FVector ContactPatchLocation = FVector(0,0,0);
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector ContactPatchNormal;
+    FVector ContactPatchNormal = FVector(0,0,1);
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    float NormalImpulseMagnitude;
+    float NormalImpulseMagnitude = 0;
 
     //PreSimulate
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    float SteerAngle;
+    float SteerAngle = 0;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    float WheelMass;
+    float WheelMass = 1;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    float ImpulseBudget;
+    float ImpulseBudget = 0;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector DirectionWheelAxis;
+    FVector DirectionWheelAxis = FVector(0,1,0);
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector DirectionLong;
+    FVector DirectionLong = FVector(1,0,0);
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector DirectionLat;
+    FVector DirectionLat = FVector(0,1,0);
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector Velocity;
+    FVector Velocity = FVector(0,0,0);
 
     //Simulate
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-    FVector ImpulseAccumulator;
+    FVector ImpulseAccumulator = FVector(0,0,0);;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Mech_Drive = -1;
@@ -72,7 +72,7 @@ struct FSLMDeviceCosmeticsWheel
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    float AngularVelocityDegrees;
+    float AngularVelocityDegrees = 0;
 };
 
 

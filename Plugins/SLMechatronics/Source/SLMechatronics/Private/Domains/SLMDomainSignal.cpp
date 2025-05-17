@@ -12,11 +12,10 @@ USLMDomainSignal::USLMDomainSignal()
 
 int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)
 {
-    const int32 PortIndex = PortsData.Add(Port.PortData);
+    const int32 PortIndex = Ports.Add(Port.PortData);
     AddPortMetaData(Port.PortMetaData);
-    PortsRecentlyAdded.Add(PortIndex);
-    PortIndexToNetworkIndex.Add(-1);
-    bNeedsCleanup = true;
+	const int32 NetworkIndex = Networks.Add(Port.PortData);
+	PortIndexToNetworkIndex.Add(NetworkIndex);
     return PortIndex;
 }
 
@@ -76,12 +75,12 @@ void USLMDomainSignal::CreateNetworkForPorts(const TArray<int32> PortIndices)
 
 void USLMDomainSignal::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
 {
-    PortsData[PortIndex] = FSLMDataSignal();
+    Ports[PortIndex] = FSLMDataSignal();
 }
 
 void USLMDomainSignal::RemovePortAtIndex(const int32 PortIndex)
 {
-    PortsData.RemoveAt(PortIndex);
+    Ports.RemoveAt(PortIndex);
 }
 
 void USLMDomainSignal::RemoveNetworkAtIndex(const int32 NetworkIndex)
@@ -91,5 +90,5 @@ void USLMDomainSignal::RemoveNetworkAtIndex(const int32 NetworkIndex)
 
 void USLMDomainSignal::CreateNetworkForPort(const int32 Port)
 {
-    PortIndexToNetworkIndex[Port] = Networks.Add(PortsData[Port]);
+    PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
 }

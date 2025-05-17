@@ -12,12 +12,11 @@ USLMDomainRotation::USLMDomainRotation()
 
 int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port)
 {
-    const int32 PortIndex = Ports.Add(Port.PortData);
-    AddPortMetaData(Port.PortMetaData);
-    PortsRecentlyAdded.Add(PortIndex);
-    PortIndexToNetworkIndex.Add(-1);
-    bNeedsCleanup = true;
-    return PortIndex;
+	const int32 PortIndex = Ports.Add(Port.PortData);
+	AddPortMetaData(Port.PortMetaData);
+	const int32 NetworkIndex = Networks.Add(Port.PortData);
+	PortIndexToNetworkIndex.Add(NetworkIndex);
+	return PortIndex;
 }
 
 void USLMDomainRotation::RemovePort(const int32 PortIndex)
