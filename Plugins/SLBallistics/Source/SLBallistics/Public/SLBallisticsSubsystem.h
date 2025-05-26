@@ -3,12 +3,29 @@
 #pragma once
 
 #include "CoreMinimal.h"
-//#include "UObject/Object.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SLBallisticsSubsystem.generated.h"
 
 class USLBallisticsSubsystem;
 
+USTRUCT(BlueprintType)
+struct FSLBProjectile
+{
+	GENERATED_BODY()
+
+	FSLBProjectile()
+	{
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLBallistics")
+	FVector Position = FVector(0,0,0);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLBallistics")
+	FVector Velocity = FVector(0,0,0);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLBallistics")
+	FVector Acceleration = FVector(0,0,-980);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLBallistics")
+	float Lifetime = 10;
+};
 
 USTRUCT()
 struct FSLBallisticsSubsystemTickFunction : public FTickFunction
@@ -37,6 +54,11 @@ public:
     //Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLBallistics")
     int32 StepCount = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLBallistics")
+	FVector Gravity = FVector(0,0,-980);
+	
+	UFUNCTION(BlueprintCallable, Category = "SLBallistics")
+	int32 FireProjectile(FSLBProjectile ProjectileData);
 
     //Functions
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -44,5 +66,5 @@ public:
 private:
     //Properties
     FSLBallisticsSubsystemTickFunction PrimarySystemTick;
-    TSparseArray<int32> Projectiles;
+    TSparseArray<FSLBProjectile> Projectiles;
 };

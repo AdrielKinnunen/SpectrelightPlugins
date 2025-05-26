@@ -10,6 +10,16 @@
 
 class USLMDeviceSubsystemWheel;
 
+UENUM(BlueprintType)
+enum class ETireModel : uint8
+{
+	None,
+	StaticFriction,
+	Pacejka,
+	Brush
+};
+
+
 USTRUCT(BlueprintType)
 struct FSLMDeviceModelWheel
 {
@@ -56,13 +66,17 @@ struct FSLMDeviceModelWheel
     //Simulate
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
     FVector ImpulseAccumulator = FVector(0,0,0);;
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	float SlipSpeed = 0;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Mech_Drive = -1;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Signal_Steer = -1;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
     int32 Index_Signal_Brake = -1;
+	
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	ETireModel TireModel = ETireModel::StaticFriction;
 };
 
 
@@ -73,6 +87,10 @@ struct FSLMDeviceCosmeticsWheel
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     float AngularVelocityDegrees = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float SlipRatio = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float Load = 0;
 };
 
 
@@ -153,6 +171,10 @@ private:
     TWeakObjectPtr<USLMDomainSignal> DomainSignal;
     TSparseArray<FSLMDeviceModelWheel> DeviceModels;
     TSparseArray<FSLMDeviceCosmeticsWheel> DeviceCosmetics;
+
+	void DoStaticFriction(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar);
+	void DoPacejka(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar);
+	void DoBrush(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar);
 
 	//FTestThingCallback* TestThingCallback;
 

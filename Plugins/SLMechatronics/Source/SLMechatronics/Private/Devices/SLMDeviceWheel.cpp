@@ -62,7 +62,10 @@ void USLMDeviceSubsystemWheel::PreSimulate(float DeltaTime)
             Wheel.DirectionLat = FVector::CrossProduct(Wheel.ContactPatchNormal, Wheel.DirectionLong);
         	Wheel.Velocity = Wheel.Collider->GetComponentVelocity();
         	Wheel.WheelMass = Wheel.Collider->GetMass();
-            Wheel.ImpulseBudget = Wheel.NormalImpulseMagnitude * Wheel.FrictionCoefficient;
+        	const float GripScalar = 1 - FMath::Abs(FVector::DotProduct(Wheel.DirectionWheelAxis, Wheel.ContactPatchNormal));
+        	//UE_LOG(LogTemp, Warning, TEXT("GripScalar is %f"), GripScalar);
+
+            Wheel.ImpulseBudget = Wheel.NormalImpulseMagnitude * Wheel.FrictionCoefficient * GripScalar;
 
             Wheel.ImpulseAccumulator = FVector::ZeroVector;
         }
@@ -75,43 +78,19 @@ void USLMDeviceSubsystemWheel::Simulate(float DeltaTime, float SubstepScalar)
 
     for (auto& Wheel : DeviceModels)
     {
-        auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
-        const auto WheelMOI = DomainRotation->GetData(Wheel.Index_Mech_Drive).MomentOfInertia;
-        const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
-
-        //Brakes
-        const float MaxBrakeImpulse = Wheel.BrakeMaxTorque * BrakeSignal * DeltaTime;
-        const float BrakeImpulseToStop = -0.1 * SubstepScalar * AngVel * WheelMOI;
-        const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeImpulse, MaxBrakeImpulse);
-        AngVel += BrakeImpulseClamped / WheelMOI;
-
-        //Grip
-        const float DesiredAngVel = FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong) / Wheel.Radius;
-        const float AngularImpulseToStop = (DesiredAngVel - AngVel) * WheelMOI;
-        const float LinearImpulseMaxSizeThisSubstep = FMath::Abs(AngularImpulseToStop * 10000 / Wheel.Radius);
-        
-        const float SlipSpeedLong = Wheel.Radius * AngVel - FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong);
-        FVector ImpulseToStopLong = SlipSpeedLong * Wheel.WheelMass * Wheel.DirectionLong * SubstepScalar;
-        const FVector ImpulseToStopLongClamped = ImpulseToStopLong.GetClampedToMaxSize(LinearImpulseMaxSizeThisSubstep);
-        
-        const float SlipSpeedLat = -1 * FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLat);
-        const FVector ImpulseToStopLat = SlipSpeedLat * Wheel.WheelMass * Wheel.DirectionLat * SubstepScalar;
-
-
-        const FVector ImpulseToStop = ImpulseToStopLat + ImpulseToStopLongClamped;
-
-
-        const float RemainingImpulseBudget = Wheel.ImpulseBudget - Wheel.ImpulseAccumulator.Length();
-        const FVector ActualImpulse = ImpulseToStop.GetClampedToMaxSize(RemainingImpulseBudget);
-        Wheel.ImpulseAccumulator += ActualImpulse;
-        const float GripAngularImpulse = -0.0001 * FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius;
-
-        const float TotalImpulse = GripAngularImpulse + BrakeImpulseClamped;
-
-        
-        AngVel += GripAngularImpulse / WheelMOI;
-        
-        DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
+    	switch (Wheel.TireModel)
+    	{
+    	case ETireModel::StaticFriction:
+    		DoStaticFriction(Wheel, DeltaTime, SubstepScalar);
+    		break; 
+    	case ETireModel::Pacejka:
+    		DoPacejka(Wheel, DeltaTime, SubstepScalar);
+    		break; 
+    	case ETireModel::Brush:
+    		DoBrush(Wheel, DeltaTime, SubstepScalar);
+    		break; 
+    	default: break; 
+    	}
     }
 }
 
@@ -121,22 +100,30 @@ void USLMDeviceSubsystemWheel::PostSimulate(float DeltaTime)
 
     for (auto It = DeviceModels.CreateIterator(); It; ++It)
     {
+    	DeviceCosmetics[It.GetIndex()].AngularVelocityDegrees = FMath::RadiansToDegrees(DomainRotation->GetData(It->Index_Mech_Drive).AngularVelocity);
+    	DeviceCosmetics[It.GetIndex()].Load = It->NormalImpulseMagnitude / DeltaTime;
+    	const float SlipSpeed = It->SlipSpeed;
+    	const float Speed = It->Velocity.Size();
+    	DeviceCosmetics[It.GetIndex()].SlipRatio = SlipSpeed / (Speed + 100);
+    	
         if (It->Collider)
         {
             const FVector Impulse = It->ImpulseAccumulator;
             const FVector AngularImpulse = It->DirectionWheelAxis * FVector::DotProduct(It->DirectionLong, Impulse) * -1;
-            It->Collider->AddImpulseAtLocation(Impulse, It->ContactPatchLocation);
-            It->Collider->AddAngularImpulseInRadians(AngularImpulse);
+            //if (It->Collider->GetNetMode() != NM_Client)
+            {
+            	It->Collider->AddImpulseAtLocation(Impulse, It->ContactPatchLocation);
+            	It->Collider->AddAngularImpulseInRadians(AngularImpulse);
+            }
 
             
             //Debug
-            //const FVector DrawDebugStartPoint = It->ContactPatchLocation + FVector(0, 0, 120);
+            //const FVector DrawDebugStartPoint = It->ContactPatchLocation + It->ContactPatchNormal * 120;
             //DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ContactPatchNormal * It->NormalImpulseMagnitude * 0.1, FColor::Blue, false, -1, 0, 5);
             //DrawDebugLine(GetWorld(), DrawDebugStartPoint, DrawDebugStartPoint + It->ImpulseAccumulator * 0.1, FColor::Red, false, -1, 0, 5);
 
             It->NormalImpulseMagnitude = 0;
         }
-        DeviceCosmetics[It.GetIndex()].AngularVelocityDegrees = FMath::RadiansToDegrees(DomainRotation->GetData(It->Index_Mech_Drive).AngularVelocity);
     }
 }
 
@@ -178,6 +165,88 @@ void USLMDeviceSubsystemWheel::SendHitData(int32 DeviceIndex, UPrimitiveComponen
     Wheel.ContactPatchNormal = Normal;
     Wheel.NormalImpulseMagnitude = NormalImpulse.Length();
     DeviceModels[DeviceIndex] = Wheel;
+}
+
+void USLMDeviceSubsystemWheel::DoStaticFriction(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar)
+{
+	auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
+	const auto WheelMOI = DomainRotation->GetData(Wheel.Index_Mech_Drive).MomentOfInertia;
+	const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
+
+	//Brakes
+	const float MaxBrakeAngularImpulse = Wheel.BrakeMaxTorque * BrakeSignal * DeltaTime;
+	const float BrakeImpulseToStop = -1 * AngVel * WheelMOI;
+	const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeAngularImpulse, MaxBrakeAngularImpulse);
+	AngVel += BrakeImpulseClamped / WheelMOI;
+
+	//Grip
+	const float DesiredAngVel = FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong) / Wheel.Radius;
+	const float AngularImpulseToStop = (DesiredAngVel - AngVel) * WheelMOI;
+	const float LinearImpulseMaxSizeThisSubstep = FMath::Abs(AngularImpulseToStop * 10000 / Wheel.Radius);
+
+	const float SlipSpeedLong = Wheel.Radius * AngVel - FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong);
+	FVector ImpulseToStopLong = SlipSpeedLong * Wheel.WheelMass * Wheel.DirectionLong * SubstepScalar;
+	const FVector ImpulseToStopLongClamped = ImpulseToStopLong.GetClampedToMaxSize(LinearImpulseMaxSizeThisSubstep);
+
+	const float SlipSpeedLat = -1 * FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLat);
+	const FVector ImpulseToStopLat = SlipSpeedLat * Wheel.WheelMass * Wheel.DirectionLat * SubstepScalar;
+
+	const FVector SlipVelocity = FVector(SlipSpeedLong, SlipSpeedLat * 0.1, 0);
+	Wheel.SlipSpeed = SlipVelocity.Size();
+
+	const FVector ImpulseToStop = ImpulseToStopLat + ImpulseToStopLongClamped;
+
+
+	const float RemainingImpulseBudget = Wheel.ImpulseBudget - Wheel.ImpulseAccumulator.Length();
+	const FVector ActualImpulse = ImpulseToStop.GetClampedToMaxSize(RemainingImpulseBudget);
+	Wheel.ImpulseAccumulator += ActualImpulse;
+	const float GripAngularImpulse = -0.0001 * FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius;
+
+	//const float TotalImpulse = GripAngularImpulse + BrakeImpulseClamped;
+
+
+	AngVel += GripAngularImpulse / WheelMOI;
+
+	DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
+}
+
+void USLMDeviceSubsystemWheel::DoPacejka(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar)
+{
+	auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
+
+
+	
+	const float SlipRatio = Wheel.Radius * AngVel / FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong) - 1;
+
+	const float DesiredLongGs = FMath::GetMappedRangeValueClamped(FVector2D(-0.3,0.3),FVector2D(-1,1),SlipRatio);
+	const auto DesiredImpulse = Wheel.DirectionLong * DesiredLongGs * Wheel.NormalImpulseMagnitude;
+
+	const float RemainingImpulseBudget = Wheel.ImpulseBudget - Wheel.ImpulseAccumulator.Length();
+	const FVector ActualImpulse = DesiredImpulse.GetClampedToMaxSize(RemainingImpulseBudget);
+	Wheel.ImpulseAccumulator += ActualImpulse;
+	const float GripAngularImpulse = -0.0001 * FVector::DotProduct(ActualImpulse, Wheel.DirectionLong) * Wheel.Radius;
+
+	//const float TotalImpulse = GripAngularImpulse + BrakeImpulseClamped;
+
+
+	//AngVel += GripAngularImpulse / WheelMOI;
+
+	DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
+}
+
+void USLMDeviceSubsystemWheel::DoBrush(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar)
+{
+	auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
+	const auto WheelMOI = DomainRotation->GetData(Wheel.Index_Mech_Drive).MomentOfInertia;
+	const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
+
+	//Brakes
+	const float MaxBrakeAngularImpulse = Wheel.BrakeMaxTorque * BrakeSignal * DeltaTime;
+	const float BrakeImpulseToStop = -1 * AngVel * WheelMOI;
+	const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeAngularImpulse, MaxBrakeAngularImpulse);
+	AngVel += BrakeImpulseClamped / WheelMOI;
+
+	
 }
 
 /*

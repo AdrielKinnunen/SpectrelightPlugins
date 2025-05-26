@@ -5,6 +5,7 @@
 
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
+#include "SLMReplicationHelper.h"
 
 void FSLMechatronicsSubsystemTickFunction::ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph)
 {
@@ -44,6 +45,34 @@ void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	DeviceSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDeviceSubsystemBase>();
     DomainSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDomainSubsystemBase>();
     UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems and %i Domain Subsystems"), DeviceSubsystems.Num(), DomainSubsystems.Num());
+
+	
+	WorldNetMode = InWorld.GetNetMode();
+	auto asdf = TEXT("None");
+	switch (WorldNetMode)
+	{
+	case NM_Client:
+		asdf = TEXT("Client");
+		break;
+	case NM_ListenServer:
+		asdf = TEXT("Listen");
+		break;
+	case NM_DedicatedServer:
+		asdf = TEXT("Dedicated");
+		break;
+	case NM_Standalone:
+		asdf = TEXT("Standalone");
+		break;
+	case NM_MAX:
+		asdf = TEXT("MAX");
+		break;
+	default: break;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("World Net Mode is %s"), asdf);
+	if (WorldNetMode != NM_Client)
+	{
+		ReplicationHelper = InWorld.SpawnActor<ASLMReplicationHelper>();
+	}
     Super::OnWorldBeginPlay(InWorld);
 }
 
@@ -143,6 +172,11 @@ void USLMechatronicsSubsystem::PropagateSettings()
 
 void USLMechatronicsSubsystem::MakeConnectionByMetadata(FSLMConnectionByMetaData Connection)
 {
+	if (WorldNetMode != NM_Client)
+	{
+		ReplicationHelper->ReplicatedConnections.Add(Connection);
+	}
+	
 	USLMDomainSubsystemBase* TargetSubsystem = nullptr;
 	for (const auto DomainSubsystem : DomainSubsystems)
 	{
