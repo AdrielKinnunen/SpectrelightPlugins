@@ -2,7 +2,6 @@
 
 #include "SLMSubsystem.h"
 
-
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
 #include "SLMReplicationHelper.h"

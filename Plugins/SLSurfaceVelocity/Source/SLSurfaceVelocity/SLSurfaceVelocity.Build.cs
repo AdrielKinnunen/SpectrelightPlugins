@@ -38,6 +38,10 @@ public class SLSurfaceVelocity : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"PhysicsCore",
+				"GameplayTags",
+				"Chaos",
+				"Constraints",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
