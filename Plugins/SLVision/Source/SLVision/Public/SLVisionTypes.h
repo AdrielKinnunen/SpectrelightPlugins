@@ -21,7 +21,7 @@ struct FVisionPolygon
     }
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLVision")
-    FVector2D Origin;
+    FVector2D Origin = FVector2D::ZeroVector;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLVision")
     TArray<FVector2D> Vertices;
 };

@@ -79,7 +79,11 @@ void UTestFrictionModificationSubsystem::Initialize(FSubsystemCollectionBase& Co
 void UTestFrictionModificationSubsystem::Deinitialize()
 {
 	auto* Solver = GetWorld()->GetPhysicsScene()->GetSolver();
-	Solver->UnregisterAndFreeSimCallbackObject_External(ContactModifierCallback);
+	if (Solver && ContactModifierCallback)
+	{
+		Solver->UnregisterAndFreeSimCallbackObject_External(ContactModifierCallback);
+		ContactModifierCallback = nullptr;		
+	}
 	Super::Deinitialize();
 }
 
