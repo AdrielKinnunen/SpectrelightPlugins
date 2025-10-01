@@ -109,7 +109,8 @@ namespace SLTileMap
 
 	inline FVector CoordsToWorldLocation(const FTileMap& TileMap, const FTileMapCoords Coords)
 	{
-		return FVector(Coords.X, Coords.Y, 0) * TileMap.TileSizeUU + TileMap.Origin;
+		const float TileSizeUU = TileMap.TileSizeUU;
+		return FVector(Coords.X, Coords.Y, 0) * TileSizeUU + TileMap.Origin + FVector(0.5 * TileSizeUU, 0.5 * TileSizeUU, 0);
 	}
 
 	inline FTileMapCoords WorldLocationToCoords(const FTileMap& TileMap, const FVector& Location)

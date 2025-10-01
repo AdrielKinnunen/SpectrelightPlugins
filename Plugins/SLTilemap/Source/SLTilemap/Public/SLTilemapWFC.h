@@ -102,12 +102,7 @@ struct FWFCOptions
 	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
 	int32 Attempts = 10;
 	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
-	bool PrintDebug = true;
-	//UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
-	//float DistanceFactor = 0.0;
-	//UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
-	//float PowerFactor = 0.0;
-	
+	bool PrintDebug = true;	
 };
 
 UCLASS(BlueprintType)
