@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SLTilemapCore.h"
-#include "SLTilemapPaint.h"
+#include "SLTilemapGen.h"
 #include "SLTilemapQuery.h"
 #include "SLTilemapPatterns.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
@@ -47,7 +47,7 @@ public:
 
 	//Paint
 	UFUNCTION(BlueprintCallable, Category = "SLTileMap")
-	static void ApplyPaintOpsStack(UPARAM(ref) FTileMap& TileMap, UPARAM(ref) FTilePaintOpsStack& PaintOpsStack);
+	static void ApplyGenOpsStack(UPARAM(ref) FTileMap& TileMap, UPARAM(ref) FTileGenOpsStack& PaintOpsStack, const int32 Seed);
 	UFUNCTION(BlueprintCallable, Category = "SLTileMap")
 	static void Fill(UPARAM(ref) FTileMap& TileMap, const uint8 Tile);
 	UFUNCTION(BlueprintCallable, Category = "SLTileMap")

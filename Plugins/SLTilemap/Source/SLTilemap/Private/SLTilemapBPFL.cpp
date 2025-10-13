@@ -1,66 +1,13 @@
 #include "SLTilemapBPFL.h"
 
 #include "SLTilemapColor.h"
+#include "SLTilemapGen.h"
 #include "SLTilemapPaint.h"
 #include "SLTilemapSpline.h"
 
 void USLTilemapBPFL::RunTests()
 {
-	/*
-    constexpr int32 Width = 10;
-    constexpr int32 Height = 5;
-    
-    constexpr int32 TLC = 0;
-    constexpr int32 TRC = Width - 1;
-    constexpr int32 BLC = Width * (Height - 1);
-    constexpr int32 BRC = Width * Height - 1;
-    constexpr int32 TRCT = Height - 1;
-    constexpr int32 BLCT = Height * (Width - 1);
-    
-    check(inline_XYToIndex(Width - 1, Height - 1, Width) == BRC);
-    check(inline_IndexToX(BRC, Width) == Width - 1);
-    check(inline_IndexToY(BRC, Width) == Height - 1);
-    
-    check(inline_IndexToIndexReflected(TLC, Width) == TRC);
-    check(inline_IndexToIndexReflected(BLC, Width) == BRC);
-    
-    check(inline_IndexToIndexTransposed(TLC, Width, Height) == TLC);
-    check(inline_IndexToIndexTransposed(TRC, Width, Height) == BLCT);
-    check(inline_IndexToIndexTransposed(BLC, Width, Height) == TRCT);
-    check(inline_IndexToIndexTransposed(BRC, Width, Height) == BRC);
-
-    check(inline_IndexToIndexRotated(TLC, Width, Height) == TRCT);
-    check(inline_IndexToIndexRotated(TRC, Width, Height) == BRC);
-    check(inline_IndexToIndexRotated(BRC, Width, Height) == BLCT);
-    check(inline_IndexToIndexRotated(BLC, Width, Height) == TLC);
-
-    FTileMap OriginalMap = FTileMap(Width, Height, 0);
-    OriginalMap.SetTile(1,0,0);
-    OriginalMap.SetTile(2,Width - 1,0);
-    OriginalMap.SetTile(3,Width - 1,Height - 1);
-    OriginalMap.SetTile(4,0,Height - 1);
-    FTileMap TestMap = OriginalMap;
-    check(TestMap == OriginalMap);
-    
-    //TestMap = FTileMap::Reflect(TestMap);
-    //TestMap = FTileMap::Reflect(TestMap);
-    check(TestMap == OriginalMap);
-    
-    //TestMap = FTileMap::Transpose(TestMap);
-    //TestMap = FTileMap::Transpose(TestMap);
-    check(TestMap == OriginalMap);
-
-    //TestMap = FTileMap::Rotate(TestMap);
-    //TestMap = FTileMap::Rotate(TestMap);
-    //TestMap = FTileMap::Rotate(TestMap);
-    //TestMap = FTileMap::Rotate(TestMap);
-    check(TestMap == OriginalMap);
-
-    //TestMap = FTileMap::Transpose(TestMap);
-    //TestMap = FTileMap::Reflect(TestMap);\
-    //TestMap = FTileMap::Rotate(TestMap);
-    check(TestMap == OriginalMap);
-	*/
+	
 	FTilePattern OriginalPattern;
 	for (int32 i = 0; i < 9; i++)
 	{
@@ -84,44 +31,7 @@ void USLTilemapBPFL::RunTests()
 	check(TestPattern != OriginalPattern);
 	TestPattern.Rotate();
 	check(TestPattern == OriginalPattern);
-/*
-	//Rotation Tests
-	FTileMapCoords N = FTileMapCoords(1, 0);
-	FTileMapCoords NE = FTileMapCoords(1, 1);
-	FTileMapCoords E = FTileMapCoords(0, 1);
-	FTileMapCoords SE = FTileMapCoords(-1, 1);
-	FTileMapCoords S = FTileMapCoords(-1, 0);
-	FTileMapCoords SW = FTileMapCoords(-1, -1);
-	FTileMapCoords W = FTileMapCoords(0, -1);
-	FTileMapCoords NW = FTileMapCoords(1, -1);
 
-	FTileMapCoords X = N;
-
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == NE);
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == E);
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == SE);
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == S);
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == SW);
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == W);
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == NW);
-	X = SLTileMap::RotateDirection45(X, 1);
-	check(X == N);
-	X = SLTileMap::RotateDirection45(X, -12);
-	check(X == S);
-	X = SLTileMap::RotateDirection45(X, -1);
-	check(X == SE);
-	X = SLTileMap::RotateDirection45(X, 14);
-	check(X == NE);
-	X = SLTileMap::RotateDirection45(X, 2);
-	check(X == SE);
-	*/
 
 	UE_LOG(LogTemp, Warning, TEXT("Tests ran OK"));
 }
@@ -182,9 +92,9 @@ bool USLTilemapBPFL::GetBit(const uint8 Byte, const int32 Index)
 	return (Byte >> Index) & 1;
 }
 
-void USLTilemapBPFL::ApplyPaintOpsStack(FTileMap& TileMap, FTilePaintOpsStack& PaintOpsStack)
+void USLTilemapBPFL::ApplyGenOpsStack(FTileMap& TileMap, FTileGenOpsStack& PaintOpsStack, const int32 Seed)
 {
-	SLTileMap::ApplyPaintOpsStack(TileMap, PaintOpsStack);
+	SLTileMap::ApplyGenOpsStack(TileMap, PaintOpsStack, Seed);
 }
 
 void USLTilemapBPFL::Fill(FTileMap& TileMap, const uint8 Tile)
@@ -200,7 +110,7 @@ void USLTilemapBPFL::Flood(FTileMap& TileMap, const uint8 Tile, const FTileMapCo
 
 void USLTilemapBPFL::SetBorder(FTileMap& TileMap, const uint8 Tile)
 {
-	SLTileMap::SetBorder(TileMap, Tile);
+	SLTileMap::SetBorder(TileMap, Tile, 1);
 }
 
 TArray<FTileIndexSet> USLTilemapBPFL::GetIslands(const FTileMap& TileMap, const uint8 Foreground)

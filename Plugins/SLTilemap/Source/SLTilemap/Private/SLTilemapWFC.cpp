@@ -276,10 +276,11 @@ float USLWave::CalculateEntropy(TArray<int32> PatternIndices)
 	return -SumPLogP;
 }
 
+
+/*
 void USLWave::OnFailed()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Failed at cell %d location %d, %d"), FailedAtIndex, Cells.Coords[FailedAtIndex].X, Cells.Coords[FailedAtIndex].Y);
-	/*
 	switch (FailureResponse)
 	{
 	case EFailureResponse::RevertChunk:
@@ -298,9 +299,8 @@ void USLWave::OnFailed()
 		}
 		break;
 	}
-	*/
 }
-
+*/
 
 void USLWave::Propagate()
 {
@@ -311,7 +311,7 @@ void USLWave::Propagate()
 		UpdateCell(CellIndex);
 		if (RunState == ERunState::Failed)
 		{
-			OnFailed();
+			//OnFailed();
 			break;
 		}
 	}
@@ -321,36 +321,18 @@ void USLWave::Propagate()
 
 void USLWave::ObserveCell(const int32 CellIndex)
 {
-	//const FTileMapCoords CellCoords = Cells.Coords[CellIndex];
-	//const float CellX = static_cast<float>(CellCoords.X) / (WaveSize.X - 3);
-	//const float CellY = static_cast<float>(CellCoords.Y) / (WaveSize.Y - 3);
-	//const float CellDistance = FMath::Sqrt((0.5 - CellX) * (0.5 - CellX) + (0.5 - CellY) * (0.5 - CellY));
-    int32 PatternIndex = Cells.AllowedPatterns[CellIndex].AllowedPatterns[0];
+	int32 PatternIndex = Cells.AllowedPatterns[CellIndex].AllowedPatterns[0];
     if (Cells.AllowedPatterns[CellIndex].AllowedPatterns.Num() > 1)
     {
         PatternIndex = -1;
         float SumP = 0;
         for (const auto& i : Cells.AllowedPatterns[CellIndex].AllowedPatterns)
         {
-        	//const float RawWeight = PatternSet.Weights[i];
-        	//const float Weight = FMath::Pow(RawWeight, Options.PowerFactor);
-        	//const float Spread = Options.DistanceFactor;
-        	//const float Distance = PatternSet.AvgDistance[i];
-        	//const float DistanceError = FMath::Abs(Distance - CellDistance);
-        	//const float WeightScalar = 0.99*FMath::Exp(-100*Spread*Spread*DistanceError*DistanceError) + 0.01;
-        	
-            SumP += PatternSet.Weights[i];
+        	SumP += PatternSet.Weights[i];
         }
         float RandomFloat = SumP * RandomStream.FRand();
         for (const auto& i : Cells.AllowedPatterns[CellIndex].AllowedPatterns)
         {
-        	//const float RawWeight = PatternSet.Weights[i];
-        	//const float Weight = FMath::Pow(RawWeight, Options.PowerFactor);
-        	//const float Spread = Options.DistanceFactor;
-        	//const float Distance = PatternSet.AvgDistance[i];
-        	//const float DistanceError = FMath::Abs(Distance - CellDistance);
-        	//const float WeightScalar = 0.99*FMath::Exp(-100*Spread*Spread*DistanceError*DistanceError) + 0.01;
-            //RandomFloat -= Weight * WeightScalar;
         	RandomFloat -= PatternSet.Weights[i];
             if (RandomFloat < 0)
             {
@@ -374,12 +356,10 @@ void USLWave::ObserveCell(const int32 CellIndex)
 void USLWave::DirtyUnobservedNeighbors(int32 CellIndex)
 {
 	FTileMapCoords Coords = Cells.Coords[CellIndex];
-	constexpr int32 NeighborXOffsets[8] = {-1,0,1,-1,1,-1,0,1};
-	constexpr int32 NeighborYOffsets[8] = {-1,-1,-1,0,0,1,1,1};
-	//constexpr int32 NeighborXOffsets[8] = {-1,0,1,-1,1,-1,0,1,-2,-1,0,1,2,-2,2,-2,2,-2,2,-2,-1,0,1,2};
-	//constexpr int32 NeighborYOffsets[8] = {-1,-1,-1,0,0,1,1,1,-2,-2,-2,-2,-2,-1,-1,0,0,1,1,2,2,2,2,2};
 	for (int32 i = 0; i < 8; i++)
 	{
+		constexpr int32 NeighborXOffsets[8] = {-1,0,1,-1,1,-1,0,1};
+		constexpr int32 NeighborYOffsets[8] = {-1,-1,-1,0,0,1,1,1};
 		const FTileMapCoords NeighborCoords = FTileMapCoords(Coords.X + NeighborXOffsets[i], Coords.Y + NeighborYOffsets[i]);
 		if (NeighborCoords.X > -1 && NeighborCoords.X < WaveSize.X && NeighborCoords.Y > -1 && NeighborCoords.Y < WaveSize.Y)
 		{

@@ -317,9 +317,9 @@ namespace SLTileMap
 				{
 					continue;
 				}
-				const bool bNeighborMatches = TileMap.Data[Neighbor] == Foreground;
-				const bool bBehindMatches = TileMap.Data[Behind] ==  Foreground;
-				bSharp &= !bNeighborMatches || (bNeighborMatches && bBehindMatches);
+				const bool bNeighborMatches = TileMap.Data[Neighbor]==Foreground;
+				const bool bBehindMatches = TileMap.Data[Behind]==Foreground;
+				bSharp &= !bNeighborMatches||(bNeighborMatches&&bBehindMatches);
 				//bSharp &= Result.Contains({Neighbor, Behind});
 			}
 			if (!bSharp)

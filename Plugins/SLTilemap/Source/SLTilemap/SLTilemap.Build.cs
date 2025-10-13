@@ -27,7 +27,7 @@ public class SLTilemap : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new[]
 			{
-				"Core", "Engine"
+				"Core", "Engine", "GeometryCore"
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);

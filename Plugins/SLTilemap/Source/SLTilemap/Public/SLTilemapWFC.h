@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SLTilemapBPFL.h"
+//#include "SLTilemapBPFL.h"
+#include "SLTilemapCore.h"
+#include "SLTilemapPatterns.h"
 #include "Containers/RingBuffer.h"
 #include "UObject/Object.h"
 #include "SLTilemapWFC.generated.h"
@@ -154,7 +156,7 @@ private:
 	int32 SelectCellToObserve();
 	void UpdateCellEntropy(int32 CellIndex);
 	float CalculateEntropy(TArray<int32> PatternIndices);
-    void OnFailed();
+    //void OnFailed();
 	void Propagate();
     void ObserveCell(int32 CellIndex);
 	void DirtyUnobservedNeighbors(int32 CellIndex);

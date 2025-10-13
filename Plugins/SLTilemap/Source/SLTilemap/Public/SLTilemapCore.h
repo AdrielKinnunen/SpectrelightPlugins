@@ -107,6 +107,14 @@ namespace SLTileMap
 		TileMap.Data[CoordsToIndex(Coords, TileMap.Size)] = Tile;
 	}
 
+	inline void SetTileChecked(FTileMap& TileMap, const uint8 Tile, const FTileMapCoords Coords)
+	{
+		if (IsValidCoordinate(TileMap, Coords))
+		{
+			SetTile(TileMap, Tile, Coords);
+		}
+	}
+
 	inline FVector CoordsToWorldLocation(const FTileMap& TileMap, const FTileMapCoords Coords)
 	{
 		const float TileSizeUU = TileMap.TileSizeUU;
