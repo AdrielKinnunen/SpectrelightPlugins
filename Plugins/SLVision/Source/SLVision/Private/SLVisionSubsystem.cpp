@@ -47,6 +47,7 @@ FVisionPolygon USLVisionSubsystem::CalculateVisionPolygonFromSource(USLVisionCom
     TArray<FVector2D> PolygonVertices;
 
     FCollisionQueryParams TraceParams = FCollisionQueryParams();
+	TraceParams.AddIgnoredComponent(SourceComponent->IgnoredComponent);
     FHitResult Hit;
 
     for (auto& RelativeLocation : RelativeTargetLocations)

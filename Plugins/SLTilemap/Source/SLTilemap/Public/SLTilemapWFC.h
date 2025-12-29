@@ -25,7 +25,7 @@ struct FCellsSOA
 
 	TArray<FCellAllowedPatterns> OriginalAllowedPatterns;
 	TArray<FCellAllowedPatterns> AllowedPatterns;
-	TArray<FTileMapCoords> Coords;
+	TArray<FCoords> Coords;
 	TArray<float> Entropy;
 	TArray<float> SmallRandomValue;
 	TBitArray<> IsObserved;
@@ -95,15 +95,17 @@ struct FWFCOptions
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLTilemap")
 	int32 RandomSeed = 133742069;
-	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLTilemap")
+	ESymmetryLevel SymmetryLevel = ESymmetryLevel::All;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLTilemap")
 	ECellSelectionHeuristic SelectionHeuristic = ECellSelectionHeuristic::Entropy;
-	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLTilemap")
 	EFailureResponse FailureResponse = EFailureResponse::RevertChunk;
-	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLTilemap")
 	int32 Attempts = 10;
-	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLTilemap")
 	bool PrintDebug = true;	
 };
 
@@ -119,17 +121,19 @@ public:
 
 	//API
 	UFUNCTION(BlueprintCallable, Category = "SLTilemap")
-	void InitializeWithOptions(FTileMap InTileMap, FTilePatternSet InPatternSet, FWFCOptions InOptions);
+	void InitializeWithOptions(FTileMap InTileMap, FTileMap Example, FWFCOptions InOptions);
 	UFUNCTION(BlueprintCallable, Category = "SLTilemap")
     void Step();
     UFUNCTION(Blueprintcallable, Category = "SLTilemap")
     void Run();
+	UFUNCTION(Blueprintcallable, Category = "SLTilemap")
+	ERunState GetRunState();
 
 	//Debug
     UFUNCTION(Blueprintcallable, Category = "SLTilemap")
     TArray<float> GetEntropy();
 	UFUNCTION(Blueprintcallable, Category = "SLTilemap")
-	FCellDebugData GetCellDebugData(FTileMapCoords Coords);
+	FCellDebugData GetCellDebugData(FCoords Coords);
     UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
     int32 LastCellObserved;
     UPROPERTY(BlueprintReadOnly, Category = "SLTilemap")
@@ -140,7 +144,7 @@ private:
 	FTileMap InputTileMap;
 	FTilePatternSet PatternSet;
 	FWFCOptions Options;
-	FTileMapCoords WaveSize;
+	FCoords WaveSize;
 	int32 AttemptsRemaining;
 	ERunState RunState = ERunState::UnInitialized;
     //bool Failed = false;
@@ -161,7 +165,7 @@ private:
     void ObserveCell(int32 CellIndex);
 	void DirtyUnobservedNeighbors(int32 CellIndex);
 	bool CellNeedsUpdate(int32 CellIndex);
-	void RevertChunk(FTileMapCoords Coords, int32 Radius);
+	void RevertChunk(FCoords Coords, int32 Radius);
 };
 
 

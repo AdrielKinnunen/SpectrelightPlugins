@@ -177,16 +177,16 @@ struct FTilePatternSet
 
 namespace SLTileMap
 {
-	inline FTilePattern ReadPattern(const FTileMap& TileMap, const FTileMapCoords StartCoords)
+	inline FTilePattern ReadPattern(const FTileMap& TileMap, const FCoords StartCoords)
 	{
 		FTilePattern Result = FTilePattern();
 		for (int32 Y = 0; Y < 3; Y++)
 		{
 			for (int32 X = 0; X < 3; X++)
 			{
-				const FTileMapCoords Coords = FTileMapCoords(X + StartCoords.X, Y + StartCoords.Y);
+				const FCoords Coords = FCoords(X + StartCoords.X, Y + StartCoords.Y);
 				const uint8 Tile = GetTile(TileMap, Coords);
-				const int32 Index = CoordsToIndex(FTileMapCoords(X, Y), FTileMapCoords(3, 3));
+				const int32 Index = CoordsToIndex(FCoords(X, Y), FCoords(3, 3));
 				Result.Data[Index] = Tile;
 			}
 		}
@@ -194,15 +194,15 @@ namespace SLTileMap
 	}
 
 
-	inline void WritePattern(FTileMap& TileMap, const FTilePattern Pattern, const FTileMapCoords Coords)
+	inline void WritePattern(FTileMap& TileMap, const FTilePattern Pattern, const FCoords Coords)
 	{
 		for (int32 Y = 0; Y < 3; Y++)
 		{
 			for (int32 X = 0; X < 3; X++)
 			{
-				const int32 PatternIndex = CoordsToIndex(FTileMapCoords(X, Y), FTileMapCoords(3, 3));
+				const int32 PatternIndex = CoordsToIndex(FCoords(X, Y), FCoords(3, 3));
 				const uint8 Tile = Pattern.Data[PatternIndex];
-				SetTile(TileMap, Tile, FTileMapCoords(X + Coords.X, Y + Coords.Y));
+				SetTile(TileMap, FCoords(X + Coords.X, Y + Coords.Y), Tile);
 			}
 		}
 	}
@@ -221,7 +221,7 @@ namespace SLTileMap
 			for (int32 x = 0; x < TileMap.Size.X - 3 + 1; x++)
 			{
 				Variants.Reset();
-				FTilePattern Pattern = ReadPattern(TileMap, FTileMapCoords(x, y));
+				FTilePattern Pattern = ReadPattern(TileMap, FCoords(x, y));
 				Variants.Add(Pattern);
 				if (Symmetry >= ESymmetryLevel::ReflectY)
 				{
@@ -272,7 +272,7 @@ namespace SLTileMap
 		{
 			const float Probability = Counts[i] / SumCounts;
 			PatternSet.Weights[i] = Probability;
-			UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, probability %f"), i, Counts[i], Probability);
+			//UE_LOG(LogTemp, Warning, TEXT("Pattern %d has count %d, probability %f"), i, Counts[i], Probability);
 		}
 		return PatternSet;
 	}

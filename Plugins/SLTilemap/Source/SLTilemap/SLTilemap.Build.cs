@@ -43,6 +43,14 @@ public class SLTilemap : ModuleRules
 				// ... add private dependencies that you statically link with here ...	
 			}
 		);
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new[]
+			{
+				"UnrealEd"
+			});
+		}
 
 
 		DynamicallyLoadedModuleNames.AddRange(

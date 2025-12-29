@@ -35,10 +35,10 @@ Propagate
 	
  */
 
-void USLWave::InitializeWithOptions(FTileMap InTileMap, FTilePatternSet InPatternSet, FWFCOptions InOptions)
+void USLWave::InitializeWithOptions(FTileMap InTileMap, FTileMap Example, FWFCOptions InOptions)
 {
 	InputTileMap = InTileMap;
-	PatternSet = InPatternSet;
+	PatternSet = SLTileMap::GeneratePatternSet(Example, InOptions.SymmetryLevel);
 	Options = InOptions;
 	Initialize();
 }
@@ -107,7 +107,12 @@ void USLWave::Run()
     }
     const double EndTime = FPlatformTime::Seconds();
     const double TotalTimems = 1000 * (EndTime - StartTime);
-    UE_LOG(LogTemp, Warning, TEXT("Run took %f ms"), TotalTimems);
+    UE_LOG(LogTemp, Warning, TEXT("WFC run took %f ms"), TotalTimems);
+}
+
+ERunState USLWave::GetRunState()
+{
+	return RunState;
 }
 
 TArray<float> USLWave::GetEntropy()
@@ -115,7 +120,7 @@ TArray<float> USLWave::GetEntropy()
     return Cells.Entropy;
 }
 
-FCellDebugData USLWave::GetCellDebugData(const FTileMapCoords Coords)
+FCellDebugData USLWave::GetCellDebugData(const FCoords Coords)
 {
 	FCellDebugData DebugData;
 	int32 CellIndex = Cells.Coords.Find(Coords);
@@ -140,15 +145,15 @@ void USLWave::InitPatternCells()
 	const float InitialEntropy = CalculateEntropy(AllowedPatternIndices);
 	
     //Create PatternCells and Initialize Them
-	WaveSize = FTileMapCoords(OutputTileMap.Size.X - 2, OutputTileMap.Size.Y - 2);
+	WaveSize = FCoords(OutputTileMap.Size.X - 2, OutputTileMap.Size.Y - 2);
 	Cells.Reset(WaveSize.X * WaveSize.Y);
     for (int32 Y = 0; Y < WaveSize.Y; Y++)
     {
         for (int32 X = 0; X < WaveSize.X; X++)
         {
         	//const int32 CellIndex = XYToIndex(X, Y, WaveWidth);
-        	const int32 CellIndex = SLTileMap::CoordsToIndex(FTileMapCoords(X, Y), WaveSize);
-        	Cells.Coords[CellIndex] = FTileMapCoords(X, Y);
+        	const int32 CellIndex = SLTileMap::CoordsToIndex(FCoords(X, Y), WaveSize);
+        	Cells.Coords[CellIndex] = FCoords(X, Y);
             Cells.AllowedPatterns[CellIndex].AllowedPatterns = AllowedPatternIndices;
         	Cells.OriginalAllowedPatterns[CellIndex].AllowedPatterns = AllowedPatternIndices;
         	Cells.SmallRandomValue[CellIndex] = RandomStream.FRand() * KINDA_SMALL_NUMBER;
@@ -172,11 +177,12 @@ void USLWave::UpdateCell(const int32 CellIndex)
     // Updates Cell state based on underlying OutputTileMap state, then "stamps" Cell state into the OutputTileMap
 
     //Cache values
-	const FTileMapCoords Coords = Cells.Coords[CellIndex];
+	const FCoords Coords = Cells.Coords[CellIndex];
     const int32 PreNumPatterns = Cells.AllowedPatterns[CellIndex].AllowedPatterns.Num();
 
     //PreNumPatterns should never be 0
     check(PreNumPatterns > 0);
+	
 
 	//Update allowed patterns
     TArray<int32> NewAllowedPatterns;
@@ -214,8 +220,8 @@ void USLWave::UpdateCell(const int32 CellIndex)
 		if (AttemptsRemaining > 0)
 		{
 			RunState = ERunState::Running;
-			FTileMapCoords ChunkCenter = FTileMapCoords(Coords.X+1, Coords.Y+1);
-			RevertChunk(ChunkCenter, 10);
+			FCoords ChunkCenter = FCoords(Coords.X+1, Coords.Y+1);
+			RevertChunk(ChunkCenter, 15);
 		}
     }
 
@@ -321,6 +327,11 @@ void USLWave::Propagate()
 
 void USLWave::ObserveCell(const int32 CellIndex)
 {
+	if (Cells.AllowedPatterns[CellIndex].AllowedPatterns.Num() < 1)
+	{
+		RunState = ERunState::Failed;
+		return;
+	}
 	int32 PatternIndex = Cells.AllowedPatterns[CellIndex].AllowedPatterns[0];
     if (Cells.AllowedPatterns[CellIndex].AllowedPatterns.Num() > 1)
     {
@@ -355,12 +366,12 @@ void USLWave::ObserveCell(const int32 CellIndex)
 
 void USLWave::DirtyUnobservedNeighbors(int32 CellIndex)
 {
-	FTileMapCoords Coords = Cells.Coords[CellIndex];
+	FCoords Coords = Cells.Coords[CellIndex];
 	for (int32 i = 0; i < 8; i++)
 	{
 		constexpr int32 NeighborXOffsets[8] = {-1,0,1,-1,1,-1,0,1};
 		constexpr int32 NeighborYOffsets[8] = {-1,-1,-1,0,0,1,1,1};
-		const FTileMapCoords NeighborCoords = FTileMapCoords(Coords.X + NeighborXOffsets[i], Coords.Y + NeighborYOffsets[i]);
+		const FCoords NeighborCoords = FCoords(Coords.X + NeighborXOffsets[i], Coords.Y + NeighborYOffsets[i]);
 		if (NeighborCoords.X > -1 && NeighborCoords.X < WaveSize.X && NeighborCoords.Y > -1 && NeighborCoords.Y < WaveSize.Y)
 		{
 			const int32 NeighborIndex = SLTileMap::CoordsToIndex(NeighborCoords, WaveSize);
@@ -385,7 +396,7 @@ bool USLWave::CellNeedsUpdate(int32 CellIndex)
 	return false;
 }
 
-void USLWave::RevertChunk(FTileMapCoords Coords, int32 Radius)
+void USLWave::RevertChunk(FCoords Coords, int32 Radius)
 {
 	for (int32 YOffset = -Radius; YOffset < Radius; YOffset++)
 	{
@@ -395,9 +406,9 @@ void USLWave::RevertChunk(FTileMapCoords Coords, int32 Radius)
 			const int32 Y = Coords.Y + YOffset;
 			if (X >= 0 && Y >= 0 && X < OutputTileMap.Size.X && Y < OutputTileMap.Size.Y)
 			{
-				const FTileMapCoords Location = FTileMapCoords(X, Y);
+				const FCoords Location = FCoords(X, Y);
 				const uint8 Tile = SLTileMap::GetTile(InputTileMap, Location);
-				SLTileMap::SetTile(OutputTileMap, Tile, Location);
+				SLTileMap::SetTile(OutputTileMap, Location, Tile);
 			}
 		}
 	}

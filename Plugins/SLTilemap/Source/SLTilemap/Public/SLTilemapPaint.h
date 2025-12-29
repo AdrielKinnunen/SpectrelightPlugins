@@ -5,7 +5,33 @@
 #include "CoreMinimal.h"
 #include "SLTilemapCore.h"
 #include "SLTilemapQuery.h"
-//#include "SLTilemapPaint.generated.h"
+#include "SLTilemapPaint.generated.h"
+
+
+
+UENUM(BlueprintType)
+enum class EPaintMode : uint8
+{
+	Paint,
+	Flood,
+	Fill
+};
+
+USTRUCT(BlueprintType)
+struct FPaintOptions
+{
+	GENERATED_BODY()
+
+	FPaintOptions()
+	{
+	}
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bDrawColor = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = "/Script/SLTilemap.ETileMapColor"))
+	int32 Color = 0;
+};
+
 
 
 namespace SLTileMap
@@ -20,7 +46,7 @@ namespace SLTileMap
 
 	inline void Flood(FTileMap& TileMap, const uint8 Tile, const int32 Index)
 	{
-		const FTileIndexSet ConnectedIndices = GetConnectedIndices4(TileMap, Index);
+		const FTileMapIndexSet ConnectedIndices = GetConnectedIndices4(TileMap, Index);
 		for (const auto i : ConnectedIndices.Indices)
 		{
 			TileMap.Data[i] = Tile;
@@ -28,7 +54,7 @@ namespace SLTileMap
 	}
 
 
-	inline void SetBorder(FTileMap& TileMap, const uint8 Tile, const int32 Thickness)
+	inline void SetBorder(FTileMap& TileMap, const int32 Thickness, const uint8 Tile)
 	{
 		check(Thickness > 0)
 
@@ -39,19 +65,19 @@ namespace SLTileMap
 		{
 			for (int32 i = 0; i<TileMap.Size.X; i++)
 			{
-				SetTileChecked(TileMap, Tile, FTileMapCoords(i, b));
-				SetTileChecked(TileMap, Tile, FTileMapCoords(i, LastY - b));
+				SetTileChecked(TileMap, Tile, FCoords(i, b));
+				SetTileChecked(TileMap, Tile, FCoords(i, LastY - b));
 			}
 			for (int32 i = 0; i<TileMap.Size.Y; i++)
 			{
-				SetTileChecked(TileMap, Tile, FTileMapCoords(b, i));
-				SetTileChecked(TileMap, Tile, FTileMapCoords(LastX - b, i));
+				SetTileChecked(TileMap, Tile, FCoords(b, i));
+				SetTileChecked(TileMap, Tile, FCoords(LastX - b, i));
 			}
 		}
 	}
 
 
-	inline void DrawLine(FTileMap& TileMap, const uint8 Tile, const FTileMapCoords Start, const FTileMapCoords End)
+	inline void DrawLine(FTileMap& TileMap, const uint8 Tile, const FCoords Start, const FCoords End)
 	{
 		int32 x0 = Start.X;
 		int32 y0 = Start.Y;
@@ -66,7 +92,7 @@ namespace SLTileMap
 
 		while (true)
 		{
-			SLTileMap::SetTile(TileMap, Tile, {x0, y0});
+			SLTileMap::SetTile(TileMap, {x0, y0}, Tile);
 
 			if (x0==x1&&y0==y1) break;
 

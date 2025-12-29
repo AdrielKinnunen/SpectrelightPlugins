@@ -25,6 +25,8 @@ public:
     float DistanceBetweenPoints = 100;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vision")
     TArray<FVector> RelativeTargetPoints;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vision")
+	UPrimitiveComponent* IgnoredComponent;
 
     UFUNCTION(Blueprintcallable, Category = "Vision")
     void CalculateRelativeTargetPoints();
