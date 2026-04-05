@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceWheel.h"
 
 FSLMDeviceModelWheel USLMDeviceComponentWheel::GetDeviceState()
@@ -170,8 +170,8 @@ void USLMDeviceSubsystemWheel::SendHitData(int32 DeviceIndex, UPrimitiveComponen
 void USLMDeviceSubsystemWheel::DoStaticFriction(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar)
 {
 	auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
-	const auto WheelMOI = DomainRotation->GetData(Wheel.Index_Mech_Drive).MomentOfInertia;
-	const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
+	const float WheelMOI = DomainRotation->GetData(Wheel.Index_Mech_Drive).MomentOfInertia;
+	const float BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
 
 	//Brakes
 	const float MaxBrakeAngularImpulse = Wheel.BrakeMaxTorque * BrakeSignal * DeltaTime;
@@ -179,9 +179,9 @@ void USLMDeviceSubsystemWheel::DoStaticFriction(FSLMDeviceModelWheel& Wheel, flo
 	const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeAngularImpulse, MaxBrakeAngularImpulse);
 	AngVel += BrakeImpulseClamped / WheelMOI;
 
-	//Grip
-	const float DesiredAngVel = FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong) / Wheel.Radius;
-	const float AngularImpulseToStop = (DesiredAngVel - AngVel) * WheelMOI;
+	//Long Impulse Limits
+	const float AngVelForZeroSlip = FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong) / Wheel.Radius;
+	const float AngularImpulseToStop = (AngVelForZeroSlip - AngVel) * WheelMOI;
 	const float LinearImpulseMaxSizeThisSubstep = FMath::Abs(AngularImpulseToStop * 10000 / Wheel.Radius);
 
 	const float SlipSpeedLong = Wheel.Radius * AngVel - FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong);
@@ -212,12 +212,25 @@ void USLMDeviceSubsystemWheel::DoStaticFriction(FSLMDeviceModelWheel& Wheel, flo
 
 void USLMDeviceSubsystemWheel::DoPacejka(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar)
 {
-	auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
+	float AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
+
+	const float WheelSurfaceSpeed = Wheel.Radius * AngVel;
+	const float LongitudinalSpeed = FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong);
+	const float LateralSpeed = FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLat);
+	const float SpeedMag = FMath::Max(FMath::Abs(LongitudinalSpeed), 1.0f);
+	
+	const float SlipRatio = WheelSurfaceSpeed - LongitudinalSpeed / SpeedMag;
+	const float SlipAngle = FMath::Atan2(-LateralSpeed, FMath::Abs(LongitudinalSpeed));
+	
+	const float StiffnessLong = 8.0f;
+	const float ShapeLong = 1.4f;
+	const float LongFactor = FMath::Sin(ShapeLong * FMath::Atan(StiffnessLong * SlipRatio));
+	const float StiffnessLat = 8.0f;
+	const float ShapeLat = 1.4f;
+	const float LatFactor = FMath::Sin(ShapeLat * FMath::Atan(StiffnessLat * SlipRatio));
 
 
 	
-	const float SlipRatio = Wheel.Radius * AngVel / FVector::DotProduct(Wheel.Velocity, Wheel.DirectionLong) - 1;
-
 	const float DesiredLongGs = FMath::GetMappedRangeValueClamped(FVector2D(-0.3,0.3),FVector2D(-1,1),SlipRatio);
 	const auto DesiredImpulse = Wheel.DirectionLong * DesiredLongGs * Wheel.NormalImpulseMagnitude;
 
@@ -236,7 +249,7 @@ void USLMDeviceSubsystemWheel::DoPacejka(FSLMDeviceModelWheel& Wheel, float Delt
 
 void USLMDeviceSubsystemWheel::DoBrush(FSLMDeviceModelWheel& Wheel, float DeltaTime, float SubstepScalar)
 {
-	auto AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
+	float AngVel = DomainRotation->GetData(Wheel.Index_Mech_Drive).AngularVelocity;
 	const auto WheelMOI = DomainRotation->GetData(Wheel.Index_Mech_Drive).MomentOfInertia;
 	const auto BrakeSignal = FMath::Clamp(DomainSignal->ReadByPortIndex(Wheel.Index_Signal_Brake), 0, 1);
 
@@ -246,7 +259,11 @@ void USLMDeviceSubsystemWheel::DoBrush(FSLMDeviceModelWheel& Wheel, float DeltaT
 	const float BrakeImpulseClamped = FMath::Clamp(BrakeImpulseToStop, -MaxBrakeAngularImpulse, MaxBrakeAngularImpulse);
 	AngVel += BrakeImpulseClamped / WheelMOI;
 
-	
+
+
+
+
+	DomainRotation->SetAngularVelocity(Wheel.Index_Mech_Drive, AngVel);
 }
 
 /*
@@ -265,3 +282,6 @@ void USLMDeviceSubsystemWheel::ProcessHitResult(FHitResult HitResult)
 	}
 }
 */
+
+
+#endif

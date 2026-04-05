@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDevicePositiveDisplacementAirPump.h"
 
 FSLMDeviceModelPositiveDisplacementAirPump USLMDeviceComponentPositiveDisplacementAirPump::GetDeviceState()
@@ -91,3 +91,5 @@ FSLMDeviceModelPositiveDisplacementAirPump USLMDeviceSubsystemPositiveDisplaceme
 {
     return DeviceModels[DeviceIndex];
 }
+
+#endif

@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 /*
 
 #include "Devices/SLMDeviceTrigger.h"
@@ -87,3 +87,6 @@ void USLMDeviceSubsystemTrigger::SetSignal(const int32 DeviceIndex, const float 
 	DomainSignal->WriteByPortIndex(PortIndex, NewSignal);
 }
 */
+
+
+#endif

@@ -118,7 +118,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "SLTilemap")
 	FTileMap OutputTileMap;
 	
-
 	//API
 	UFUNCTION(BlueprintCallable, Category = "SLTilemap")
 	void InitializeWithOptions(FTileMap InTileMap, FTileMap Example, FWFCOptions InOptions);

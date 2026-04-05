@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceBattery.h"
 
 FSLMDeviceModelBattery USLMDeviceComponentBattery::GetDeviceState()
@@ -77,3 +77,7 @@ FSLMDeviceModelBattery USLMDeviceSubsystemBattery::GetDeviceState(const int32 De
 {
     return DeviceModels[DeviceIndex];
 }
+
+
+
+#endif

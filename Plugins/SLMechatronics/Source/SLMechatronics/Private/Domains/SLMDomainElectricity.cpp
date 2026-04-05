@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Domains/SLMDomainElectricity.h"
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ELECTRICITY, "SpectrelightDynamics.Domain.Electricity")
@@ -91,3 +91,6 @@ void USLMDomainElectricity::CreateNetworkForPort(const int32 Port)
 {
     PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
 }
+
+
+#endif

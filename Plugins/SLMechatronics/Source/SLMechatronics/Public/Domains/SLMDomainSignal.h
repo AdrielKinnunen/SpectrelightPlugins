@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,7 +7,7 @@
 #include "UObject/Object.h"
 #include "SLMDomainSignal.generated.h"
 
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_SIGNAL)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SLMECHATRONICS_DOMAIN_SIGNAL)
 
 USTRUCT(BlueprintType)
 struct FSLMDataSignal
@@ -70,3 +70,6 @@ private:
     virtual void RemovePortAtIndex(const int32 PortIndex) override;
     virtual void RemoveNetworkAtIndex(const int32 NetworkIndex) override;
 };
+
+
+#endif

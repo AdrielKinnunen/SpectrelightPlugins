@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceFluidCoupling.h"
 
 FSLMDeviceModelFluidCoupling USLMDeviceComponentFluidCoupling::GetDeviceState()
@@ -81,3 +81,6 @@ FSLMDeviceModelFluidCoupling USLMDeviceSubsystemFluidCoupling::GetDeviceState(co
 {
     return DeviceModels[DeviceIndex];
 }
+
+
+#endif

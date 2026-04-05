@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #pragma once
 
 #include "CoreMinimal.h"
@@ -184,3 +184,6 @@ private:
     //void AddHitResultToBuffer(FHitResult NewHitResult);
     //void ProcessHitResult(FHitResult HitResult);
 };
+
+
+#endif

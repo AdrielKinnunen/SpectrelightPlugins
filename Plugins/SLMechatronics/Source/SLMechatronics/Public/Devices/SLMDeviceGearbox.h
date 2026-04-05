@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #pragma once
 
 #include "CoreMinimal.h"
@@ -104,3 +104,18 @@ private:
     TWeakObjectPtr<USLMDomainSignal> DomainSignal;
     TSparseArray<FSLMDeviceModelGearbox> DeviceModels;
 };
+
+
+UCLASS()
+class SLMECHATRONICS_API ASLMDeviceActorGearbox : public ASLMDeviceActorBase
+{
+	GENERATED_BODY()
+	
+public:
+	ASLMDeviceActorGearbox();
+	
+	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
+	static int32 AddDeviceModelGearbox(FSLMDeviceGearbox Device);
+};
+
+#endif

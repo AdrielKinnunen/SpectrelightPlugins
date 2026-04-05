@@ -2,6 +2,7 @@
 
 #include "SLMSubsystem.h"
 
+
 #include "SLMDeviceBase.h"
 #include "SLMDomainBase.h"
 #include "SLMReplicationHelper.h"
@@ -44,6 +45,20 @@ void USLMechatronicsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	DeviceSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDeviceSubsystemBase>();
     DomainSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDomainSubsystemBase>();
     UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems and %i Domain Subsystems"), DeviceSubsystems.Num(), DomainSubsystems.Num());
+	
+	
+	TArray<UClass*> Classes;
+	GetDerivedClasses(ASLMDeviceActorBase::StaticClass(), Classes, true);
+	for (const auto Class : Classes)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Found Device Actor Class %s"), *Class->GetName());
+		FActorSpawnParameters SpawnInfo;
+		const auto Instance = GetWorld()->SpawnActor<ASLMDeviceActorBase>(Class, SpawnInfo);
+		DeviceActors.Add(Instance);
+		UE_LOG(LogTemp, Warning, TEXT("Spawned Device Actor %s"), *Instance->GetName());
+	}
+
+
 
 	
 	WorldNetMode = InWorld.GetNetMode();

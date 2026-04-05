@@ -22,7 +22,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vision")
     float VisionSlope = 1;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vision")
-    float DistanceBetweenPoints = 100;
+    float DistanceBetweenPoints = 1000;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vision")
     TArray<FVector> RelativeTargetPoints;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vision")

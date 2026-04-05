@@ -41,7 +41,7 @@ void FTestCallback::OnContactModification_Internal(Chaos::FCollisionContactModif
 			Chaos::FVec3 Loc0 = Chaos::FVec3(0,0,0);
 			Chaos::FVec3 Loc1 = Chaos::FVec3(0,0,0);
 			ContactIterator->GetWorldContactLocations(0, Loc0, Loc1);
-			Chaos::FVec3 Loc1Modified = Loc1 + Chaos::FVec3(10,0,0) * DeltaTime;
+			Chaos::FVec3 Loc1Modified = Loc1 + Chaos::FVec3(20,0,0) * DeltaTime;
 			ContactIterator->ModifyWorldContactLocations(Loc0, Loc1Modified, 0);
 			
 			if (ParticleHandle0)

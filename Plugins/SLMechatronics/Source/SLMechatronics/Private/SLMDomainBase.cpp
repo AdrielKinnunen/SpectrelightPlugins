@@ -2,9 +2,9 @@
 
 #include "SLMDomainBase.h"
 
-UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN, "SpectrelightDynamics.Domain")
+//UE_DEFINE_GAMEPLAY_TAG(TAG_SLMECHATRONICS_DOMAIN, "SLMechatronics.Domain")
 
-
+/*
 void USLMDomainSubsystemBase::CheckForCleanUp()
 {
     if (bNeedsCleanup)
@@ -18,27 +18,10 @@ void USLMDomainSubsystemBase::CheckForCleanUp()
     check(ConnectionsToRemove.Num() == 0);
 }
 
-void USLMDomainSubsystemBase::PreSimulate(const float DeltaTime)
-{
-}
-
-void USLMDomainSubsystemBase::Simulate(const float DeltaTime, const float SubstepScalar)
-{
-}
-
-void USLMDomainSubsystemBase::PostSimulate(const float DeltaTime)
-{
-}
-
-FString USLMDomainSubsystemBase::GetDebugString(int32 PortIndex)
-{
-	return "Hello World!";
-}
-
 void USLMDomainSubsystemBase::RunTests()
 {
 }
-
+/*
 void USLMDomainSubsystemBase::DebugDraw()
 {
 	for (const auto Pair : Adjacencies)
@@ -48,6 +31,7 @@ void USLMDomainSubsystemBase::DebugDraw()
 		DrawDebugLine(GetWorld(), Start, End, DebugColor, false, -1, 0, 2);
 	}
 }
+
 void USLMDomainSubsystemBase::DebugPrint()
 {
 	const auto Max = PortsMetaData.GetMaxIndex();
@@ -60,7 +44,7 @@ void USLMDomainSubsystemBase::DebugPrint()
 			const auto Location = Transform.GetLocation();
 			const FRotator Rotation = Transform.Rotator();
 			DrawDebugCoordinateSystem(GetWorld(), Location, Rotation, 200);
-			DrawDebugString(GetWorld(), Location, GetDebugString(i), nullptr, FColor::White, 0.0, true, 1.5);
+			//DrawDebugString(GetWorld(), Location, GetDebugString(i), nullptr, FColor::White, 0.0, true, 1.5);
 		}
 	}
 	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, TEXT("-----------------------------------------------"), false);
@@ -77,15 +61,15 @@ void USLMDomainSubsystemBase::DebugPrint()
 			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT("Port %i is adjacent to port %i"), Key, Value), false);
 		}
 	}
-	const auto Max2 = PortIndexToNetworkIndex.GetMaxIndex();
+	const auto Max2 = PortIndexToParticleIndex.GetMaxIndex();
 	for (int32 i = 0; i < Max2; i++)
 	{
-		if (PortIndexToNetworkIndex.IsValidIndex(i))
+		if (PortIndexToParticleIndex.IsValidIndex(i))
 		{
-			const auto Network = PortIndexToNetworkIndex[i];
+			const auto Particle = PortIndexToParticleIndex[i];
 			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Red, FString::Printf(TEXT(
-												 "Port %i maps to network %i"
-											 ), i, Network), false);
+												 "Port %i maps to Particle %i"
+											 ), i, Particle), false);
 		}
 	}
 }
@@ -163,7 +147,7 @@ TArray<FSLMConnectionByMetaData> USLMDomainSubsystemBase::GetAllConnections()
 		if (!CoveredPairs.Contains(Inverse))
 		{
 			FSLMConnectionByMetaData Entry;
-			Entry.DomainTag = DomainTag;
+			//Entry.DomainTag = DomainTag;
 			Entry.FirstMetaData = PortsMetaData[Pair.Key];
 			Entry.SecondMetaData = PortsMetaData[Pair.Value];
 			Out.Add(Entry);
@@ -215,8 +199,9 @@ void USLMDomainSubsystemBase::AddPortMetaData(FSLMPortMetaData MetaData)
     const int32 Index = PortsMetaData.Add(MetaData);
     ActorToPorts.Add(Actor, Index);
 }
-
-void USLMDomainSubsystemBase::CreateNetworkForPorts(TArray<int32> PortIndices)
+*/
+/*
+void USLMDomainSubsystemBase::CreateParticleForPorts(TArray<int32> PortIndices)
 {
 }
 
@@ -224,11 +209,11 @@ void USLMDomainSubsystemBase::RemovePortAtIndex(int32 Index)
 {
 }
 
-void USLMDomainSubsystemBase::RemoveNetworkAtIndex(int32 NetworkIndex)
+void USLMDomainSubsystemBase::RemoveParticleAtIndex(int32 ParticleIndex)
 {
 }
 
-void USLMDomainSubsystemBase::DissolveNetworkIntoPort(int32 NetworkIndex, int32 PortIndex)
+void USLMDomainSubsystemBase::DissolveParticleIntoPort(int32 ParticleIndex, int32 PortIndex)
 {
 }
 
@@ -272,32 +257,32 @@ void USLMDomainSubsystemBase::CleanUpGraph()
         const auto Actor = PortsMetaData[PortIndex].AssociatedActor;
         ActorToPorts.Remove(Actor, PortIndex);
         PortsMetaData.RemoveAt(PortIndex);
-        PortIndexToNetworkIndex.RemoveAt(PortIndex);
+        PortIndexToParticleIndex.RemoveAt(PortIndex);
     }
     PortsToRemove.Empty();
 
     //Dirty all of PortsDirty's connected neighbors
     PortsDirty = GetConnectedPorts(PortsDirty);
 
-    //Dissolve all network values back into port data
-    TSet<int32> NetworkIndicesToRemove;
+    //Dissolve all Particle values back into port data
+    TSet<int32> ParticleIndicesToRemove;
     for (const auto& PortIndex : PortsDirty)
     {
-        if (PortIndexToNetworkIndex[PortIndex] > -1)
+        if (PortIndexToParticleIndex[PortIndex] > -1)
         {
-            const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-            DissolveNetworkIntoPort(NetworkIndex, PortIndex);
-            NetworkIndicesToRemove.Add(NetworkIndex);
+            const int32 ParticleIndex = PortIndexToParticleIndex[PortIndex];
+            DissolveParticleIntoPort(ParticleIndex, PortIndex);
+            ParticleIndicesToRemove.Add(ParticleIndex);
         }
     }
 
-    //Remove all dirty port's Networks
-    for (const auto& Index : NetworkIndicesToRemove)
+    //Remove all dirty port's Particles
+    for (const auto& Index : ParticleIndicesToRemove)
     {
-        RemoveNetworkAtIndex(Index);
+        RemoveParticleAtIndex(Index);
     }
 
-    //Create network for each set of connected dirty ports
+    //Create Particle for each set of connected dirty ports
     TSet<int32> Visited;
     for (const auto& Port : PortsDirty)
     {
@@ -305,7 +290,7 @@ void USLMDomainSubsystemBase::CleanUpGraph()
         {
             auto Connected = GetConnectedPorts(TSet<int32>{Port});
             Visited.Append(Connected);
-            CreateNetworkForPorts(Connected.Array());
+            CreateParticleForPorts(Connected.Array());
         }
     }
 }
@@ -336,4 +321,8 @@ TSet<int32> USLMDomainSubsystemBase::GetConnectedPorts(const TSet<int32>& Roots)
         Neighbors.Empty();
     }
     return Connected;
+}
+*/
+void USLMDomainSubsystemBase::ConnectPortsByAddress(const FSLMPortAddress First, const FSLMPortAddress Second)
+{
 }

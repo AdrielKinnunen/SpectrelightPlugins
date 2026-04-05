@@ -26,6 +26,8 @@ public class SLMechatronics : ModuleRules
 			new string[]
 			{
 				"Core",
+				"GameplayTags",
+				"NetCore"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

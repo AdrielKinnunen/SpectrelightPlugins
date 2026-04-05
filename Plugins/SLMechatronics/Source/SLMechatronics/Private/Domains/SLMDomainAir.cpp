@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Domains/SLMDomainAir.h"
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR, "SpectrelightDynamics.Domain.Air")
@@ -183,3 +183,6 @@ void USLMDomainAir::CreateNetworkForPort(const int32 Port)
 {
     PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
 }
+
+
+#endif

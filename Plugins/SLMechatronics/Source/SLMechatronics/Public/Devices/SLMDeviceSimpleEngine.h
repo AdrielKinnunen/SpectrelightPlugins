@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #pragma once
 
 #include "CoreMinimal.h"
@@ -84,3 +84,6 @@ private:
     TWeakObjectPtr<USLMDomainSignal> DomainSignal;
     TSparseArray<FSLMDeviceModelSimpleEngine> DeviceModels;
 };
+
+
+#endif

@@ -1,4 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
+#if 0
 /*
 #pragma once
 
@@ -77,3 +78,6 @@ private:
 	TSparseArray<USLMDeviceComponentTrigger*> DeviceComponents;
 };
 */
+
+
+#endif

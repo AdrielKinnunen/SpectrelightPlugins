@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceGearbox.h"
 
 FSLMDeviceModelGearbox USLMDeviceComponentGearbox::GetDeviceState()
@@ -118,3 +118,16 @@ void USLMDeviceSubsystemGearbox::BindToOnChangedGear(const int32 DeviceIndex, co
 {
     DeviceModels[DeviceIndex].OnChangedGear = Delegate;
 }
+
+ASLMDeviceActorGearbox::ASLMDeviceActorGearbox()
+{
+	Super::BeginPlay();
+}
+
+int32 ASLMDeviceActorGearbox::AddDeviceModelGearbox(FSLMDeviceGearbox Device)
+{
+	return 2;
+}
+
+
+#endif

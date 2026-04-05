@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceSimpleEngine.h"
 
 FSLMDeviceModelSimpleEngine USLMDeviceComponentSimpleEngine::GetDeviceState()
@@ -82,3 +82,6 @@ FSLMDeviceModelSimpleEngine USLMDeviceSubsystemSimpleEngine::GetDeviceState(cons
 {
     return DeviceModels[DeviceIndex];
 }
+
+
+#endif

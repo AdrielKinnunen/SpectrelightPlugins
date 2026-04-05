@@ -12,6 +12,7 @@ class USLMechatronicsSubsystem;
 class USLMDeviceComponentBase;
 class USLMDeviceSubsystemBase;
 class USLMDomainSubsystemBase;
+class ASLMDeviceActorBase;
 
 DECLARE_STATS_GROUP(TEXT("SLMechatronics"), STATGROUP_SLMechatronics, STATCAT_Advanced);
 
@@ -66,6 +67,8 @@ private:
     FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
 	UPROPERTY()
     TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
+	UPROPERTY()
+	TArray<ASLMDeviceActorBase*> DeviceActors;
 	UPROPERTY()
     TArray<USLMDomainSubsystemBase*> DomainSubsystems;
 	ENetMode WorldNetMode;

@@ -1,5 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+using System;
+using System.IO;
 using UnrealBuildTool;
 
 public class SLVision : ModuleRules
@@ -19,6 +21,8 @@ public class SLVision : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[]
 			{
+				//"Plugins/Runtime/GeometryProcessing/Source/GeometryAlgorithms/Private",
+				Path.Combine(EngineDirectory, "Plugins/Runtime/GeometryProcessing/Source/GeometryAlgorithms")
 				// ... add other private include paths required here ...
 			}
 		);
@@ -27,7 +31,7 @@ public class SLVision : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new[]
 			{
-				"Core"
+				"Core", "GeometryCore"
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);
@@ -39,7 +43,8 @@ public class SLVision : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore"
+				"SlateCore",
+				"GeometryAlgorithms"
 				// ... add private dependencies that you statically link with here ...	
 			}
 		);

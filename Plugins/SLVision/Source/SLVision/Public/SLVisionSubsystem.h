@@ -6,6 +6,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "SLVisionComponent.h"
 #include "SLVisionTypes.h"
+#include "CompGeom/Delaunay2.h"
+#include "Curve/GeneralPolygon2.h"
 #include "SLVisionSubsystem.generated.h"
 
 
@@ -37,7 +39,17 @@ public:
     void CalculateVisionPolygons();
     UFUNCTION(Blueprintcallable, Category = "Vision")
     void CalculateVisionTriangles();
+	UFUNCTION(Blueprintcallable, Category = "Vision")
+	void DrawDebug();
 private:
+	//properties
+	TArray<UE::Geometry::TGeneralPolygon2<double>> Visible;
+	TArray<UE::Geometry::TGeneralPolygon2<double>> Explored;
+	TArray<UE::Geometry::FIndex3i> Indices;
+	TArray<UE::Math::TVector2<double>> Vertices;
+	UE::Geometry::FDelaunay2 Triangulator;
+	int32 TestCounter = 0;
+	//functions
     FVisionPolygon CalculateVisionPolygonFromSource(USLVisionComponent* SourceComponent) const;
     TArray<FCanvasUVTri> CalculateVisionTrianglesFromPolygon(FVisionPolygon& SourcePolygon) const;
 };

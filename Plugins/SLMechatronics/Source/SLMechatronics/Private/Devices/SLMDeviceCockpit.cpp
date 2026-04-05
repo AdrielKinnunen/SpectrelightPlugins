@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceCockpit.h"
 
 FSLMDeviceModelCockpit USLMDeviceComponentCockpit::GetDeviceState()
@@ -94,3 +94,7 @@ FSLMDeviceModelCockpit USLMDeviceSubsystemCockpit::GetDeviceState(const int32 De
 {
     return DeviceModels[DeviceIndex];
 }
+
+
+
+#endif

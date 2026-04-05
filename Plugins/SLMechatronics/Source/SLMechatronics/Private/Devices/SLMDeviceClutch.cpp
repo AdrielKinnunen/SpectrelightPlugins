@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceClutch.h"
 
 FSLMDeviceModelClutch USLMDeviceComponentClutch::GetDeviceState()
@@ -85,3 +85,6 @@ FSLMDeviceModelClutch USLMDeviceSubsystemClutch::GetDeviceState(const int32 Devi
 {
     return DeviceModels[DeviceIndex];
 }
+
+
+#endif

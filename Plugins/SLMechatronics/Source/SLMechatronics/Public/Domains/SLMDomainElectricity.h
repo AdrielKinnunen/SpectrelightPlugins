@@ -1,4 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
+#if 0
 
 #pragma once
 
@@ -70,3 +71,6 @@ private:
     virtual void RemovePortAtIndex(const int32 PortIndex) override;
     virtual void RemoveNetworkAtIndex(const int32 NetworkIndex) override;
 };
+
+
+#endif

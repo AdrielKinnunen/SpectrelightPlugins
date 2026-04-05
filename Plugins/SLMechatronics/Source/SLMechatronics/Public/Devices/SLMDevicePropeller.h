@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #pragma once
 
 #include "CoreMinimal.h"
@@ -111,3 +111,6 @@ private:
     TSparseArray<FSLMDeviceModelPropeller> DeviceModels;
     TSparseArray<FSLMDeviceCosmeticsPropeller> DeviceCosmetics;
 };
+
+
+#endif

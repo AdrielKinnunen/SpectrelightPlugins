@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDevicePropeller.h"
 
 
@@ -138,3 +138,6 @@ void USLMDeviceSubsystemPropeller::SetPrimitive(int32 DeviceIndex, UPrimitiveCom
 {
 	DeviceModels[DeviceIndex].Primitive = Primitive;
 }
+
+
+#endif

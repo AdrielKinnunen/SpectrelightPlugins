@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceMotor.h"
 
 FSLMDeviceModelMotor USLMDeviceComponentMotor::GetDeviceState()
@@ -96,3 +96,6 @@ FSLMDeviceModelMotor USLMDeviceSubsystemMotor::GetDeviceState(const int32 Device
 {
     return DeviceModels[DeviceIndex];
 }
+
+
+#endif

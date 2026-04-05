@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #pragma once
 
 #include "CoreMinimal.h"
@@ -80,3 +80,7 @@ private:
     TWeakObjectPtr<USLMDomainRotation> DomainRotation;
     TSparseArray<FSLMDeviceModelDifferential> DeviceModels;
 };
+
+
+
+#endif

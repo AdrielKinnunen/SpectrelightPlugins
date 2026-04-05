@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Devices/SLMDeviceDifferential.h"
 
 FSLMDeviceModelDifferential USLMDeviceComponentDifferential::GetDeviceState()
@@ -90,3 +90,7 @@ FSLMDeviceModelDifferential USLMDeviceSubsystemDifferential::GetDeviceState(cons
 {
     return DeviceModels[DeviceIndex];
 }
+
+
+
+#endif

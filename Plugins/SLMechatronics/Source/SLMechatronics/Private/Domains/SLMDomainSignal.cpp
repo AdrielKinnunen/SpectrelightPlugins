@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-
+#if 0
 #include "Domains/SLMDomainSignal.h"
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_SIGNAL, "SpectrelightDynamics.Domain.Signal")
@@ -92,3 +92,6 @@ void USLMDomainSignal::CreateNetworkForPort(const int32 Port)
 {
     PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
 }
+
+
+#endif
