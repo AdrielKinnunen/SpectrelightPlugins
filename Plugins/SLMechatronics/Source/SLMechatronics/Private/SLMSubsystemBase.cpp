@@ -15,12 +15,16 @@ void USLMSubsystemBase::PostSimulate(const float DeltaTime)
 {
 }
 
+void USLMSubsystemBase::DebugDraw()
+{
+}
+
 uint32 USLMSubsystemBase::GetDebugHash()
 {
 	return 0;
 }
 
-FString USLMSubsystemBase::GetDebugString()
+FString USLMSubsystemBase::GetDebugString(const bool Verbose)
 {
 	return "";
 }

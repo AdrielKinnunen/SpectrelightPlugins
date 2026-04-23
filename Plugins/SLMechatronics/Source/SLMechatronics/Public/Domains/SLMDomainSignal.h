@@ -1,5 +1,5 @@
 ﻿// Copyright Spectrelight Studios, LLC
-#if 0
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,12 +7,11 @@
 #include "UObject/Object.h"
 #include "SLMDomainSignal.generated.h"
 
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SLMECHATRONICS_DOMAIN_SIGNAL)
-
 USTRUCT(BlueprintType)
 struct FSLMDataSignal
 {
     GENERATED_BODY()
+
     FSLMDataSignal()
     {
     }
@@ -21,11 +20,26 @@ struct FSLMDataSignal
     {
     }
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Read from this property"))
-    float Read = 0.0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Write to this property"))
-    float Write = 0.0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Angular Velocity in rad/s"))
+    float Read = 0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Moment of Inertia in kg*m2"))
+    float Write = 0;
+    
+	FString GetDebugString() const
+    {
+    	FString Result;
+    	Result += FString::Printf(TEXT("%f,%f"), Read, Write);
+    	return Result;
+    }
 };
+
+FORCEINLINE uint32 GetTypeHash(const FSLMDataSignal& Data)
+{
+	uint32 Hash = 0;
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Data.Read * 100.0f)));
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Data.Write * 100.0f)));
+	return Hash;
+}
 
 
 USTRUCT(BlueprintType)
@@ -35,8 +49,8 @@ struct FSLMPortSignal
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     FSLMDataSignal PortData;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    FSLMPortMetaData PortMetaData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortMetaData PortMetaData;
 };
 
 
@@ -44,32 +58,29 @@ UCLASS(BlueprintType)
 class SLMECHATRONICS_API USLMDomainSignal : public USLMDomainSubsystemBase
 {
     GENERATED_BODY()
+	
 public:
     USLMDomainSignal();
+	int32 AddPort(const FSLMPortSignal& Port, const FSLMPortAddress& PortAddress);
+	void RemovePort(const FSLMPortAddress& PortAddress);
+	float ReadValue(const int32 PortID);
+	void WriteValue(const int32 PortID, const float Value);
+	
+protected:
+	virtual void RunTests() override;
+	virtual void CreateParticleForPorts(const TArray<int32> PortIDs) override;
+	virtual void DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID) override;
+	virtual void RemovePortAtAddress(const FSLMPortAddress& PortAddress) override;
+	virtual void RemoveParticleAtID(const int32 ParticleID) override;
 
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    int32 AddPort(const FSLMPortSignal& Port);
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    void RemovePort(const int32 PortIndex);
-
-    UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-    float ReadByPortIndex(const int32 PortIndex);
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    void WriteByPortIndex(const int32 PortIndex, const float Data);
-
-    virtual void PostSimulate(const float DeltaTime) override;
-    virtual FString GetDebugString(const int32 PortIndex) override;
 private:
-    TSparseArray<FSLMDataSignal> Ports;
-    TSparseArray<FSLMDataSignal> Networks;
-
-    void CreateNetworkForPort(const int32 Port);
-
-    virtual void CreateNetworkForPorts(const TArray<int32> PortIndices) override;
-    virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, int32 PortIndex) override;
-    virtual void RemovePortAtIndex(const int32 PortIndex) override;
-    virtual void RemoveNetworkAtIndex(const int32 NetworkIndex) override;
+	//virtual void PreSimulate(const float DeltaTime);
+	//virtual void Simulate(const float DeltaTime, const float SubstepScalar);
+	//virtual void PostSimulate(const float DeltaTime);
+	virtual uint32 GetDebugHash() override;
+	virtual FString GetDebugString(const bool Verbose) override;
+	virtual FString GetPortDebugString(const FSLMPortAddress& Address) override;
+	
+	TSparseArray<FSLMDataSignal> PortDefaults;
+	TSparseArray<FSLMDataSignal> Particles;
 };
-
-
-#endif

@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMManager.generated.h"
 
 class USLMManager;
+class ASLMManagerReplicator;
 class USLMDeviceSubsystemBase;
 class USLMDomainSubsystemBase;
 
@@ -31,6 +33,71 @@ struct TStructOpsTypeTraits<FSLMechatronicsSubsystemTickFunction> : public TStru
 };
 
 
+USTRUCT()
+struct FSLMRepItemConnection : public FFastArraySerializerItem
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	FSLMConnection Connection;
+};
+
+USTRUCT()
+struct FSLMRepArrayConnections : public FFastArraySerializer
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	TArray<FSLMRepItemConnection> Items;
+	UPROPERTY()
+	USLMManager* Manager = nullptr;
+	void PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const;
+	void PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const;
+	void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const;
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FastArrayDeltaSerialize<FSLMRepItemConnection, FSLMRepArrayConnections>(Items, DeltaParms, *this);
+	}
+};
+template<>
+struct TStructOpsTypeTraits<FSLMRepArrayConnections> : public TStructOpsTypeTraitsBase2<FSLMRepArrayConnections>
+{
+	enum 
+	{
+		WithNetDeltaSerializer = true,
+   };
+};
+
+UCLASS()
+class SLMECHATRONICS_API USLMBlueprintFunctionLibrary : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+	
+	UFUNCTION(BlueprintPure, Category="SLMechatronics")
+	static bool IsValidAddress(const FSLMPortAddress& Address);
+	UFUNCTION(BlueprintPure, Category="SLMechatronics")
+	static bool IsValidConnection(const FSLMConnection& Connection);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static bool DoesConnectionExist(const UObject* WorldContextObject, const FSLMConnection Connection);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static bool WorldLocationToPortAddress(const UObject* WorldContextObject, const TSubclassOf<USLMDomainSubsystemBase> Domain, const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static bool PortAddressToWorldLocation(const UObject* WorldContextObject, const FSLMPortAddress& PortAddress, FVector& OutWorldLocation);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static void AddConnection(const UObject* WorldContextObject, const FSLMConnection Connection);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static void RemoveConnection(const UObject* WorldContextObject, const FSLMConnection Connection);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static int32 GetGlobalDebugHash(const UObject* WorldContextObject);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static FString GetGlobalDebugString(const UObject* WorldContextObject, const bool Verbose);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static FString GetPortDebugString(const UObject* WorldContextObject, const FSLMPortAddress& Address);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static FString GetDeviceDebugString(const UObject* WorldContextObject, const FSLMPortAddress& Address);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics")
+	static FString DiffDebugStrings(const FString Server, const FString Client);
+};
+
+
 UCLASS()
 class SLMECHATRONICS_API USLMManager : public UWorldSubsystem
 {
@@ -40,33 +107,45 @@ public:
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
     void Tick(const float DeltaTime);
 	
+	bool WorldLocationToPortAddress(const TSubclassOf<USLMDomainSubsystemBase> Domain, const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress);
+	bool PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation);
+	bool DoesConnectionExist(const FSLMConnection& Connection);
+	void AddConnection(const FSLMConnection& Connection);
+	void RemoveConnection(const FSLMConnection& Connection);	
 	
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics")
-	void AddConnection(FSLMConnection Connection);
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics")
-	void ConnectPortsByAddress(const FSLMPortAddress First, const FSLMPortAddress Second);
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics")
-	void DisconnectPortsByAddress(const FSLMPortAddress First, const FSLMPortAddress Second);
+	FString GetGlobalDebugString(const bool Verbose);
+	int32 GetGlobalDebugHash();
+	FString GetPortDebugString(const FSLMPortAddress& Address);
+	FString GetDeviceDebugString(const FSLMPortAddress& Address);
 	
-	
-	
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics")
-	FString GetDebugString();
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics")
-	int32 GetDebugHash();
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics")
-	FString DiffDebugStrings(FString Server, FString Client);
 	UPROPERTY(BlueprintReadWrite, Category="SLMechatronics")
 	int32 StepCount = 5;
 	UPROPERTY(BlueprintReadWrite, Category="SLMechatronics")
-	bool bDebugDraw = false;
+	bool bDebugDraw = true;
 
 private:
-	
     FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
-	
 	UPROPERTY()
 	TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
 	UPROPERTY()
     TArray<USLMDomainSubsystemBase*> DomainSubsystems;
+	UPROPERTY()
+	ASLMManagerReplicator* Replicator;
+};
+
+//Replicator Actor
+UCLASS()
+class ASLMManagerReplicator : public AInfo
+{
+	GENERATED_BODY()
+public:
+	ASLMManagerReplicator();
+	virtual void PostInitializeComponents() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void AddConnection(const FSLMConnection& Connection);
+	void RemoveConnection(const FSLMConnection& Connection);
+	
+private:
+	UPROPERTY(Replicated)
+	FSLMRepArrayConnections FastArray;
 };

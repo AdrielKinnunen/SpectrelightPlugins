@@ -1,97 +1,136 @@
 ﻿// Copyright Spectrelight Studios, LLC
-#if 0
-#include "Domains/SLMDomainSignal.h"
 
-UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_SIGNAL, "SpectrelightDynamics.Domain.Signal")
+#include "Domains/SLMDomainSignal.h"
 
 USLMDomainSignal::USLMDomainSignal()
 {
     DebugColor = FColor::White;
-	DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN_SIGNAL;
 }
 
-int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port)
+int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port, const FSLMPortAddress& PortAddress)
 {
-    const int32 PortIndex = Ports.Add(Port.PortData);
-    AddPortMetaData(Port.PortMetaData);
-	const int32 NetworkIndex = Networks.Add(Port.PortData);
-	PortIndexToNetworkIndex.Add(NetworkIndex);
-    return PortIndex;
+	const int32 PortID = PortDefaults.Add(Port.PortData);
+	const int32 ParticleID = Particles.Add(Port.PortData);
+	PortIDToParticleID.EmplaceAt(PortID, ParticleID);
+	PortAddressToPortID.Add(PortAddress, PortID);
+	PortIDToPortAddress.EmplaceAt(PortID, PortAddress);
+	PortMetaData.EmplaceAt(PortID, Port.PortMetaData);
+	return PortID;
 }
 
-void USLMDomainSignal::RemovePort(const int32 PortIndex)
+void USLMDomainSignal::RemovePort(const FSLMPortAddress& PortAddress)
 {
-    PortsToRemove.Add(PortIndex);
-    bNeedsCleanup = true;
+	PortsToRemove.Add(PortAddress);
+	bNeedsCleanup = true;
 }
 
-float USLMDomainSignal::ReadByPortIndex(const int32 PortIndex)
+float USLMDomainSignal::ReadValue(const int32 PortID)
 {
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    return Networks[NetworkIndex].Read;
+	if (PortIDToParticleID.IsValidIndex(PortID))
+	{
+		const int32 ParticleID = PortIDToParticleID[PortID];
+		check(Particles.IsValidIndex(ParticleID));
+		return Particles[ParticleID].Read;
+	}
+	return 0.0;
 }
 
-void USLMDomainSignal::WriteByPortIndex(const int32 PortIndex, const float Data)
+void USLMDomainSignal::WriteValue(const int32 PortID, const float Value)
 {
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    Networks[NetworkIndex].Write = Data;
+	if (PortIDToParticleID.IsValidIndex(PortID))
+	{
+		const int32 ParticleID = PortIDToParticleID[PortID];
+		check(Particles.IsValidIndex(ParticleID));
+		Particles[ParticleID].Write += Value;
+	}
 }
 
-void USLMDomainSignal::PostSimulate(const float DeltaTime)
+void USLMDomainSignal::RunTests()
 {
-    for (auto& Network : Networks)
-    {
-        Network.Read = Network.Write;
+}
+
+
+void USLMDomainSignal::CreateParticleForPorts(const TArray<int32> PortIDs)
+{
+    const int32 ParticleID = Particles.Add(FSLMDataSignal());
+    for (const auto& PortID : PortIDs)
+    {        
+        PortIDToParticleID[PortID] = ParticleID;
     }
 }
 
-FString USLMDomainSignal::GetDebugString(const int32 PortIndex)
+void USLMDomainSignal::DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID)
 {
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    const auto Network = Networks[NetworkIndex];
-    FString Result;
-	Result += PortsMetaData[PortIndex].PortName.ToString();
-    Result += "Signal\n";
-    Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
-    Result += FString::Printf(TEXT("Read = %f\n"), Network.Read);
-    Result += FString::Printf(TEXT("Write = %f\n"), Network.Write);
-    return Result;
+	PortDefaults[PortID] = FSLMDataSignal();
 }
 
-void USLMDomainSignal::CreateNetworkForPorts(const TArray<int32> PortIndices)
+void USLMDomainSignal::RemovePortAtAddress(const FSLMPortAddress& PortAddress)
 {
-    const int32 NetworkIndex = Networks.Add(FSLMDataSignal());
-    for (const auto& PortIndex : PortIndices)
-    {
-        PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
-    }
+	const int32 PortID = PortAddressToPortID.FindChecked(PortAddress);
+	Particles.RemoveAt(PortIDToParticleID[PortID]);
+	PortIDToParticleID.RemoveAt(PortID);
+	PortDefaults.RemoveAt(PortID);
+	PortAddressToPortID.Remove(PortAddress);
+	PortMetaData.RemoveAt(PortID);
+	PortIDToPortAddress.RemoveAt(PortID);
 }
 
-void USLMDomainSignal::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
+void USLMDomainSignal::RemoveParticleAtID(const int32 ParticleID)
 {
-    Ports[PortIndex] = FSLMDataSignal();
+	Particles.RemoveAt(ParticleID);
 }
 
-void USLMDomainSignal::RemovePortAtIndex(const int32 PortIndex)
+uint32 USLMDomainSignal::GetDebugHash()
 {
-    Ports.RemoveAt(PortIndex);
+	uint32 Result = 0;
+	Result = HashCombine(Result, GetTypeHash(PortDefaults.Num()));
+	Result = HashCombine(Result, GetTypeHash(PortIDToParticleID.Num()));
+	Result = HashCombine(Result, GetTypeHash(Particles.Num()));
+	for (const auto Entry : PortAddressToPortID)
+	{
+		const FSLMPortAddress PortAddress = Entry.Key;
+		const FSLMDataSignal& PortDefault = PortDefaults[Entry.Value];
+		const FSLMDataSignal& Particle = Particles[PortIDToParticleID[Entry.Value]];
+		Result = Result ^ HashCombine(GetTypeHash(PortAddress), GetTypeHash(PortDefault), GetTypeHash(Particle));
+	}
+	return Result;
 }
 
-void USLMDomainSignal::RemoveNetworkAtIndex(const int32 NetworkIndex)
+FString USLMDomainSignal::GetDebugString(const bool Verbose)
 {
-    Networks.RemoveAt(NetworkIndex);
+	FString Result;
+	Result += "\n------------------DomainSignal------------------";
+	Result += FString::Format(TEXT("\nHas {0} PortDefaults"), {PortDefaults.Num()});
+	Result += FString::Format(TEXT("\nHas {0} PortIDToParticleID"), {PortIDToParticleID.Num()});
+	Result += FString::Format(TEXT("\nHas {0} Particles"), {Particles.Num()});
+	if (Verbose)
+	{
+		for (int32 PortID = 0; PortID < PortIDToParticleID.Num(); PortID++)
+		{
+			if (PortIDToParticleID.IsValidIndex(PortID))
+			{
+				Result += FString::Format(TEXT("\nPort {0} maps to Particle {1}"), {PortID, PortIDToParticleID[PortID]});
+			}
+		}
+	}
+	return Result;
 }
 
-void USLMDomainSignal::CreateNetworkForPort(const int32 Port)
+FString USLMDomainSignal::GetPortDebugString(const FSLMPortAddress& Address)
 {
-    PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
+	FString Result;
+	if (const int32* PortIDPtr = PortAddressToPortID.Find(Address))
+	{
+		const int32 PortID = *PortIDPtr;
+		if (PortIDToParticleID.IsValidIndex(PortID))
+		{
+			const int32 ParticleID = PortIDToParticleID[PortID];
+			const FSLMDataSignal& PortDefault = PortDefaults[PortID];
+			const FSLMDataSignal& Particle = Particles[ParticleID];
+			Result += FString::Format(TEXT("\nPort {0} maps to Particle {1}"), {PortID, ParticleID});
+			Result += FString::Format(TEXT("\nPort Default: {0}"), {PortDefault.GetDebugString()});
+			Result += FString::Format(TEXT("\nParticle: {0}"), {Particle.GetDebugString()});			
+		}
+	}
+	return Result;
 }
-
-
-#endif

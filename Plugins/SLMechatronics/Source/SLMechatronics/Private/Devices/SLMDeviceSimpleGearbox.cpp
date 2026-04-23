@@ -4,48 +4,70 @@
 #include "Net/UnrealNetwork.h"
 
 
-void FSLMRepArraySimpleGearbox::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const
+void FSLMRepArraySettingsSimpleGearbox::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const
 {
 	for (const auto Index : AddedIndices)
 	{
-		const FSLMRepItemSimpleGearbox& Item = Items[Index];
+		const FSLMRepItemSettingsSimpleGearbox& Item = Items[Index];
 		if (Subsystem->IsValidHandle(Item.Handle))
 		{
-			Subsystem->EditDeviceSettings(Item.Handle, Item.Settings);
+			Subsystem->EditDeviceSettings(Item.Handle, Item.RepSettings);
 		}
 		else
 		{
-			Subsystem->AddDevice(Item.Settings, Item.Handle);
+			Subsystem->AddDevice(Item.RepSettings, Item.Handle);
 		}
 	}
 }
 
-void FSLMRepArraySimpleGearbox::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const
+void FSLMRepArraySettingsSimpleGearbox::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const
 {
 	for (const auto Index : ChangedIndices)
 	{
-		const FSLMRepItemSimpleGearbox& Item = Items[Index];
+		const FSLMRepItemSettingsSimpleGearbox& Item = Items[Index];
 		if (Subsystem->IsValidHandle(Item.Handle))
 		{
-			Subsystem->EditDeviceSettings(Item.Handle, Item.Settings);
+			Subsystem->EditDeviceSettings(Item.Handle, Item.RepSettings);
 		}
 		else
 		{
-			Subsystem->AddDevice(Item.Settings, Item.Handle);
+			Subsystem->AddDevice(Item.RepSettings, Item.Handle);
 		}
 	}
 }
 
-void FSLMRepArraySimpleGearbox::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const
+void FSLMRepArraySettingsSimpleGearbox::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const
 {
 	for (const auto Index : RemovedIndices)
 	{
-		const FSLMRepItemSimpleGearbox& Item = Items[Index];
+		const FSLMRepItemSettingsSimpleGearbox& Item = Items[Index];
 		if (Subsystem->IsValidHandle(Item.Handle))
 		{
 			Subsystem->RemoveDevice(Item.Handle);
 		}
 	}
+}
+
+void FSLMRepArrayStateSimpleGearbox::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const
+{
+	for (const auto Index : AddedIndices)
+	{
+		const FSLMRepItemStateSimpleGearbox& Item = Items[Index];
+		Subsystem->ApplyReplicatedState(Item.Handle, Item.State);
+	}
+}
+
+void FSLMRepArrayStateSimpleGearbox::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const
+{
+	for (const auto Index : ChangedIndices)
+	{
+		const FSLMRepItemStateSimpleGearbox& Item = Items[Index];
+		Subsystem->ApplyReplicatedState(Item.Handle, Item.State);
+	}
+}
+
+void FSLMRepArrayStateSimpleGearbox::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const
+{
 }
 
 void USLMDeviceSubsystemSimpleGearbox::OnWorldBeginPlay(UWorld& InWorld)
@@ -61,13 +83,15 @@ void USLMDeviceSubsystemSimpleGearbox::PostInitialize()
 {
 	Super::PostInitialize();
 	DomainRotation = GetWorld()->GetSubsystem<USLMDomainRotation>();
+	DomainSignal = GetWorld()->GetSubsystem<USLMDomainSignal>();
 }
 
 FSLMDeviceHandleSimpleGearbox USLMDeviceSubsystemSimpleGearbox::AddDevice(const FSLMDeviceSettingsSimpleGearbox& Settings, const FSLMDeviceHandleSimpleGearbox ExplicitHandle)
 {
 	FSLMDeviceHandleSimpleGearbox Handle;
-	if (GetWorld()->GetNetMode() < NM_Client && Replicator)
+	if (GetWorld()->GetNetMode() != NM_Client)
 	{
+		check(Replicator);
 		Handle = {DeviceModels.Add(Settings.DeviceModel)};
 		Replicator->AddItem({Handle}, Settings);
 	}
@@ -78,9 +102,14 @@ FSLMDeviceHandleSimpleGearbox USLMDeviceSubsystemSimpleGearbox::AddDevice(const 
 		DeviceModels.EmplaceAt(Handle.ID, Settings.DeviceModel);
 	}
 	FSLMDeviceModelSimpleGearbox& Model = DeviceModels[Handle.ID];
-	const auto Addresses = GetPortAddresses(Handle);
-	Model.ParticleID_Rotation_Input = DomainRotation->AddPort(Settings.Port_Rotation_Input, Addresses.Address_Rotation_Input);
-	Model.ParticleID_Rotation_Output = DomainRotation->AddPort(Settings.Port_Rotation_Output, Addresses.Address_Rotation_Output);
+	const FSLMDevicePortAddressesSimpleGearbox PortAddresses = GetPortAddresses(Handle);
+	Model.PortID_Rotation_Input = DomainRotation->AddPort(Settings.Port_Rotation_Input, PortAddresses.Address_Rotation_Input);
+	Model.PortID_Rotation_Output = DomainRotation->AddPort(Settings.Port_Rotation_Output, PortAddresses.Address_Rotation_Output);
+	Model.PortID_Signal_Shift = DomainSignal->AddPort(Settings.Port_Signal_Shift, PortAddresses.Address_Signal_Shift);
+	if (OrphanedRepStates.IsValidIndex(Handle.ID))
+	{
+		ApplyReplicatedState(Handle, OrphanedRepStates[Handle.ID]);
+	}
 	return Handle;
 }
 
@@ -93,6 +122,8 @@ FSLMDeviceCosmeticStateSimpleGearbox USLMDeviceSubsystemSimpleGearbox::GetCosmet
 		const auto& Model = DeviceModels[Handle.ID]; 
 		Result.CurrentGear = Model.CurrentGear;
 		Result.CurrentGearRatio = Model.GearRatio;
+		Result.InputAngVelDegS = DomainRotation->GetData(Model.PortID_Rotation_Input).AngularVelocity * SLMRadToDeg;
+		Result.OutputAngVelDegS = DomainRotation->GetData(Model.PortID_Rotation_Output).AngularVelocity * SLMRadToDeg;
 	}
 	return Result;
 }
@@ -100,7 +131,7 @@ FSLMDeviceCosmeticStateSimpleGearbox USLMDeviceSubsystemSimpleGearbox::GetCosmet
 
 FSLMDeviceSettingsSimpleGearbox USLMDeviceSubsystemSimpleGearbox::GetDeviceSettings(const FSLMDeviceHandleSimpleGearbox Handle) const
 {
-	FSLMDeviceSettingsSimpleGearbox Result;
+	FSLMDeviceSettingsSimpleGearbox Result = FSLMDeviceSettingsSimpleGearbox();
 	if (IsValidHandle(Handle))
 	{
 		Result.DeviceModel = DeviceModels[Handle.ID];
@@ -111,12 +142,9 @@ FSLMDeviceSettingsSimpleGearbox USLMDeviceSubsystemSimpleGearbox::GetDeviceSetti
 FSLMDevicePortAddressesSimpleGearbox USLMDeviceSubsystemSimpleGearbox::GetPortAddresses(const FSLMDeviceHandleSimpleGearbox Handle) const
 {
 	FSLMDevicePortAddressesSimpleGearbox Result;
-	Result.Address_Rotation_Input.DeviceClass = this->StaticClass();
-	Result.Address_Rotation_Output.DeviceClass = this->StaticClass();
-	Result.Address_Rotation_Input.DeviceID = Handle.ID;
-	Result.Address_Rotation_Output.DeviceID = Handle.ID;
-	Result.Address_Rotation_Input.PortIndex = 0;
-	Result.Address_Rotation_Output.PortIndex = 1;
+	Result.Address_Rotation_Input	= MakePortAddress(this, DomainRotation, Handle.ID, 0);
+	Result.Address_Rotation_Output	= MakePortAddress(this, DomainRotation, Handle.ID, 1);
+	Result.Address_Signal_Shift		= MakePortAddress(this, DomainSignal, Handle.ID, 0);
 	return Result;
 }
 
@@ -133,11 +161,22 @@ void USLMDeviceSubsystemSimpleGearbox::EditDeviceSettings(const FSLMDeviceHandle
 	Model.RatioBetweenGears = Settings.DeviceModel.RatioBetweenGears;
 	Model.GearSpreadExponent = Settings.DeviceModel.GearSpreadExponent;
 	Model.CurrentGear = FMath::Clamp(Settings.DeviceModel.CurrentGear, -Model.NumReverseGears, Model.NumForwardGears);
-	if (GetWorld()->GetNetMode() != NM_Client && Replicator)
+	if (GetWorld()->GetNetMode() != NM_Client)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Server edited ID %i"), Handle.ID);
+		check(Replicator);
 		Replicator->EditItem(Handle, Settings);
 	}
+}
+
+void USLMDeviceSubsystemSimpleGearbox::ApplyReplicatedState(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceRepStateSimpleGearbox& State)
+{
+	if (!IsValidHandle(Handle))
+	{
+		OrphanedRepStates.EmplaceAt(Handle.ID, State);
+		return;
+	}
+	auto& Model = DeviceModels[Handle.ID];
+	Model.CurrentGear = State.Gear;
 }
 
 void USLMDeviceSubsystemSimpleGearbox::ApplyInput(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceInputSimpleGearbox& Input)
@@ -154,15 +193,14 @@ void USLMDeviceSubsystemSimpleGearbox::RemoveDevice(const FSLMDeviceHandleSimple
 {
 	if (IsValidHandle(Handle))
 	{
-		const FSLMPortAddress InputAddress = {this->StaticClass(), Handle.ID, 0};
-		const FSLMPortAddress OutputAddress = {this->StaticClass(), Handle.ID, 1};
-		DomainRotation->RemovePort(InputAddress);
-		DomainRotation->RemovePort(OutputAddress);
+		const FSLMDevicePortAddressesSimpleGearbox PortAddresses = GetPortAddresses(Handle);
+		DomainRotation->RemovePort(PortAddresses.Address_Rotation_Input);
+		DomainRotation->RemovePort(PortAddresses.Address_Rotation_Output);
+		DomainSignal->RemovePort(PortAddresses.Address_Signal_Shift);
 		DeviceModels.RemoveAt(Handle.ID);		
 	}
 	if (GetWorld()->GetNetMode() != NM_Client && Replicator)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Server removed ID %i"), Handle.ID);
 		Replicator->RemoveItem(Handle);
 	}
 }
@@ -187,24 +225,25 @@ void USLMDeviceSubsystemSimpleGearbox::PostSimulate(const float DeltaTime)
 {
 	if (GetWorld()->GetNetMode() != NM_Client && Replicator)
 	{
-		Replicator->UpdateItems(DeviceModels);
+		Replicator->PullDynamicState(DeviceModels);
 	}
 }
 
-FString USLMDeviceSubsystemSimpleGearbox::GetDebugString()
+FString USLMDeviceSubsystemSimpleGearbox::GetDebugString(const bool Verbose)
 {
 	FString Result;
-	Result += "SimpleGearbox";
-	for (int32 i = 0; i < DeviceModels.GetMaxIndex(); i++)
+	Result += "\n------------------SimpleGearbox------------------";
+	Result += FString::Format(TEXT("\nHas {0} Device Models"), {DeviceModels.Num()});
+	if (Verbose)
 	{
-		if (DeviceModels.IsValidIndex(i))
+		for (int32 i = 0; i < DeviceModels.GetMaxIndex(); i++)
 		{
-			Result += "\n";
-			Result += FString::Printf(TEXT("Model %i has state: "), i);
-			Result += DeviceModels[i].GetDebugString();
+			if (DeviceModels.IsValidIndex(i))
+			{
+				Result += FString::Format(TEXT("\nModel {0} has state: {1}"), { i, DeviceModels[i].GetDebugString()});
+			}
 		}
 	}
-	Result += "\n";
 	return Result;
 }
 
@@ -215,10 +254,7 @@ uint32 USLMDeviceSubsystemSimpleGearbox::GetDebugHash()
 	{
 		if (DeviceModels.IsValidIndex(i))
 		{
-			const uint32 IDHash = GetTypeHash(i);
-			const uint32 DataHash = GetTypeHash(DeviceModels[i]);
-			const uint32 CombinedHash = HashCombine(IDHash, DataHash);
-			Result += CombinedHash;
+			Result =  Result ^ HashCombine(GetTypeHash(i), GetTypeHash(DeviceModels[i]));
 		}
 	}
 	return Result;
@@ -229,6 +265,7 @@ bool USLMDeviceSubsystemSimpleGearbox::IsValidHandle(const FSLMDeviceHandleSimpl
 	return DeviceModels.IsValidIndex(Handle.ID);
 }
 
+
 ASLMDeviceReplicatorSimpleGearbox::ASLMDeviceReplicatorSimpleGearbox()
 {
 	bReplicates = true;
@@ -238,32 +275,47 @@ ASLMDeviceReplicatorSimpleGearbox::ASLMDeviceReplicatorSimpleGearbox()
 
 void ASLMDeviceReplicatorSimpleGearbox::PostInitializeComponents()
 {
-	FastArray.Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>();
+	RepArraySettings.Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>();
+	RepArrayState.Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>();
 	Super::PostInitializeComponents();
 }
 
 void ASLMDeviceReplicatorSimpleGearbox::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ASLMDeviceReplicatorSimpleGearbox, FastArray);
+	DOREPLIFETIME(ASLMDeviceReplicatorSimpleGearbox, RepArraySettings);
+	DOREPLIFETIME(ASLMDeviceReplicatorSimpleGearbox, RepArrayState);
 }
 
 void ASLMDeviceReplicatorSimpleGearbox::AddItem(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings)
 {
-	FSLMRepItemSimpleGearbox& Item = FastArray.Items.AddDefaulted_GetRef();
-	Item.Handle = Handle;
-	Item.Settings = Settings;
-	FastArray.MarkItemDirty(Item);
+	FSLMRepItemSettingsSimpleGearbox& SettingsItem = RepArraySettings.Items.AddDefaulted_GetRef();
+	SettingsItem.Handle = Handle;
+	SettingsItem.RepSettings = Settings;
+	RepArraySettings.MarkItemDirty(SettingsItem);
+	FSLMRepItemStateSimpleGearbox& StateItem = RepArrayState.Items.AddDefaulted_GetRef();
+	StateItem.Handle = Handle;
+	StateItem.State.Gear = Settings.DeviceModel.CurrentGear;
+	RepArrayState.MarkItemDirty(StateItem);
 }
 
 void ASLMDeviceReplicatorSimpleGearbox::RemoveItem(const FSLMDeviceHandleSimpleGearbox Handle)
 {
-	for (int32 i = 0; i < FastArray.Items.Num(); ++i)
+	for (int32 i = 0; i < RepArraySettings.Items.Num(); ++i)
 	{
-		if (FastArray.Items[i].Handle.ID == Handle.ID)
+		if (RepArraySettings.Items[i].Handle.ID == Handle.ID)
 		{
-			FastArray.Items.RemoveAt(i);
-			FastArray.MarkArrayDirty();
+			RepArraySettings.Items.RemoveAt(i);
+			RepArraySettings.MarkArrayDirty();
+			break;
+		}
+	}
+	for (int32 i = 0; i < RepArrayState.Items.Num(); ++i)
+	{
+		if (RepArrayState.Items[i].Handle.ID == Handle.ID)
+		{
+			RepArrayState.Items.RemoveAt(i);
+			RepArrayState.MarkArrayDirty();
 			break;
 		}
 	}
@@ -271,34 +323,79 @@ void ASLMDeviceReplicatorSimpleGearbox::RemoveItem(const FSLMDeviceHandleSimpleG
 
 void ASLMDeviceReplicatorSimpleGearbox::EditItem(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings)
 {
-	for (auto& Item : FastArray.Items)
+	for (auto& Item : RepArraySettings.Items)
 	{
 		if (Item.Handle.ID == Handle.ID)
 		{
-			Item.Settings = Settings;
-			FastArray.MarkItemDirty(Item);
+			Item.RepSettings = Settings;
+			RepArraySettings.MarkItemDirty(Item);
 			break;
 		}
 	}
 }
 
-void ASLMDeviceReplicatorSimpleGearbox::UpdateItems(const TSparseArray<FSLMDeviceModelSimpleGearbox>& DeviceModels)
+void ASLMDeviceReplicatorSimpleGearbox::PullDynamicState(TSparseArray<FSLMDeviceModelSimpleGearbox>& DeviceModels)
 {
-	for (auto& Item : FastArray.Items)
+	for (auto& Item : RepArrayState.Items)
 	{
 		const auto Handle = Item.Handle;
 		if (DeviceModels.IsValidIndex(Handle.ID))
 		{
 			auto& Model = DeviceModels[Handle.ID];
-			if (Item.Settings.DeviceModel.CurrentGear != Model.CurrentGear)
+			if (Model.bDirty)
 			{
-				Item.Settings.DeviceModel.CurrentGear = Model.CurrentGear;
-				FastArray.MarkItemDirty(Item);
+				Item.State.Gear = Model.CurrentGear;
+				RepArrayState.MarkItemDirty(Item);
+				Model.bDirty = false;
 			}
 		}
 	}
 }
 
+FSLMDeviceHandleSimpleGearbox USLMBPFLSimpleGearbox::AddDeviceSimpleGearbox(const UObject* WorldContextObject, const FSLMDeviceSettingsSimpleGearbox& Settings)
+{
+	check(WorldContextObject);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>()->AddDevice(Settings);
+}
+
+void USLMBPFLSimpleGearbox::RemoveDevice(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle)
+{
+	check(WorldContextObject);
+	WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>()->RemoveDevice(Handle);
+}
+
+void USLMBPFLSimpleGearbox::EditDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings)
+{
+	check(WorldContextObject);
+	WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>()->EditDeviceSettings(Handle, Settings);
+}
+
+void USLMBPFLSimpleGearbox::ApplyInput(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceInputSimpleGearbox& Input)
+{
+	check(WorldContextObject);
+	WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>()->ApplyInput(Handle, Input);
+}
+
+FSLMDeviceCosmeticStateSimpleGearbox USLMBPFLSimpleGearbox::GetCosmeticState(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle)
+{
+	check(WorldContextObject);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>()->GetCosmeticState(Handle);
+}
+
+FSLMDeviceSettingsSimpleGearbox USLMBPFLSimpleGearbox::GetDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle)
+{
+	check(WorldContextObject);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>()->GetDeviceSettings(Handle);
+}
+
+FSLMDevicePortAddressesSimpleGearbox USLMBPFLSimpleGearbox::GetPortAddresses(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle)
+{
+	check(WorldContextObject);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemSimpleGearbox>()->GetPortAddresses(Handle);
+}
+
+
+/*
 void USLMDeviceComponentSimpleGearbox::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -328,3 +425,4 @@ void USLMDeviceComponentSimpleGearbox::EndPlay(const EEndPlayReason::Type EndPla
 	}
 	Super::EndPlay(EndPlayReason);
 }
+*/

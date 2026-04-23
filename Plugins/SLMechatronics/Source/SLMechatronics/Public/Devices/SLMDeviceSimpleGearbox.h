@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "SLMDeviceBase.h"
 #include "Domains/SLMDomainRotation.h"
+#include "Domains/SLMDomainSignal.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "SLMDeviceSimpleGearbox.generated.h"
 
@@ -41,8 +42,10 @@ struct FSLMDeviceModelSimpleGearbox
 	int32 PreviousGear = 0;
 	float GearRatio = 0.0;
 	
-	int32 ParticleID_Rotation_Input = INDEX_NONE;
-	int32 ParticleID_Rotation_Output = INDEX_NONE;
+	int32 PortID_Rotation_Input = INDEX_NONE;
+	int32 PortID_Rotation_Output = INDEX_NONE;
+	int32 PortID_Signal_Shift = INDEX_NONE;
+	bool bDirty = false;
 	
 	FString GetDebugString() const
 	{
@@ -65,13 +68,13 @@ FORCEINLINE uint32 GetTypeHash(const FSLMDeviceModelSimpleGearbox& Model)
 	return Hash;
 }
 
-//Input Structure
+//Dynamic Replicated State
 USTRUCT(BlueprintType)
-struct FSLMDeviceInputSimpleGearbox
+struct FSLMDeviceRepStateSimpleGearbox
 {
 	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	int32 DesiredGear = 0;
+	UPROPERTY()
+	int32 Gear = 0;
 };
 
 //Public cosmetic state
@@ -89,6 +92,15 @@ struct FSLMDeviceCosmeticStateSimpleGearbox
 	float OutputAngVelDegS = 0.0;
 };
 
+//Public Input Structure
+USTRUCT(BlueprintType)
+struct FSLMDeviceInputSimpleGearbox
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	int32 DesiredGear = 0;
+};
+
 //Model + Port Settings
 USTRUCT(BlueprintType)
 struct FSLMDeviceSettingsSimpleGearbox
@@ -100,8 +112,11 @@ struct FSLMDeviceSettingsSimpleGearbox
     FSLMPortRotation Port_Rotation_Input;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FSLMPortRotation Port_Rotation_Output;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSignal Port_Signal_Shift;
 };
 
+//Port Addresses
 USTRUCT(BlueprintType)
 struct FSLMDevicePortAddressesSimpleGearbox
 {
@@ -110,26 +125,28 @@ struct FSLMDevicePortAddressesSimpleGearbox
 	FSLMPortAddress Address_Rotation_Input;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMPortAddress Address_Rotation_Output;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMPortAddress Address_Signal_Shift;
 };
 
-//FastArray item for replication of state
+//FastArray item for replication of settings
 USTRUCT()
-struct FSLMRepItemSimpleGearbox : public FFastArraySerializerItem
+struct FSLMRepItemSettingsSimpleGearbox : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	UPROPERTY()
 	FSLMDeviceHandleSimpleGearbox Handle;
 	UPROPERTY()
-	FSLMDeviceSettingsSimpleGearbox Settings;
+	FSLMDeviceSettingsSimpleGearbox RepSettings;
 };
 
-//FastArray container for replication of state
+//FastArray container for replication of settings
 USTRUCT()
-struct FSLMRepArraySimpleGearbox : public FFastArraySerializer
+struct FSLMRepArraySettingsSimpleGearbox : public FFastArraySerializer
 {
 	GENERATED_BODY()
 	UPROPERTY()
-	TArray<FSLMRepItemSimpleGearbox> Items;
+	TArray<FSLMRepItemSettingsSimpleGearbox> Items;
 	UPROPERTY()
 	USLMDeviceSubsystemSimpleGearbox* Subsystem = nullptr;
 	void PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const;
@@ -137,11 +154,48 @@ struct FSLMRepArraySimpleGearbox : public FFastArraySerializer
 	void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const;
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return FastArrayDeltaSerialize<FSLMRepItemSimpleGearbox, FSLMRepArraySimpleGearbox>(Items, DeltaParms, *this);
+		return FastArrayDeltaSerialize<FSLMRepItemSettingsSimpleGearbox, FSLMRepArraySettingsSimpleGearbox>(Items, DeltaParms, *this);
 	}
 };
 template<>
-struct TStructOpsTypeTraits<FSLMRepArraySimpleGearbox> : public TStructOpsTypeTraitsBase2<FSLMRepArraySimpleGearbox>
+struct TStructOpsTypeTraits<FSLMRepArraySettingsSimpleGearbox> : public TStructOpsTypeTraitsBase2<FSLMRepArraySettingsSimpleGearbox>
+{
+	enum 
+	{
+		WithNetDeltaSerializer = true,
+   };
+};
+
+//FastArray item for replication of state
+USTRUCT()
+struct FSLMRepItemStateSimpleGearbox : public FFastArraySerializerItem
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	FSLMDeviceHandleSimpleGearbox Handle;
+	UPROPERTY()
+	FSLMDeviceRepStateSimpleGearbox State;
+};
+
+//FastArray container for replication of state
+USTRUCT()
+struct FSLMRepArrayStateSimpleGearbox : public FFastArraySerializer
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	TArray<FSLMRepItemStateSimpleGearbox> Items;
+	UPROPERTY()
+	USLMDeviceSubsystemSimpleGearbox* Subsystem = nullptr;
+	void PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const;
+	void PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const;
+	void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const;
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FastArrayDeltaSerialize<FSLMRepItemStateSimpleGearbox, FSLMRepArrayStateSimpleGearbox>(Items, DeltaParms, *this);
+	}
+};
+template<>
+struct TStructOpsTypeTraits<FSLMRepArrayStateSimpleGearbox> : public TStructOpsTypeTraitsBase2<FSLMRepArrayStateSimpleGearbox>
 {
 	enum 
 	{
@@ -155,32 +209,27 @@ class SLMECHATRONICS_API USLMDeviceSubsystemSimpleGearbox : public USLMDeviceSub
 {
     GENERATED_BODY()
 	
-	friend struct FSLMRepArraySimpleGearbox;
+	friend struct FSLMRepArraySettingsSimpleGearbox;
+	friend struct FSLMRepArrayStateSimpleGearbox;
 	
 public:
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PostInitialize() override;
 	
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "SLMechatronics", meta=(ReturnDisplayName = "Handle", HidePin="ExplicitHandle"))
 	FSLMDeviceHandleSimpleGearbox AddDevice(const FSLMDeviceSettingsSimpleGearbox& Settings, const FSLMDeviceHandleSimpleGearbox ExplicitHandle = FSLMDeviceHandleSimpleGearbox());
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics", BlueprintPure=false)
 	FSLMDeviceCosmeticStateSimpleGearbox GetCosmeticState(const FSLMDeviceHandleSimpleGearbox Handle) const;
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics", BlueprintPure=false)
 	FSLMDeviceSettingsSimpleGearbox GetDeviceSettings(const FSLMDeviceHandleSimpleGearbox Handle) const;
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics", BlueprintPure=false)
 	FSLMDevicePortAddressesSimpleGearbox GetPortAddresses(const FSLMDeviceHandleSimpleGearbox Handle) const;
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "SLMechatronics")
 	void EditDeviceSettings(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings);
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "SLMechatronics")
+	void ApplyReplicatedState(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceRepStateSimpleGearbox& State);
 	void ApplyInput(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceInputSimpleGearbox& Input);
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "SLMechatronics")
 	void RemoveDevice(const FSLMDeviceHandleSimpleGearbox Handle);
 
 private:
 	virtual void PreSimulate(const float DeltaTime) override;
 	virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
 	virtual void PostSimulate(const float DeltaTime) override;
-	virtual FString GetDebugString() override;
+	virtual FString GetDebugString(const bool Verbose) override;
 	virtual uint32 GetDebugHash() override;
 	
 	bool IsValidHandle(const FSLMDeviceHandleSimpleGearbox Handle) const;
@@ -188,8 +237,11 @@ private:
 	UPROPERTY()
     USLMDomainRotation* DomainRotation;
 	UPROPERTY()
+	USLMDomainSignal* DomainSignal;
+	UPROPERTY()
 	ASLMDeviceReplicatorSimpleGearbox* Replicator;
 	TSparseArray<FSLMDeviceModelSimpleGearbox> DeviceModels;
+	TSparseArray<FSLMDeviceRepStateSimpleGearbox> OrphanedRepStates;
 };
 
 //Replicator Actor
@@ -204,12 +256,38 @@ public:
 	void AddItem(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings);
 	void RemoveItem(const FSLMDeviceHandleSimpleGearbox Handle);
 	void EditItem(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings);
-	void UpdateItems(const TSparseArray<FSLMDeviceModelSimpleGearbox>& DeviceModels);
+	void PullDynamicState(TSparseArray<FSLMDeviceModelSimpleGearbox>& DeviceModels);
 private:
 	UPROPERTY(Replicated)
-	FSLMRepArraySimpleGearbox FastArray;
+	FSLMRepArraySettingsSimpleGearbox RepArraySettings;
+	UPROPERTY(Replicated)
+	FSLMRepArrayStateSimpleGearbox RepArrayState;
 };
 
+//BP Function Library for direct access
+UCLASS()
+class SLMECHATRONICS_API USLMBPFLSimpleGearbox : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject", ReturnDisplayName = "Handle"))
+	static FSLMDeviceHandleSimpleGearbox AddDeviceSimpleGearbox(const UObject* WorldContextObject, const FSLMDeviceSettingsSimpleGearbox& Settings);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static void RemoveDevice(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static void EditDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static void ApplyInput(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceInputSimpleGearbox& Input);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static FSLMDeviceCosmeticStateSimpleGearbox GetCosmeticState(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static FSLMDeviceSettingsSimpleGearbox GetDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle);
+	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static FSLMDevicePortAddressesSimpleGearbox GetPortAddresses(const UObject* WorldContextObject, const FSLMDeviceHandleSimpleGearbox Handle);
+};
+
+
+/*
 //Component for convenience
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
 class SLMECHATRONICS_API USLMDeviceComponentSimpleGearbox : public USLMDeviceComponentBase
@@ -230,3 +308,4 @@ private:
 	UPROPERTY(Replicated)
 	FSLMDeviceHandleSimpleGearbox Handle;
 };
+*/

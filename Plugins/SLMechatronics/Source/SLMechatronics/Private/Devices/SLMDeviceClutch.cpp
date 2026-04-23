@@ -51,11 +51,9 @@ void USLMDeviceSubsystemClutch::Simulate(const float DeltaTime, const float Subs
         const float OutDesiredImpulse = Out.MomentOfInertia * (DesiredAngVel - Out.AngularVelocity);
         const float InClampedImpulse = FMath::Clamp(InDesiredImpulse, -MaxImpulseThisIteration, MaxImpulseThisIteration);
         const float OutClampedImpulse = FMath::Clamp(OutDesiredImpulse, -MaxImpulseThisIteration, MaxImpulseThisIteration);
-        const float InAngVel = In.AngularVelocity + InClampedImpulse / In.MomentOfInertia;
-        const float OutAngVel = Out.AngularVelocity + OutClampedImpulse / Out.MomentOfInertia; 
         
-        DomainRotation->SetAngularVelocity(Device.Index_Rotation_Input, InAngVel);
-        DomainRotation->SetAngularVelocity(Device.Index_Rotation_Output, OutAngVel);
+    	DomainRotation->AddAngularImpulse(Device.Index_Rotation_Input, InClampedImpulse);
+    	DomainRotation->AddAngularImpulse(Device.Index_Rotation_Output, OutClampedImpulse);
     }
 }
 

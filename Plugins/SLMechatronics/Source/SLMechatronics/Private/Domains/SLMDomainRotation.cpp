@@ -2,112 +2,48 @@
 
 #include "Domains/SLMDomainRotation.h"
 
-//UE_DEFINE_GAMEPLAY_TAG(TAG_SLMECHATRONICS_DOMAIN_ROTATION, "SLMechatronics.Domain.Rotation")
-
 USLMDomainRotation::USLMDomainRotation()
 {
     DebugColor = FColor::Black;
 }
 
-int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port, const FSLMPortAddress& Address)
+int32 USLMDomainRotation::AddPort(const FSLMPortRotation& Port, const FSLMPortAddress& PortAddress)
 {
 	const int32 PortID = PortDefaults.Add(Port.PortData);
-	PortAddressToID.Add(Address, PortID);
 	const int32 ParticleID = Particles.Add(Port.PortData);
 	PortIDToParticleID.EmplaceAt(PortID, ParticleID);
-	return ParticleID;
+	PortAddressToPortID.Add(PortAddress, PortID);
+	PortIDToPortAddress.EmplaceAt(PortID, PortAddress);
+	PortMetaData.EmplaceAt(PortID, Port.PortMetaData);
+	return PortID;
 }
 
-void USLMDomainRotation::RemovePort(const FSLMPortAddress& Address)
+void USLMDomainRotation::RemovePort(const FSLMPortAddress& PortAddress)
 {
-	check(PortAddressToID.Contains(Address));
-	const int32 PortID = PortAddressToID[Address];
-	const int32 ParticleID = PortIDToParticleID[PortID];
-	PortDefaults.RemoveAt(PortID);
-	Particles.RemoveAt(ParticleID);
-	PortIDToParticleID.RemoveAt(PortID);
-	PortAddressToID.Remove(Address);
-}
-
-/*
-void USLMDomainRotation::EnqueueRemovePort(const FSLMPortAddress& Address)
-{
-	PortsToRemove.Add(Address);
+	PortsToRemove.Add(PortAddress);
 	bNeedsCleanup = true;
 }
-*/
-uint32 USLMDomainRotation::GetDebugHash()
+
+FSLMDataRotation USLMDomainRotation::GetData(const int32 PortID)
 {
-	uint32 Result = 0;
-	Result += PortDefaults.Num();
-	Result += PortAddressToID.Num();
-	Result += Particles.Num();
-	for (auto& Entry : PortAddressToID)
+	if (PortIDToParticleID.IsValidIndex(PortID))
 	{
-		const uint32 AddressHash = GetTypeHash(Entry.Key);
-		const uint32 DefaultHash = GetTypeHash(PortDefaults[Entry.Value]);
-		const uint32 CombinedHash = HashCombine(AddressHash, DefaultHash);
-		Result += CombinedHash;
+		const int32 ParticleID = PortIDToParticleID[PortID];
+		check(Particles.IsValidIndex(ParticleID));
+		return Particles[ParticleID];
 	}
-	return Result;
+	return FSLMDataRotation();
 }
 
-FString USLMDomainRotation::GetDebugString()
+void USLMDomainRotation::AddTorque(const int32 PortID, const float Torque, const float DeltaTime)
 {
-	FString Result;
-	Result += "DomainRotation";
-	Result += FString::Printf(TEXT("\nHas %i Port Address to ID Mappings"), PortAddressToID.Num());
-	Result += FString::Printf(TEXT("\nHas %i Port Defaults"), PortDefaults.Num());
-	Result += FString::Printf(TEXT("\nHas %i Port ID to Particle ID Mappings"), PortIDToParticleID.Num());
-	Result += FString::Printf(TEXT("\nHas %i Particles"), Particles.Num());
-	for (auto& Entry : PortAddressToID)
-	{
-		Result += "\n";
-		Result += FString::Printf(TEXT("Port state: "));
-		Result += Entry.Key.GetDebugString();
-		Result += PortDefaults[Entry.Value].GetDebugString();
-	}
-	Result += "\n";
-	return Result;
-}
-
-void USLMDomainRotation::ConnectPortsByAddress(const FSLMPortAddress First, const FSLMPortAddress Second)
-{
-	//Super::ConnectPortsByAddress(First, Second);
-	//int32* FirstID = PortAddressToID.Find(First);
-	int32* FirstIDPtr = PortAddressToID.Find(First);
-	int32* SecondIDPtr = PortAddressToID.Find(Second);
-	if (!FirstIDPtr || !SecondIDPtr || (*FirstIDPtr == *SecondIDPtr)) return;
-	
-	const int32 FirstID = *FirstIDPtr;
-	const int32 SecondID = *SecondIDPtr;
-	
-	FSLMDataRotation FirstParticle = Particles[FirstID];
-	FSLMDataRotation SecondParticle = Particles[SecondID];
-	const float FirstMomentum = FirstParticle.AngularVelocity * FirstParticle.MomentOfInertia;
-	const float SecondMomentum = SecondParticle.AngularVelocity * SecondParticle.MomentOfInertia;
-	const float SumMomentum = FirstMomentum + SecondMomentum;
-	const float SumMOI = FirstParticle.MomentOfInertia + SecondParticle.MomentOfInertia;
-	const float FinalAngularVelocity = SumMomentum / SumMOI;
-	const FSLMDataRotation NewParticle = FSLMDataRotation(FinalAngularVelocity, SumMOI);
-	const int32 NewParticleID = Particles.Add(NewParticle);
+	check(PortIDToParticleID.IsValidIndex(PortID));
+	const int32 ParticleIndex = PortIDToParticleID[PortID];
+	check(Particles.IsValidIndex(ParticleIndex));
+	Particles[ParticleIndex].AddTorque(Torque, DeltaTime);
 }
 
 /*
-void USLMDomainRotation::RemovePort(const int32 PortID)
-{
-    PortsToRemove.Add(PortID);
-    bNeedsCleanup = true;
-}
-/*
-FSLMDataRotation USLMDomainRotation::GetData(const int32 PortIndex)
-{
-    check(PortIndexToParticleIndex.IsValidIndex(PortIndex));
-    const int32 ParticleIndex = PortIndexToParticleIndex[PortIndex];
-    check(Particles.IsValidIndex(ParticleIndex));
-    return Particles[ParticleIndex];
-}
-
 void USLMDomainRotation::SetAngularVelocity(const int32 PortIndex, const float NewAngVel)
 {
     check(PortIndexToParticleIndex.IsValidIndex(PortIndex));
@@ -131,68 +67,100 @@ void USLMDomainRotation::AddTorque(const int32 PortIndex, const float Torque, co
 	check(Particles.IsValidIndex(ParticleIndex));
 	Particles[ParticleIndex].AddTorque(Torque, DeltaTime);
 }
-
-
-void USLMDomainRotation::Simulate(const float DeltaTime, const float SubstepScalar)
-{
-    for (auto& Particle : Particles)
-    {
-        //Particle.AngularVelocity = FMath::FInterpConstantTo(Particle.AngularVelocity, 0.0, DeltaTime, Particle.StaticFriction + Particle.DynamicFriction * Particle.AngularVelocity);
-        //const float Min = (Particle.AngularVelocity > 0.0) ? 0.0 : Particle.AngularVelocity;
-        //const float Max = (Particle.AngularVelocity > 0.0) ? Particle.AngularVelocity : 0.0;
-        //const float Desired = Particle.AngularVelocity - Particle.AngularVelocity * Particle.FrictionCoefficient * DeltaTime;
-        //const float Clamped = FMath::Clamp(Desired, Min, Max);
-        //Particle.AngularVelocity = Clamped;
-    }
-}
-/*
-FString USLMDomainRotation::GetDebugString(const int32 PortIndex)
-{
-    check(PortIndexToParticleIndex.IsValidIndex(PortIndex));
-    const int32 ParticleIndex = PortIndexToParticleIndex[PortIndex];
-    check(Particles.IsValidIndex(ParticleIndex));
-    const auto Particle = Particles[ParticleIndex];
-    FString Result;
-    Result += "Rotation\n";
-    Result += FString::Printf(TEXT("Port %i : Particle %i\n"), PortIndex, ParticleIndex);
-    Result += FString::Printf(TEXT("MOI = %f\n"), Particle.MomentOfInertia);
-    Result += FString::Printf(TEXT("Rad/s = %f\n"), Particle.AngularVelocity);
-    return Result;
-}
-
-void USLMDomainRotation::CreateParticleForPorts(const TArray<int32> PortIndices)
-{
-    const int32 ParticleIndex = Particles.Add(FSLMDataRotation());
-    float SumProduct = 0;
-    float SumMOI = 0;
-    for (const auto& PortIndex : PortIndices)
-    {
-        SumProduct += Ports[PortIndex].AngularVelocity * Ports[PortIndex].MomentOfInertia;
-        SumMOI += Ports[PortIndex].MomentOfInertia;
-        PortIndexToParticleIndex[PortIndex] = ParticleIndex;
-    }
-    Particles[ParticleIndex].AngularVelocity = SumProduct / SumMOI;
-    Particles[ParticleIndex].MomentOfInertia = SumMOI;
-}
-
-void USLMDomainRotation::DissolveParticleIntoPort(const int32 ParticleIndex, const int32 PortIndex)
-{
-    const FSLMDataRotation Particle = Particles[ParticleIndex];
-    Ports[PortIndex].AngularVelocity = Particle.AngularVelocity;
-}
-
-void USLMDomainRotation::RemovePortAtIndex(const int32 PortIndex)
-{
-    Ports.RemoveAt(PortIndex);
-}
-
-void USLMDomainRotation::RemoveParticleAtIndex(const int32 ParticleIndex)
-{
-    Particles.RemoveAt(ParticleIndex);
-}
-
-void USLMDomainRotation::CreateParticleForPort(const int32 Port)
-{
-    PortIndexToParticleIndex[Port] = Particles.Add(Ports[Port]);
-}
 */
+void USLMDomainRotation::RunTests()
+{
+}
+
+
+void USLMDomainRotation::CreateParticleForPorts(const TArray<int32> PortIDs)
+{
+    const int32 ParticleID = Particles.Add(FSLMDataRotation());
+    float SumMomentum = 0;
+    float SumMOI = 0;
+    for (const auto& PortID : PortIDs)
+    {
+        SumMomentum += PortDefaults[PortID].AngularVelocity * PortDefaults[PortID].MomentOfInertia;
+        SumMOI += PortDefaults[PortID].MomentOfInertia;
+        PortIDToParticleID[PortID] = ParticleID;
+    }
+    Particles[ParticleID].AngularVelocity = SumMomentum / SumMOI;
+    Particles[ParticleID].MomentOfInertia = SumMOI;
+}
+
+void USLMDomainRotation::DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID)
+{
+	const FSLMDataRotation& Particle = Particles[ParticleID];
+	PortDefaults[PortID].AngularVelocity = Particle.AngularVelocity;
+}
+
+void USLMDomainRotation::RemovePortAtAddress(const FSLMPortAddress& PortAddress)
+{
+	const int32 PortID = PortAddressToPortID.FindChecked(PortAddress);
+	Particles.RemoveAt(PortIDToParticleID[PortID]);
+	PortIDToParticleID.RemoveAt(PortID);
+	PortDefaults.RemoveAt(PortID);
+	PortAddressToPortID.Remove(PortAddress);
+	PortMetaData.RemoveAt(PortID);
+	PortIDToPortAddress.RemoveAt(PortID);
+}
+
+void USLMDomainRotation::RemoveParticleAtID(const int32 ParticleID)
+{
+	Particles.RemoveAt(ParticleID);
+}
+
+uint32 USLMDomainRotation::GetDebugHash()
+{
+	uint32 Result = 0;
+	Result = HashCombine(Result, GetTypeHash(PortDefaults.Num()));
+	Result = HashCombine(Result, GetTypeHash(PortIDToParticleID.Num()));
+	Result = HashCombine(Result, GetTypeHash(Particles.Num()));
+	for (const auto Entry : PortAddressToPortID)
+	{
+		const FSLMPortAddress PortAddress = Entry.Key;
+		const FSLMDataRotation& PortDefault = PortDefaults[Entry.Value];
+		const FSLMDataRotation& Particle = Particles[PortIDToParticleID[Entry.Value]];
+		Result = Result ^ HashCombine(GetTypeHash(PortAddress), GetTypeHash(PortDefault), GetTypeHash(Particle));
+	}
+	return Result;
+}
+
+FString USLMDomainRotation::GetDebugString(const bool Verbose)
+{
+	FString Result;
+	Result += "\n------------------DomainRotation------------------";
+	Result += FString::Format(TEXT("\nHas {0} PortDefaults"), {PortDefaults.Num()});
+	Result += FString::Format(TEXT("\nHas {0} PortIDToParticleID"), {PortIDToParticleID.Num()});
+	Result += FString::Format(TEXT("\nHas {0} Particles"), {Particles.Num()});
+	if (Verbose)
+	{
+		for (int32 PortID = 0; PortID < PortIDToParticleID.Num(); PortID++)
+		{
+			if (PortIDToParticleID.IsValidIndex(PortID))
+			{
+				Result += FString::Format(TEXT("\nPort {0} maps to Particle {1} with state {2}"), {PortID, PortIDToParticleID[PortID], Particles[PortIDToParticleID[PortID]].GetDebugString()});
+			}
+		}
+	}
+	return Result;
+}
+
+FString USLMDomainRotation::GetPortDebugString(const FSLMPortAddress& Address)
+{
+	FString Result;
+	if (const int32* PortIDPtr = PortAddressToPortID.Find(Address))
+	{
+		const int32 PortID = *PortIDPtr;
+		if (PortIDToParticleID.IsValidIndex(PortID))
+		{
+			const int32 ParticleID = PortIDToParticleID[PortID];
+			const FSLMDataRotation& PortDefault = PortDefaults[PortID];
+			const FSLMDataRotation& Particle = Particles[ParticleID];
+			Result += FString::Format(TEXT("\nPort {0} maps to Particle {1}"), {PortID, ParticleID});
+			Result += FString::Format(TEXT("\nPort Default: {0}"), {PortDefault.GetDebugString()});
+			Result += FString::Format(TEXT("\nParticle: {0}"), {Particle.GetDebugString()});			
+		}
+	}
+	return Result;
+}

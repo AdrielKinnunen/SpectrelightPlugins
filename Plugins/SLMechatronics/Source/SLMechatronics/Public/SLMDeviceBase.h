@@ -29,4 +29,5 @@ UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemBase : public USLMSubsystemBase
 {
     GENERATED_BODY()
+	friend class USLMManager;
 };

@@ -18,8 +18,9 @@ class SLMECHATRONICS_API USLMSubsystemBase : public UWorldSubsystem
 	virtual void Simulate(const float DeltaTime, const float SubstepScalar);
 	virtual void PostSimulate(const float DeltaTime);
 	
+	virtual void DebugDraw();
 	virtual uint32 GetDebugHash();
-	virtual FString GetDebugString();
+	virtual FString GetDebugString(bool Verbose);
 	
 protected:
 	FColor DebugColor = FColor::Black;
