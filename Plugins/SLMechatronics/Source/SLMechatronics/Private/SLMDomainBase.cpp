@@ -3,49 +3,6 @@
 #include "SLMDomainBase.h"
 #include "SLMDeviceBase.h"
 
-FString FSLMPortAddress::GetDebugString() const
-{
-	FString Result;
-	Result += FString::Format(TEXT("{}, {}, {}, {}"), {*DeviceClass->GetName(), *DomainClass->GetName(), DeviceID, PortID});
-	return Result;
-}
-
-bool FSLMPortAddress::IsValid() const
-{
-	return DeviceClass && DomainClass && DeviceID >= 0 && PortID >= 0;
-}
-
-bool operator==(const FSLMPortAddress& A, const FSLMPortAddress& B)
-{
-	return A.DeviceClass == B.DeviceClass && A.DomainClass == B.DomainClass && A.DeviceID == B.DeviceID && A.PortID == B.PortID;
-}
-
-FSLMPortAddress MakePortAddress(const USLMDeviceSubsystemBase* Device, const USLMDomainSubsystemBase* Domain, const int32 DeviceID, const int32 PortID)
-{
-	return {Device->GetClass(), Domain->GetClass(), DeviceID, PortID};
-}
-
-FString FSLMConnection::GetDebugString() const
-{
-	FString Result;
-	Result += FString::Format(TEXT("\nPort {0} is connected to Port {1}"), {First.GetDebugString(), Second.GetDebugString()});
-	return Result;
-}
-
-bool FSLMConnection::IsValid() const
-{
-	const bool bAddressesValid = First.IsValid() && Second.IsValid();
-	const bool bDomainClassesMatch = First.DomainClass == Second.DomainClass;
-	const bool bNotSelfConnection = First != Second;
-	return bAddressesValid && bDomainClassesMatch && bNotSelfConnection;	
-}
-
-bool operator==(const FSLMConnection& A, const FSLMConnection& B)
-{
-	const bool AA = A.First == B.First && A.Second == B.Second;
-	const bool AB = A.Second == B.First && A.First == B.Second;
-	return AA || AB;
-}
 
 void USLMDomainSubsystemBase::RunTests()
 {
@@ -116,6 +73,33 @@ void USLMDomainSubsystemBase::CheckForCleanUp()
     check(ConnectionsToRemove.Num() == 0);
 }
 
+bool USLMDomainSubsystemBase::WorldLocationToPortAddress(const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress)
+{
+	const int32 PortID = WorldLocationToPortID(Filter, WorldLocation);
+	if (PortID != INDEX_NONE)
+	{
+		OutAddress = PortIDToPortAddress[PortID];
+		return true;				
+	}
+	return false;
+}
+
+bool USLMDomainSubsystemBase::PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation)
+{
+	if (const int32* PortIDPtr = PortAddressToPortID.Find(PortAddress))
+	{
+		OutWorldLocation = PortIDToWorldLocation(*PortIDPtr);
+		return true;
+	}
+	return false;
+}
+
+void USLMDomainSubsystemBase::RemovePort(const FSLMPortAddress& PortAddress)
+{
+	PortsToRemove.Add(PortAddress);
+	bNeedsCleanup = true;
+}
+
 void USLMDomainSubsystemBase::CleanUpGraph()
 {
 	CleanContainers();
@@ -143,6 +127,12 @@ void USLMDomainSubsystemBase::ProcessPortsToRemove()
 	TSet<int32> PortIDsToRemove;
 	for (const auto& Address : PortsToRemove)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("ProcessPortsToRemove: NetMode=%d"), (int32)GetWorld()->GetNetMode());
+		UE_LOG(LogTemp, Warning, TEXT("ProcessPortsToRemove: Address %s"), *Address.GetDebugString());
+		if (!PortAddressToPortID.Contains(Address))
+		{
+			check(false);
+		}
 		PortIDsToRemove.Add(PortAddressToPortID.FindChecked(Address));
 	}
 	for (const auto& PortID : PortIDsToRemove)
@@ -154,19 +144,16 @@ void USLMDomainSubsystemBase::ProcessPortsToRemove()
 			ConnectionsToRemoveByID.Add({PortID, AdjacentPortID});
 		}
 	}
-	UE_LOG(LogTemp, Warning, TEXT("There are %i entries in ConnectionsToRemoveByID after ProcessPortsToRemove"), ConnectionsToRemoveByID.Num());
 }
 
 void USLMDomainSubsystemBase::ProcessConnectionsPending()
 {
 	ConnectionsToAdd.Append(ConnectionsPending);
-	UE_LOG(LogTemp, Warning, TEXT("Moved %i connections from ConnectionsPending to ConnectionsToAdd"), ConnectionsPending.Num());
 	ConnectionsPending.Empty(16);
 }
 
 void USLMDomainSubsystemBase::ProcessConnectionsToAdd()
 {
-	UE_LOG(LogTemp, Warning, TEXT("There are %i entries in ConnectionsToAdd"), ConnectionsToAdd.Num());
 	for (const FSLMConnection& Connection : ConnectionsToAdd)
 	{
 		const int32* FirstPortIDPtr = PortAddressToPortID.Find(Connection.First);
@@ -183,12 +170,10 @@ void USLMDomainSubsystemBase::ProcessConnectionsToAdd()
 		}
 	}
 	ConnectionsToAdd.Empty(16);
-	UE_LOG(LogTemp, Warning, TEXT("There are %i entries in ConnectionsToAddByID after ProcessConnectionsToAdd"), ConnectionsToAddByID.Num());
 }
 
 void USLMDomainSubsystemBase::ProcessConnectionsToRemove()
 {
-	UE_LOG(LogTemp, Warning, TEXT("There are %i entries in ConnectionsToRemove"), ConnectionsToRemove.Num());
 	for (const FSLMConnection& Connection : ConnectionsToRemove)
 	{
 		const int32* FirstPortIDPtr = PortAddressToPortID.Find(Connection.First);
@@ -201,11 +186,10 @@ void USLMDomainSubsystemBase::ProcessConnectionsToRemove()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Tried to remove a connection but ports didnt exist, WTF"));
+			checkNoEntry();
 		}
 	}
 	ConnectionsToRemove.Empty(16);
-	UE_LOG(LogTemp, Warning, TEXT("There are %i entries in ConnectionsToRemoveByID after ProcessConnectionsToRemove"), ConnectionsToRemoveByID.Num());
 }
 
 void USLMDomainSubsystemBase::UpdateAdjacencyList()
@@ -234,9 +218,7 @@ void USLMDomainSubsystemBase::GatherDirtyPortIDs()
 		DirtyPortIDs.Add(Entry.Key);
 		DirtyPortIDs.Add(Entry.Value);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("%i Ports are dirty before gathering neighbors"), DirtyPortIDs.Num());
 	DirtyPortIDs = GetConnectedPortIDs(DirtyPortIDs);
-	UE_LOG(LogTemp, Warning, TEXT("%i Ports are dirty after gathering neighbors"), DirtyPortIDs.Num());
 }
 
 void USLMDomainSubsystemBase::DissolveAndRebuildParticles()

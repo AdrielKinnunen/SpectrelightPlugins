@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SLMManager.h"
 #include "SLMSubsystemBase.h"
+#include "StructUtils/InstancedStruct.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SLMDeviceBase.generated.h"
 
@@ -17,19 +19,26 @@ class SLMECHATRONICS_API USLMDeviceComponentBase : public UActorComponent
     GENERATED_BODY()
 public:
     USLMDeviceComponentBase();
-protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
     //FSLMHandle Handle;
-
-    virtual void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };
+
+
+
+
 
 
 UCLASS()
 class SLMECHATRONICS_API USLMDeviceSubsystemBase : public USLMSubsystemBase
 {
     GENERATED_BODY()
-	friend class USLMManager;
+public:
+	virtual void Client_AddOrChangeDescriptor(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload);
+	virtual void Client_RemoveDescriptor(const FSLMDeviceAddress& DeviceAddress);
+	virtual void Client_AddOrChangeState(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload);
+	virtual void Client_RemoveState(const FSLMDeviceAddress& DeviceAddress);
 };
 
 
@@ -38,229 +47,309 @@ class SLMECHATRONICS_API USLMDeviceSubsystemBase : public USLMSubsystemBase
 
 
 
-template<	typename DerivedType,
-			typename HandleType,
-			typename ModelType,
-			typename SettingsType,
-			typename CosmeticType,
-			typename InputType,
-			typename RepStateType,
-			typename AddressesType>//,
-			//typename ReplicatorType,
-			//typename RepArraySettingsType,
-			//typename RepArrayStateType>
+template<typename SystemType, typename Traits>
 class TSLMDeviceSystem
 {
+	using FModelSettingsType	= Traits::FModelSettingsType;
+	using FModelStateType		= Traits::FModelStateType;
+	using FModelType			= Traits::FModelType;
+	using FDescriptorType		= Traits::FDescriptorType;
+	using FAddressesType		= Traits::FAddressesType;
+	using FRepStateType			= Traits::FRepStateType;
+	using FCosmeticStateType	= Traits::FCosmeticStateType;
+	using FInputType			= Traits::FInputType;
+	
 public:
 	virtual ~TSLMDeviceSystem() = default;
 	
-	
-	
-	/*
-	HandleType AddDevice_Impl(const SettingsType& Settings, const HandleType ExplicitHandle = HandleType())
+	FSLMDeviceAddress AddDevice(const FDescriptorType& Descriptor, const FSLMDeviceAddress& ExplicitAddress = FSLMDeviceAddress())
 	{
-		//auto* System = static_cast<DerivedType*>(this);
-		auto* Replicator = static_cast<ReplicatorType*>(System->Replicator);
-		auto& RepArraySettings = Replicator->RepArraySettings;
-		auto& RepArrayState = Replicator->RepArrayState;
+		const bool bIsServer = GetSystem()->GetWorld()->GetNetMode() != NM_Client;
+		const bool bHasExplicitAddress = ExplicitAddress.DeviceID != INDEX_NONE;
 		
-		HandleType Handle;
+		FSLMDeviceAddress DeviceAddress;
+		DeviceAddress.DeviceClass = GetSystem()->GetClass();
 		
-		if (System->GetWorld()->GetNetMode() != NM_Client)
+		if (bHasExplicitAddress)
 		{
-			Handle.ID = DeviceModels.Add(Settings.DeviceModel);
-			
-			auto& SettingsItem = RepArraySettings.Items.AddDefaulted_GetRef();
-			SettingsItem.RepHandle = Handle;
-			SettingsItem.RepSettings = Settings;
-			RepArraySettings.MarkItemDirty(SettingsItem);
-			
-			auto& StateItem = System->RepArrayState.Items.AddDefaulted_GetRef();
-			StateItem.RepHandle = Handle;
-			StateItem.RepState = Settings.DeviceModel.MakeRepState();
-			RepArrayState.MarkItemDirty(StateItem);
+			check(ExplicitAddress.DeviceClass == DeviceAddress.DeviceClass);
+		}
+		
+		if (bIsServer)
+		{
+			if (bHasExplicitAddress)
+			{
+				USLMManager* Manager = GetSystem()->GetWorld()->template GetSubsystem<USLMManager>();
+				check(Manager->bRemappingContextOpen)  //Remapping context better be open if we hit this
+				if (DeviceModels.IsValidIndex(ExplicitAddress.DeviceID))
+				{
+					DeviceAddress.DeviceID = DeviceModels.Add(MakeDeviceModel(Descriptor.ModelSettings));
+					Manager->RemappingContext.Add(ExplicitAddress, DeviceAddress);
+					AddOrChangeDescriptor(DeviceAddress, Descriptor);					
+				}
+				else
+				{
+					DeviceAddress = ExplicitAddress;
+					DeviceModels.EmplaceAt(DeviceAddress.DeviceID, MakeDeviceModel(Descriptor.ModelSettings));
+					AddOrChangeDescriptor(DeviceAddress, Descriptor);					
+				}
+			}
+			else
+			{
+				DeviceAddress.DeviceID = DeviceModels.Add(MakeDeviceModel(Descriptor.ModelSettings));
+				AddOrChangeDescriptor(DeviceAddress, Descriptor);				
+			}
+		}
+		if (!bIsServer)
+		{
+			check(ExplicitAddress.DeviceID != INDEX_NONE);
+			DeviceAddress = ExplicitAddress;
+			DeviceModels.EmplaceAt(DeviceAddress.DeviceID, MakeDeviceModel(Descriptor.ModelSettings));
+		}
+		
+		FModelType& Model = DeviceModels[DeviceAddress.DeviceID];
+		const FAddressesType PortAddresses = GetPortAddresses(DeviceAddress);
+		GetSystem()->RegisterPorts(Descriptor.PortSettings, Model.State, PortAddresses);
+		if (OrphanedRepStates.IsValidIndex(DeviceAddress.DeviceID))
+		{
+			GetSystem()->RepStateToModel(OrphanedRepStates[DeviceAddress.DeviceID], Model);
+			OrphanedRepStates.RemoveAt(DeviceAddress.DeviceID);
+		}
+		return DeviceAddress;
+	}
+
+	void RemoveDevice(const FSLMDeviceAddress& DeviceAddress)
+	{
+		check(IsValidDeviceAddress(DeviceAddress))
+		const bool bIsServer = GetSystem()->GetWorld()->GetNetMode() != NM_Client;
+		
+		const FAddressesType PortAddresses = GetPortAddresses(DeviceAddress);
+		GetSystem()->RemovePorts(PortAddresses);
+		DeviceModels.RemoveAt(DeviceAddress.DeviceID);
+		if (bIsServer)
+		{
+			RemoveDescriptor(DeviceAddress);
+		}
+	}
+	
+	FModelSettingsType GetModelSettings(const FSLMDeviceAddress& DeviceAddress)
+	{
+		FModelSettingsType Result;
+		if (IsValidDeviceAddress(DeviceAddress))
+		{
+			Result = DeviceModels[DeviceAddress.DeviceID].Settings;
+		}
+		return Result;
+	}
+
+	void SetModelSettings(const FSLMDeviceAddress& DeviceAddress, const FModelSettingsType& ModelSettings)
+	{
+		if (IsValidDeviceAddress(DeviceAddress))
+		{
+			DeviceModels[DeviceAddress.DeviceID].Settings = ModelSettings;
+		}
+		if (GetSystem()->GetWorld()->GetNetMode() != NM_Client)
+		{
+			//RepEditDescriptor(Handle, FDescriptorType(ModelSettings));
+		}
+	}
+
+	FAddressesType GetPortAddresses(const FSLMDeviceAddress& DeviceAddress)
+	{
+		check(IsValidDeviceAddress(DeviceAddress))
+		FAddressesType Result;
+		GetSystem()->DeviceIDToPortAddresses(DeviceAddress.DeviceID, Result);
+		return Result;
+	}
+
+	void ApplyInput(const FSLMDeviceAddress& DeviceAddress, const FInputType& Input)
+	{
+		if (IsValidDeviceAddress(DeviceAddress))
+		{
+			GetSystem()->InputToModel(Input, DeviceModels[DeviceAddress.DeviceID]);
+		}
+	}
+
+	FCosmeticStateType GetCosmeticState(const FSLMDeviceAddress& DeviceAddress) const
+	{
+		FCosmeticStateType Result;
+		if (IsValidDeviceAddress(DeviceAddress))
+		{
+			GetSystem()->ModelToCosmeticState(DeviceModels[DeviceAddress.DeviceID], Result);
+		}
+		return Result;
+	}
+
+	void PullRepState()
+	{
+		if (GetSystem()->GetWorld()->GetNetMode() != NM_Client)
+		{
+			RepPullState();
+		}
+	}
+	
+	FString GetDebugString_Impl(const bool Verbose)
+	{
+		FString Result;
+		/*
+		Result += "\n------------------SimpleGearbox------------------";
+		Result += FString::Format(TEXT("\nHas {0} Device Models"), {DeviceModels.Num()});
+		if (Verbose)
+		{
+			for (int32 i = 0; i < DeviceModels.GetMaxIndex(); i++)
+			{
+				if (DeviceModels.IsValidIndex(i))
+				{
+					//Result += FString::Format(TEXT("\nModel {0} has state: {1}"), { i, DeviceModels[i].GetDebugString()});
+				}
+			}
+		}
+		*/
+		return Result;
+	}
+	
+	uint32 GetDebugHash_Impl()
+	{
+		uint32 Result = 0;
+		for (int32 i = 0; i < DeviceModels.GetMaxIndex(); i++)
+		{
+			if (DeviceModels.IsValidIndex(i))
+			{
+				//Result =  Result ^ HashCombine(GetTypeHash(i), DeviceModels[i].GetDebugHash());
+			}
+		}
+		return Result;
+	}
+	
+	bool IsValidDeviceAddress(const FSLMDeviceAddress& DeviceAddress) const
+	{
+		const bool bDeviceTypeMatches = DeviceAddress.DeviceClass == GetSystem()->GetClass();
+		const bool bDeviceIDIsValid = DeviceModels.IsValidIndex(DeviceAddress.DeviceID);
+		return bDeviceTypeMatches && bDeviceIDIsValid;
+	}
+	
+	void Client_AddOrChangeDescriptor_Impl(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
+	{
+		const FDescriptorType* DescriptorPtr = Payload.GetPtr<FDescriptorType>();
+		check(DescriptorPtr);
+		const FDescriptorType& Descriptor = *DescriptorPtr;
+		
+		if (IsValidDeviceAddress(DeviceAddress))
+		{
+			SetModelSettings(DeviceAddress, Descriptor.ModelSettings);
 		}
 		else
 		{
-			check(ExplicitHandle.ID != INDEX_NONE);
-			Handle = ExplicitHandle;
-			DeviceModels.EmplaceAt(Handle.ID, Settings.DeviceModel);
+			AddDevice(Descriptor, DeviceAddress);
 		}
-		ModelType& Model = DeviceModels[Handle.ID];
-		const AddressesType PortAddresses = GetPortAddresses_Impl(Handle);
-		//System->RegisterPorts(Settings, Model, PortAddresses);
-		if (OrphanedRepStates.IsValidIndex(Handle.ID))
+	}
+	
+	void Client_RemoveDescriptor_Impl(const FSLMDeviceAddress& DeviceAddress)
+	{
+		RemoveDevice(DeviceAddress);
+	}
+	
+	void Client_AddOrChangeState_Impl(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
+	{
+		const FRepStateType* RepStatePtr = Payload.GetPtr<FRepStateType>();
+		check(RepStatePtr);
+		const FRepStateType& RepState = *RepStatePtr;
+		
+		if (IsValidDeviceAddress(DeviceAddress))
 		{
-			ApplyReplicatedState(Handle, OrphanedRepStates[Handle.ID]);
+			GetSystem()->RepStateToModel(RepState, DeviceModels[DeviceAddress.DeviceID]);
 		}
-		return Handle;
-	}
-	*/
-	
-	
-	void RemoveDevice_Impl(const HandleType Handle)
-	{
-		if (IsValidHandle_Impl(Handle))
+		else
 		{
-			const AddressesType PortAddresses = GetPortAddresses_Impl(Handle);
-			GetDerived()->RemovePorts(PortAddresses);
-			DeviceModels.RemoveAt(Handle.ID);		
+			OrphanedRepStates.EmplaceAt(DeviceAddress.DeviceID, RepState);
 		}
-		if (GetDerived()->GetWorld()->GetNetMode() != NM_Client)
+	}
+	
+	void Client_RemoveState_Impl(const FSLMDeviceAddress& DeviceAddress)
+	{
+	}
+
+private:
+
+	void AddOrChangeDescriptor(const FSLMDeviceAddress& DeviceAddress, const FDescriptorType& Descriptor)
+	{
+		const USLMManager* Manager = GetSystem()->GetWorld()->template GetSubsystem<USLMManager>();
+		FInstancedStruct Payload;
+		Payload.InitializeAs<FDescriptorType>(Descriptor);
+		check(Manager->Replicator);
+		Manager->Replicator->AddOrChangeDescriptor(DeviceAddress, Payload);
+	}
+	
+	void RemoveDescriptor(const FSLMDeviceAddress& DeviceAddress)
+	{
+		const USLMManager* Manager = GetSystem()->GetWorld()->template GetSubsystem<USLMManager>();
+		check(Manager->Replicator);
+		Manager->Replicator->RemoveDescriptor(DeviceAddress);
+	}
+
+	void RepPullState()
+	{
+		for (int32 i = 0; i < DeviceModels.GetMaxIndex(); i++)
 		{
-			GetDerived()->Replicator->RemoveItem(Handle);
+			if (DeviceModels.IsValidIndex(i))
+			{
+				const FModelType Model = DeviceModels[i];
+				if (Model.State.bDirty)
+				{
+					FRepStateType RepState;
+					GetSystem()->ModelToRepState(Model, RepState);
+					FInstancedStruct Payload;
+					Payload.InitializeAs<FRepStateType>(RepState);
+					//GetManager()->Server_AddOrChangeState(GetSystem()->GetClass(), i, Payload);
+					FSLMDeviceAddress DeviceAddress = {GetSystem()->GetClass(), i};
+					check(GetManager()->Replicator);
+					GetManager()->Replicator->AddOrChangeState(DeviceAddress, Payload);
+				}
+			}
 		}
-	}
-	
-	AddressesType GetPortAddresses_Impl(HandleType Handle)
-	{
-		check (IsValidHandle_Impl(Handle));
-		AddressesType Result;
-		GetDerived()->WritePortAddresses(Handle, Result);
-		return Result;
-	}
-	
-	CosmeticType GetCosmeticState_Impl(const HandleType Handle) const
-	{
-		CosmeticType Result;
-		if (IsValidHandle_Impl(Handle))
+		//TODO: Switch to this:
+		/*
+		for (TConstSetBitIterator<> It(DirtyFlags); It; ++It)
 		{
-			GetDerived()->WriteModelToCosmeticState(DeviceModels[Handle.ID], Result);
+			const int32 Index = It.GetIndex();
+			
+			FRepStateType RepState;
+			GetSystem()->ModelToRepState(DeviceModels[Index], RepState);
+			
+			FInstancedStruct Payload;
+			Payload.InitializeAs<FRepStateType>(RepState);
+			GetManager()->Server_AddOrChangeState(GetSystem()->GetClass(), Index, Payload);
+			
+			DirtyFlags[Index] = false;
 		}
-		return Result;
+		*/
+	}
+
+
+	SystemType* GetSystem()
+	{
+		return static_cast<SystemType*>(this);
+	}
+
+	const SystemType* GetSystem() const
+	{
+		return static_cast<const SystemType*>(this);
 	}
 	
-	SettingsType GetDeviceSettings_Impl(const HandleType Handle) const
+	const USLMManager* GetManager() const
 	{
-		SettingsType Result;
-		if (IsValidHandle_Impl(Handle))
-		{
-			GetDerived()->WriteModelToSettings(DeviceModels[Handle.ID], Result);
-		}
-		return Result;
+		return GetSystem()->GetWorld()->template GetSubsystem<USLMManager>();
 	}
-	
-	void SetDeviceSettings_Impl(const HandleType Handle, const SettingsType& Settings)
+
+	static FModelType MakeDeviceModel(const FModelSettingsType& Settings)
 	{
-		if (IsValidHandle_Impl(Handle))
-		{
-			GetDerived()->WriteSettingsToModel(DeviceModels[Handle.ID], Settings);
-		}
+		FModelType Model;
+		Model.Settings = Settings;
+		return Model;
 	}
-	/*
-	void ApplyReplicatedState_Impl(const HandleType Handle, const RepStateType& State)
-	{
-		if (!IsValidHandle(Handle))
-		{
-			OrphanedRepStates.EmplaceAt(Handle.ID, State);
-			return;
-		}
-		DeviceModels[Handle.ID].ApplyRepState(State);
-	}
-	*/
-	void ApplyInput_Impl(const HandleType Handle, const InputType& Input)
-	{
-		if (IsValidHandle_Impl(Handle))
-		{
-			GetDerived()->WriteInputToModel(DeviceModels[Handle.ID], Input);
-		}
-	}
-	/*
-	void RemoveDevice_Impl(const HandleType Handle)
-	{
-		if (IsValidHandle(Handle))
-		{
-			//static_cast<DerivedType*>(this)->RemovePorts(Handle);
-			DeviceModels.RemoveAt(Handle.ID);
-		}
-	}
-    */
-	
-	DerivedType* GetDerived()
-	{
-		return static_cast<DerivedType*>(this);
-	}
-	
-	const DerivedType* GetDerived() const
-	{
-		return static_cast<const DerivedType*>(this);
-	}
-	
-	bool IsValidHandle_Impl(const HandleType Handle) const
-	{
-		return DeviceModels.IsValidIndex(Handle.ID);
-	}
-	/*
-	
-	*/
+
 protected:
-	TSparseArray<ModelType> DeviceModels;
-	TSparseArray<RepStateType> OrphanedRepStates;
+	TSparseArray<FModelType> DeviceModels;
+	TSparseArray<FRepStateType> OrphanedRepStates;
+	TBitArray<> DirtyFlags;
 };
-
-
-
-/*
-
-#define SLM_IMPLEMENT_REP_ARRAY_SETTINGS(ArrayType, ItemType) \
-void ArrayType::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const \
-{ \
-    for (const auto Index : AddedIndices) \
-    { \
-        const ItemType& Item = Items[Index]; \
-        if (System->IsValidHandle(Item.RepHandle)) \
-            System->EditDeviceSettings(Item.RepHandle, Item.RepSettings); \
-        else \
-            System->AddDevice(Item.RepSettings, Item.RepHandle); \
-    } \
-} \
-void ArrayType::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const \
-{ \
-    for (const auto Index : ChangedIndices) \
-    { \
-        const ItemType& Item = Items[Index]; \
-        if (System->IsValidHandle(Item.RepHandle)) \
-            System->EditDeviceSettings(Item.RepHandle, Item.RepSettings); \
-        else \
-            System->AddDevice(Item.RepSettings, Item.RepHandle); \
-    } \
-} \
-void ArrayType::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const \
-{ \
-    for (const auto Index : RemovedIndices) \
-    { \
-        const ItemType& Item = Items[Index]; \
-        if (System->IsValidHandle(Item.RepHandle)) \
-            System->RemoveDevice(Item.RepHandle); \
-    } \
-}
-
-
-
-
-
-
-#define SLM_IMPLEMENT_REP_ARRAY_STATE(ArrayType, ItemType) \
-void ArrayType::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const \
-{ \
-    for (const auto Index : AddedIndices) \
-    { \
-        const ItemType& Item = Items[Index]; \
-        System->ApplyReplicatedState(Item.RepHandle, Item.RepState); \
-    } \
-} \
-void ArrayType::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const \
-{ \
-    for (const auto Index : ChangedIndices) \
-    { \
-        const ItemType& Item = Items[Index]; \
-        System->ApplyReplicatedState(Item.RepHandle, Item.RepState); \
-    } \
-} \
-void ArrayType::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const \
-{ \
-}
-
-
-
-*/

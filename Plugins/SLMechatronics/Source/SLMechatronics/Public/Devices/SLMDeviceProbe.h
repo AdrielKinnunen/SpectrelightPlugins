@@ -6,61 +6,90 @@
 #include "SLMDeviceBase.h"
 #include "Domains/SLMDomainRotation.h"
 #include "Domains/SLMDomainSignal.h"
-#include "Net/Serialization/FastArraySerializer.h"
 #include "SLMDeviceProbe.generated.h"
 
 class USLMDeviceSubsystemProbe;
-class ASLMDeviceReplicatorProbe;
 
-//Typed Handle for safety
+//Hot loop settings
 USTRUCT(BlueprintType)
-struct FSLMDeviceHandleProbe
+struct FSLMModelSettingsProbe
 {
 	GENERATED_BODY()
-	UPROPERTY()
-	int32 ID = INDEX_NONE;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	float Smoothing = 0.0;
+	FString GetDebugString() const;
+	uint32 GetDebugHash() const;
+};
+
+//Hot loop state
+USTRUCT()
+struct FSLMModelStateProbe
+{
+	GENERATED_BODY()
+	float ProbeValue = 0.0;
+	int32 PortID_Rotation = INDEX_NONE;
+	int32 PortID_Signal = INDEX_NONE;
+	bool bDirty = false;
+	FString GetDebugString() const;
+	uint32 GetDebugHash() const;
 };
 
 //Hot loop model
-USTRUCT(BlueprintType)
-struct FSLMDeviceModelProbe
+USTRUCT()
+struct FSLMModelProbe
 {
-    GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float ProbeValue = 0;
-	
-	int32 PortID_Rotation_Output = INDEX_NONE;
-	int32 PortID_Signal_Output = INDEX_NONE;
-	
-	bool bDirty = false;
-
-	
-	FString GetDebugString() const
-	{
-    	FString Result;
-		Result += FString::Printf(TEXT("%f"), ProbeValue);
-    	return Result;
-	}
+	GENERATED_BODY()
+	FSLMModelSettingsProbe Settings;
+	FSLMModelStateProbe State;
+	FString GetDebugString() const;
+	uint32 GetDebugHash() const;
 };
 
-FORCEINLINE uint32 GetTypeHash(const FSLMDeviceModelProbe& Model)
+//Port Defaults
+USTRUCT(BlueprintType)
+struct FSLMPortSettingsProbe
 {
-	return GetTypeHash(Model.ProbeValue);
-}
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortRotation Port_Rotation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSignal Port_Signal;
+};
+
+//Device Defaults
+USTRUCT(BlueprintType)
+struct FSLMDeviceDescriptorProbe
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMModelSettingsProbe ModelSettings;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortSettingsProbe PortSettings;
+};
+
+//Device port addresses
+USTRUCT(BlueprintType)
+struct FSLMPortAddressesProbe
+{
+	GENERATED_BODY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMPortAddress Address_Rotation;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMPortAddress Address_Signal;
+};
 
 //Dynamic Replicated State
-USTRUCT(BlueprintType)
-struct FSLMDeviceRepStateProbe
+USTRUCT()
+struct FSLMRepStateProbe
 {
 	GENERATED_BODY()
 	UPROPERTY()
-	float ProbeValue = 0;
+	float ProbeValue = 0.0;
 };
 
 //Public cosmetic state
 USTRUCT(BlueprintType)
-struct FSLMDeviceCosmeticStateProbe
+struct FSLMCosmeticStateProbe
 {
 	GENERATED_BODY()
 	UPROPERTY(BlueprintReadOnly, Category = "SLMechatronics")
@@ -69,214 +98,102 @@ struct FSLMDeviceCosmeticStateProbe
 
 //Public Input Structure
 USTRUCT(BlueprintType)
-struct FSLMDeviceInputProbe
+struct FSLMInputProbe
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	float ProbeValue = 0;
+	float ProbeValue = 0.0;
 };
 
-//Model + Port Settings
-USTRUCT(BlueprintType)
-struct FSLMDeviceSettingsProbe
-{
-    GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMDeviceModelProbe DeviceModel;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortRotation Port_Rotation_Output;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FSLMPortSignal Port_Signal_Output;
-};
 
-//Port Addresses
-USTRUCT(BlueprintType)
-struct FSLMDevicePortAddressesProbe
-{
-	GENERATED_BODY()
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPortAddress Address_Rotation_Output;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMPortAddress Address_Signal_Output;
-};
 
-//FastArray item for replication of settings
-USTRUCT()
-struct FSLMRepItemSettingsProbe : public FFastArraySerializerItem
+struct FSLMProbeTraits
 {
-	GENERATED_BODY()
-	UPROPERTY()
-	FSLMDeviceHandleProbe Handle;
-	UPROPERTY()
-	FSLMDeviceSettingsProbe Settings;
-};
-
-//FastArray container for replication of settings
-USTRUCT()
-struct FSLMRepArraySettingsProbe : public FFastArraySerializer
-{
-	GENERATED_BODY()
-	UPROPERTY()
-	TArray<FSLMRepItemSettingsProbe> Items;
-	UPROPERTY()
-	USLMDeviceSubsystemProbe* Subsystem = nullptr;
-	void PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const;
-	void PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const;
-	void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const;
-	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
-	{
-		return FastArrayDeltaSerialize<FSLMRepItemSettingsProbe, FSLMRepArraySettingsProbe>(Items, DeltaParms, *this);
-	}
-};
-template<>
-struct TStructOpsTypeTraits<FSLMRepArraySettingsProbe> : public TStructOpsTypeTraitsBase2<FSLMRepArraySettingsProbe>
-{
-	enum 
-	{
-		WithNetDeltaSerializer = true,
-   };
-};
-
-//FastArray item for replication of state
-USTRUCT()
-struct FSLMRepItemStateProbe : public FFastArraySerializerItem
-{
-	GENERATED_BODY()
-	UPROPERTY()
-	FSLMDeviceHandleProbe Handle;
-	UPROPERTY()
-	FSLMDeviceRepStateProbe State;
-};
-
-//FastArray container for replication of state
-USTRUCT()
-struct FSLMRepArrayStateProbe : public FFastArraySerializer
-{
-	GENERATED_BODY()
-	UPROPERTY()
-	TArray<FSLMRepItemStateProbe> Items;
-	UPROPERTY()
-	USLMDeviceSubsystemProbe* Subsystem = nullptr;
-	void PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const;
-	void PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const;
-	void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const;
-	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
-	{
-		return FastArrayDeltaSerialize<FSLMRepItemStateProbe, FSLMRepArrayStateProbe>(Items, DeltaParms, *this);
-	}
-};
-template<>
-struct TStructOpsTypeTraits<FSLMRepArrayStateProbe> : public TStructOpsTypeTraitsBase2<FSLMRepArrayStateProbe>
-{
-	enum 
-	{
-		WithNetDeltaSerializer = true,
-   };
+	//using FHandleType			= FSLMHandleProbe;
+	using FModelSettingsType	= FSLMModelSettingsProbe;
+	using FModelStateType		= FSLMModelStateProbe;
+	using FModelType			= FSLMModelProbe;
+	using FDescriptorType		= FSLMDeviceDescriptorProbe;
+	using FAddressesType		= FSLMPortAddressesProbe;
+	using FRepStateType			= FSLMRepStateProbe;
+	using FCosmeticStateType	= FSLMCosmeticStateProbe;
+	using FInputType			= FSLMInputProbe;
 };
 
 //Core Subsystem
 UCLASS()
-class SLMECHATRONICS_API USLMDeviceSubsystemProbe : public USLMDeviceSubsystemBase
+class SLMECHATRONICS_API USLMDeviceSubsystemProbe : public USLMDeviceSubsystemBase, public TSLMDeviceSystem<USLMDeviceSubsystemProbe, FSLMProbeTraits>
 {
     GENERATED_BODY()
 	
-	friend struct FSLMRepArraySettingsProbe;
-	friend struct FSLMRepArrayStateProbe;
+	template<typename SystemType, typename Traits>
+	friend class TSLMDeviceSystem;
 	
 public:
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void PostInitialize() override;
-	
-	FSLMDeviceHandleProbe AddDevice(const FSLMDeviceSettingsProbe& Settings, const FSLMDeviceHandleProbe ExplicitHandle = FSLMDeviceHandleProbe());
-	FSLMDeviceCosmeticStateProbe GetCosmeticState(const FSLMDeviceHandleProbe Handle) const;
-	FSLMDeviceSettingsProbe GetDeviceSettings(const FSLMDeviceHandleProbe Handle) const;
-	FSLMDevicePortAddressesProbe GetPortAddresses(const FSLMDeviceHandleProbe Handle) const;
-	void EditDeviceSettings(const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings);
-	void ApplyReplicatedState(const FSLMDeviceHandleProbe Handle, const FSLMDeviceRepStateProbe& State);
-	void ApplyInput(const FSLMDeviceHandleProbe Handle, const FSLMDeviceInputProbe& Input);
-	void RemoveDevice(const FSLMDeviceHandleProbe Handle);
 
-private:
-	virtual void PreSimulate(const float DeltaTime) override;
-	virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
-	virtual void PostSimulate(const float DeltaTime) override;
 	virtual FString GetDebugString(const bool Verbose) override;
 	virtual uint32 GetDebugHash() override;
 	
-	bool IsValidHandle(const FSLMDeviceHandleProbe Handle) const;
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
+	virtual void PostSimulate(const float DeltaTime) override;
+	
+	//Clientside OnReps
+	virtual void Client_AddOrChangeDescriptor(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload) override;
+	virtual void Client_RemoveDescriptor(const FSLMDeviceAddress& DeviceAddress) override;
+	virtual void Client_AddOrChangeState(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload) override;
+	virtual void Client_RemoveState(const FSLMDeviceAddress& DeviceAddress) override;
+
+private:
+	//CRTP Hooks, must implement
+	void RegisterPorts(const FSLMPortSettingsProbe& PortSettings, FSLMModelStateProbe& ModelState, const FSLMPortAddressesProbe& Addresses) const;
+	void RemovePorts(const FSLMPortAddressesProbe& Addresses) const;
+	void DeviceIDToPortAddresses(const int32 DeviceID, FSLMPortAddressesProbe& Addresses) const;
+	static void ModelToCosmeticState(const FSLMModelProbe& Model, FSLMCosmeticStateProbe& CosmeticState);
+	static void ModelToRepState(const FSLMModelProbe& Model, FSLMRepStateProbe& RepState);
+	static void RepStateToModel(const FSLMRepStateProbe& RepState, FSLMModelProbe& Model);
+	static void InputToModel(const FSLMInputProbe& Input, FSLMModelProbe& Model);
 	
 	UPROPERTY()
     USLMDomainRotation* DomainRotation;
 	UPROPERTY()
 	USLMDomainSignal* DomainSignal;
-	UPROPERTY()
-	ASLMDeviceReplicatorProbe* Replicator;
-	TSparseArray<FSLMDeviceModelProbe> DeviceModels;
-	TSparseArray<FSLMDeviceRepStateProbe> OrphanedRepStates;
 };
 
-//Replicator Actor
-UCLASS()
-class ASLMDeviceReplicatorProbe : public AInfo
-{
-	GENERATED_BODY()
-public:
-	ASLMDeviceReplicatorProbe();
-	virtual void PostInitializeComponents() override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	void AddItem(const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings);
-	void RemoveItem(const FSLMDeviceHandleProbe Handle);
-	void EditItem(const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings);
-	void PullDynamicState(TSparseArray<FSLMDeviceModelProbe>& DeviceModels);
-private:
-	UPROPERTY(Replicated)
-	FSLMRepArraySettingsProbe RepArraySettings;
-	UPROPERTY(Replicated)
-	FSLMRepArrayStateProbe RepArrayState;
-};
-
-//BP Function Library for direct access
-UCLASS()
-class SLMECHATRONICS_API USLMBPFLProbe : public UBlueprintFunctionLibrary
-{
-	GENERATED_BODY()
-	
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject", ReturnDisplayName = "Handle"))
-	static FSLMDeviceHandleProbe AddDeviceProbe(const UObject* WorldContextObject, const FSLMDeviceSettingsProbe& Settings);
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static void RemoveDevice(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle);
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static void EditDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings);
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static void ApplyInput(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle, const FSLMDeviceInputProbe& Input);
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static FSLMDeviceCosmeticStateProbe GetCosmeticState(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle);
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static FSLMDeviceSettingsProbe GetDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle);
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static FSLMDevicePortAddressesProbe GetPortAddresses(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle);
-};
-
-
-/*
-//Component for convenience
+//Component for BP API
 UCLASS(ClassGroup=("SLMechatronics"), meta=(BlueprintSpawnableComponent))
 class SLMECHATRONICS_API USLMDeviceComponentProbe : public USLMDeviceComponentBase
 {
 	GENERATED_BODY()
+	
 public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	FSLMDeviceCosmeticStateProbe GetDeviceCosmeticState();
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FSLMDeviceSettingsProbe DeviceSettings;
-protected:
+	USLMDeviceComponentProbe();
+	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "SLMechatronics")
+	FSLMModelSettingsProbe GetDeviceSettings() const;
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "SLMechatronics")
+	void SetDeviceSettings(const FSLMModelSettingsProbe& Settings) const;
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, BlueprintPure=false, Category = "SLMechatronics")
+	void ApplyInput(const FSLMInputProbe& Input) const;
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "SLMechatronics")
+	FSLMCosmeticStateProbe GetCosmeticState() const;
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "SLMechatronics")
+	FSLMPortAddressesProbe GetPortAddresses() const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
+	FSLMDeviceDescriptorProbe DeviceDescriptor;
+
 private:
+	//UPROPERTY(Replicated)
+	//FSLMHandleProbe Handle;
+	UPROPERTY(Replicated)
+	FSLMDeviceAddress DeviceAddress;
 	UPROPERTY()
 	USLMDeviceSubsystemProbe* Subsystem;
-	UPROPERTY(Replicated)
-	FSLMDeviceHandleProbe Handle;
 };
-*/

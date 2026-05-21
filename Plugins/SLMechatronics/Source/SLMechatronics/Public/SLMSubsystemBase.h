@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "SLMSubsystemBase.generated.h"
 
 
@@ -12,8 +11,8 @@ UCLASS()
 class SLMECHATRONICS_API USLMSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
-	friend class USLMManager;
 	
+public:
 	virtual void PreSimulate(const float DeltaTime);
 	virtual void Simulate(const float DeltaTime, const float SubstepScalar);
 	virtual void PostSimulate(const float DeltaTime);
@@ -24,5 +23,4 @@ class SLMECHATRONICS_API USLMSubsystemBase : public UWorldSubsystem
 	
 protected:
 	FColor DebugColor = FColor::Black;
-
 };

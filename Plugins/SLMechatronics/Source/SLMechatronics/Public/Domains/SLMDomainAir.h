@@ -1,13 +1,10 @@
 ﻿// Copyright Spectrelight Studios, LLC
-#if 0
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
 #include "SLMDomainAir.generated.h"
-
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR)
 
 constexpr float SLMGammaAir                 = 1.4;                          //Specific heat ratio for air
 constexpr float SLMIdealGasConstant         = 8.31446261815324;				//Ideal gas constant for Pa*m3/(mol*K)
@@ -24,18 +21,6 @@ USTRUCT(BlueprintType)
 struct FSLMDataAir
 {
     GENERATED_BODY()
-    FSLMDataAir()
-    {
-    }
-	/*
-    FSLMDataAir(const float Volume_l, const float Pressure_bar, const float Temp_K, const float OxygenRatio, const bool bConnectedToAtmosphere):
-		Volume_l(Volume_l),
-		Pressure_bar(Pressure_bar),
-		Temp_K(Temp_K),
-		OxygenRatio(OxygenRatio),
-		bConnectedToAtmosphere(bConnectedToAtmosphere)
-    {
-    }*/
 	
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Volume in Cubic Meters"))
     float Volume = 1.0;
@@ -124,19 +109,9 @@ struct FSLMDataAir
 		const bool A = bConnectedToAtmosphere == Other.bConnectedToAtmosphere;
 		return V && E && N && A;
 	}
-
 	
-
-	FString GetDebugString()
-	{
-		FString Result;
-		Result += FString::Printf(TEXT("Volume(m3) = %f\n"), Volume);
-		Result += FString::Printf(TEXT("Pressure(Pa) = %f\n"), GetPressure());
-		Result += FString::Printf(TEXT("Temperature(K) = %f\n"), GetTemperature());
-		Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * OxygenRatio);
-		Result += FString::Printf(TEXT("Connected To Atmosphere = %i\n"), bConnectedToAtmosphere);
-		return Result;
-	}
+	FString GetDebugString() const;
+	uint32 GetDebugHash() const;
 };
 
 
@@ -159,34 +134,25 @@ class SLMECHATRONICS_API USLMDomainAir : public USLMDomainSubsystemBase
 public:
     USLMDomainAir();
 
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    int32 AddPort(const FSLMPortAir& Port);
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    void RemovePort(const int32 PortIndex);
-
-    UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-    FSLMDataAir GetData(const int32 PortIndex);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void SetData(const int32 PortIndex, const FSLMDataAir Data);
-	UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-	void AddEnergyAndMoles(const int32 PortIndex, const float Energy, const float Moles);
+	int32 AddPort(const FSLMPortAir& Port, const FSLMPortAddress& PortAddress);
 	
-
 	virtual void RunTests() override;
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
+	virtual void PostSimulate(const float DeltaTime) override;
+	virtual uint32 GetDebugHash() override;
+	virtual FString GetDebugString(const bool Verbose) override;
+	virtual FString GetPortDebugString(const FSLMPortAddress& Address) override;
+	
+	FSLMDataAir& GetParticleRef(const int32 PortID);
 
-    virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
-    virtual FString GetDebugString(const int32 PortIndex) override;
-private:
-    TSparseArray<FSLMDataAir> Ports;
-    TSparseArray<FSLMDataAir> Networks;
+protected:
+	virtual void CreateParticleForPorts(const TArray<int32> PortIDs) override;
+	virtual void DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID) override;
+	virtual void RemovePortAtAddress(const FSLMPortAddress& PortAddress) override;
+	virtual void RemoveParticleAtID(const int32 ParticleID) override;
 
-    void CreateNetworkForPort(const int32 Port);
-
-    virtual void CreateNetworkForPorts(const TArray<int32> PortIndices) override;
-    virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, int32 PortIndex) override;
-    virtual void RemovePortAtIndex(const int32 PortIndex) override;
-    virtual void RemoveNetworkAtIndex(const int32 NetworkIndex) override;
+private:	
+	TSparseArray<FSLMDataAir> PortDefaults;
+	TSparseArray<FSLMDataAir> Particles;
 };
-
-
-#endif

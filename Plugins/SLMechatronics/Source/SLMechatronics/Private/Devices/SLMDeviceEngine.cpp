@@ -1,6 +1,44 @@
 ﻿// Copyright Spectrelight Studios, LLC
-#if 0
+/*
 #include "Devices/SLMDeviceEngine.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
 
 FSLMDeviceModelEngine USLMDeviceComponentEngine::GetDeviceState()
 {
@@ -154,7 +192,7 @@ void USLMDeviceSubsystemEngine::Simulate(const float DeltaTime, const float Subs
     	// Update temperatures adiabatically
     	temperature_source *= pow((pressure_source / pressure_source), (gamma - 1) / gamma);
     	temperature_dest *= pow((pressure_dest / pressure_dest), (gamma - 1) / gamma);
-    	*/    	
+    	//    	
     }
 }
 
@@ -185,6 +223,4 @@ FSLMDeviceModelEngine USLMDeviceSubsystemEngine::GetDeviceState(const int32 Devi
 	return DeviceModels[DeviceIndex];
 }
 
-
-
-#endif
+*/

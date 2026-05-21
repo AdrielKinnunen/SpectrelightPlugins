@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
-#include "UObject/Object.h"
 #include "SLMDomainRotation.generated.h"
 
 constexpr float SLMRadToRPM				= 9.54929658551;			//Convert rad/s to RPM
@@ -16,14 +15,6 @@ USTRUCT(BlueprintType)
 struct FSLMDataRotation
 {
     GENERATED_BODY()
-
-    FSLMDataRotation()
-    {
-    }
-
-    FSLMDataRotation(const float AngularVelocity, const float MomentOfInertia): AngularVelocity(AngularVelocity), MomentOfInertia(MomentOfInertia)
-    {
-    }
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Angular Velocity in rad/s"))
     float AngularVelocity = 0;
@@ -56,24 +47,9 @@ struct FSLMDataRotation
     	AngularVelocity += Torque * DeltaTime / MomentOfInertia;
     }
 	
-	FString GetDebugString() const
-    {
-    	FString Result;
-    	Result += FString::Printf(TEXT("%f,%f"), AngularVelocity, MomentOfInertia);
-    	return Result;
-    }
+	FString GetDebugString() const;
+	uint32 GetDebugHash() const;
 };
-
-FORCEINLINE uint32 GetTypeHash(const FSLMDataRotation& Data)
-{
-	uint32 Hash = 0;
-	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Data.AngularVelocity * 100.0f)));
-	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Data.MomentOfInertia * 100.0f)));
-	//Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Data.StaticFriction * 1.0f)));
-	//Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Data.DynamicFriction * 1.0f)));
-	return Hash;
-}
-
 
 USTRUCT(BlueprintType)
 struct FSLMPortRotation
@@ -86,7 +62,6 @@ struct FSLMPortRotation
 	FSLMPortMetaData PortMetaData;
 };
 
-
 UCLASS(BlueprintType)
 class SLMECHATRONICS_API USLMDomainRotation : public USLMDomainSubsystemBase
 {
@@ -94,28 +69,26 @@ class SLMECHATRONICS_API USLMDomainRotation : public USLMDomainSubsystemBase
 	
 public:
     USLMDomainRotation();
-	int32 AddPort(const FSLMPortRotation& Port, const FSLMPortAddress& PortAddress);
-	void RemovePort(const FSLMPortAddress& PortAddress);
-	FSLMDataRotation GetData(const int32 PortID);
-	//void SetAngularVelocity(const int32 PortIndex, const float NewAngVel);
-	//void AddAngularImpulse(const int32 PortIndex, const float Impulse);
-	void AddTorque(const int32 PortID, const float Torque, const float DeltaTime);
 	
-protected:
+	int32 AddPort(const FSLMPortRotation& Port, const FSLMPortAddress& PortAddress);
+	
 	virtual void RunTests() override;
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
+	virtual void PostSimulate(const float DeltaTime) override;
+	virtual uint32 GetDebugHash() override;
+	virtual FString GetDebugString(const bool Verbose) override;
+	virtual FString GetPortDebugString(const FSLMPortAddress& Address) override;
+	
+	FSLMDataRotation& GetParticleRef(const int32 PortID);
+
+protected:
 	virtual void CreateParticleForPorts(const TArray<int32> PortIDs) override;
 	virtual void DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID) override;
 	virtual void RemovePortAtAddress(const FSLMPortAddress& PortAddress) override;
 	virtual void RemoveParticleAtID(const int32 ParticleID) override;
 
-private:
-	//virtual void PreSimulate(const float DeltaTime);
-	//virtual void Simulate(const float DeltaTime, const float SubstepScalar);
-	//virtual void PostSimulate(const float DeltaTime);
-	virtual uint32 GetDebugHash() override;
-	virtual FString GetDebugString(const bool Verbose) override;
-	virtual FString GetPortDebugString(const FSLMPortAddress& Address) override;
-	
+private:	
 	TSparseArray<FSLMDataRotation> PortDefaults;
 	TSparseArray<FSLMDataRotation> Particles;
 };

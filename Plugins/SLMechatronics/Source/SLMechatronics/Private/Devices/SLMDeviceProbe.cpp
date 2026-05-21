@@ -3,80 +3,9 @@
 #include "Devices/SLMDeviceProbe.h"
 #include "Net/UnrealNetwork.h"
 
-
-void FSLMRepArraySettingsProbe::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const
-{
-	for (const auto Index : AddedIndices)
-	{
-		const FSLMRepItemSettingsProbe& Item = Items[Index];
-		if (Subsystem->IsValidHandle(Item.Handle))
-		{
-			Subsystem->EditDeviceSettings(Item.Handle, Item.Settings);
-		}
-		else
-		{
-			Subsystem->AddDevice(Item.Settings, Item.Handle);
-		}
-	}
-}
-
-void FSLMRepArraySettingsProbe::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const
-{
-	for (const auto Index : ChangedIndices)
-	{
-		const FSLMRepItemSettingsProbe& Item = Items[Index];
-		if (Subsystem->IsValidHandle(Item.Handle))
-		{
-			Subsystem->EditDeviceSettings(Item.Handle, Item.Settings);
-		}
-		else
-		{
-			Subsystem->AddDevice(Item.Settings, Item.Handle);
-		}
-	}
-}
-
-void FSLMRepArraySettingsProbe::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const
-{
-	for (const auto Index : RemovedIndices)
-	{
-		const FSLMRepItemSettingsProbe& Item = Items[Index];
-		if (Subsystem->IsValidHandle(Item.Handle))
-		{
-			Subsystem->RemoveDevice(Item.Handle);
-		}
-	}
-}
-
-void FSLMRepArrayStateProbe::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const
-{
-	for (const auto Index : AddedIndices)
-	{
-		const FSLMRepItemStateProbe& Item = Items[Index];
-		Subsystem->ApplyReplicatedState(Item.Handle, Item.State);
-	}
-}
-
-void FSLMRepArrayStateProbe::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const
-{
-	for (const auto Index : ChangedIndices)
-	{
-		const FSLMRepItemStateProbe& Item = Items[Index];
-		Subsystem->ApplyReplicatedState(Item.Handle, Item.State);
-	}
-}
-
-void FSLMRepArrayStateProbe::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const
-{
-}
-
 void USLMDeviceSubsystemProbe::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
-	if (GetWorld()->GetNetMode() != NM_Client)
-	{
-		Replicator = InWorld.SpawnActor<ASLMDeviceReplicatorProbe>();
-	}
 }
 
 void USLMDeviceSubsystemProbe::PostInitialize()
@@ -86,112 +15,14 @@ void USLMDeviceSubsystemProbe::PostInitialize()
 	DomainSignal = GetWorld()->GetSubsystem<USLMDomainSignal>();
 }
 
-FSLMDeviceHandleProbe USLMDeviceSubsystemProbe::AddDevice(const FSLMDeviceSettingsProbe& Settings, const FSLMDeviceHandleProbe ExplicitHandle)
+FString USLMDeviceSubsystemProbe::GetDebugString(const bool Verbose)
 {
-	FSLMDeviceHandleProbe Handle;
-	if (GetWorld()->GetNetMode() != NM_Client)
-	{
-		check(Replicator);
-		Handle = {DeviceModels.Add(Settings.DeviceModel)};
-		Replicator->AddItem({Handle}, Settings);
-	}
-	else
-	{
-		check(ExplicitHandle.ID != INDEX_NONE);
-		Handle = ExplicitHandle;
-		DeviceModels.EmplaceAt(Handle.ID, Settings.DeviceModel);
-	}
-	FSLMDeviceModelProbe& Model = DeviceModels[Handle.ID];
-	const FSLMDevicePortAddressesProbe PortAddresses = GetPortAddresses(Handle);
-	Model.PortID_Rotation_Output = DomainRotation->AddPort(Settings.Port_Rotation_Output, PortAddresses.Address_Rotation_Output);
-	Model.PortID_Signal_Output = DomainSignal->AddPort(Settings.Port_Signal_Output, PortAddresses.Address_Signal_Output);
-	if (OrphanedRepStates.IsValidIndex(Handle.ID))
-	{
-		ApplyReplicatedState(Handle, OrphanedRepStates[Handle.ID]);
-	}
-	return Handle;
+	return GetDebugString_Impl(Verbose);
 }
 
-
-FSLMDeviceCosmeticStateProbe USLMDeviceSubsystemProbe::GetCosmeticState(const FSLMDeviceHandleProbe Handle) const
+uint32 USLMDeviceSubsystemProbe::GetDebugHash()
 {
-	FSLMDeviceCosmeticStateProbe Result;
-	if (IsValidHandle(Handle))
-	{
-		const auto& Model = DeviceModels[Handle.ID];
-		Result.ProbeValue = Model.ProbeValue;
-	}
-	return Result;
-}
-
-
-FSLMDeviceSettingsProbe USLMDeviceSubsystemProbe::GetDeviceSettings(const FSLMDeviceHandleProbe Handle) const
-{
-	FSLMDeviceSettingsProbe Result = FSLMDeviceSettingsProbe();
-	if (IsValidHandle(Handle))
-	{
-		Result.DeviceModel = DeviceModels[Handle.ID];
-	}
-	return Result;
-}
-
-FSLMDevicePortAddressesProbe USLMDeviceSubsystemProbe::GetPortAddresses(const FSLMDeviceHandleProbe Handle) const
-{
-	FSLMDevicePortAddressesProbe Result;
-	Result.Address_Rotation_Output	= MakePortAddress(this, DomainRotation, Handle.ID, 0);
-	Result.Address_Signal_Output	= MakePortAddress(this, DomainSignal, Handle.ID, 0);
-	return Result;
-}
-
-void USLMDeviceSubsystemProbe::EditDeviceSettings(const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings)
-{
-	if (!IsValidHandle(Handle))
-	{
-		return;
-	}
-	auto& Model = DeviceModels[Handle.ID];
-	Model.ProbeValue = Settings.DeviceModel.ProbeValue;
-	if (GetWorld()->GetNetMode() != NM_Client)
-	{
-		check(Replicator);
-		Replicator->EditItem(Handle, Settings);
-	}
-}
-
-void USLMDeviceSubsystemProbe::ApplyReplicatedState(const FSLMDeviceHandleProbe Handle, const FSLMDeviceRepStateProbe& State)
-{
-	if (!IsValidHandle(Handle))
-	{
-		OrphanedRepStates.EmplaceAt(Handle.ID, State);
-		return;
-	}
-	auto& Model = DeviceModels[Handle.ID];
-	Model.ProbeValue = State.ProbeValue;
-}
-
-void USLMDeviceSubsystemProbe::ApplyInput(const FSLMDeviceHandleProbe Handle, const FSLMDeviceInputProbe& Input)
-{
-	if (!IsValidHandle(Handle))
-	{
-		return;
-	}
-	auto& Model = DeviceModels[Handle.ID];
-	Model.ProbeValue = Input.ProbeValue;
-}
-
-void USLMDeviceSubsystemProbe::RemoveDevice(const FSLMDeviceHandleProbe Handle)
-{
-	if (IsValidHandle(Handle))
-	{
-		const FSLMDevicePortAddressesProbe PortAddresses = GetPortAddresses(Handle);
-		DomainRotation->RemovePort(PortAddresses.Address_Rotation_Output);
-		DomainSignal->RemovePort(PortAddresses.Address_Signal_Output);
-		DeviceModels.RemoveAt(Handle.ID);		
-	}
-	if (GetWorld()->GetNetMode() != NM_Client && Replicator)
-	{
-		Replicator->RemoveItem(Handle);
-	}
+	return GetDebugHash_Impl();
 }
 
 void USLMDeviceSubsystemProbe::PreSimulate(const float DeltaTime)
@@ -202,196 +33,85 @@ void USLMDeviceSubsystemProbe::Simulate(const float DeltaTime, const float Subst
 {
 	for (auto& Model : DeviceModels)
 	{
-		DomainSignal->WriteValue(Model.PortID_Signal_Output, Model.ProbeValue);
-		DomainRotation->AddTorque(Model.PortID_Rotation_Output, Model.ProbeValue * 100, DeltaTime);
-		Model.bDirty = true;
+		
+		FSLMDataRotation& In = DomainRotation->GetParticleRef(Model.State.PortID_Rotation);
+		//In.AddTorque(Model.State.ProbeValue * 100, DeltaTime);
+		In.AngularVelocity = Model.State.ProbeValue;
+		DomainSignal->WriteValue(Model.State.PortID_Signal, Model.State.ProbeValue);
+		Model.State.bDirty = true;
 	}
 }
 
 void USLMDeviceSubsystemProbe::PostSimulate(const float DeltaTime)
 {
-	if (GetWorld()->GetNetMode() != NM_Client && Replicator)
-	{
-		Replicator->PullDynamicState(DeviceModels);
-	}
+	PullRepState();
 }
 
-FString USLMDeviceSubsystemProbe::GetDebugString(const bool Verbose)
+void USLMDeviceSubsystemProbe::Client_AddOrChangeDescriptor(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
 {
-	FString Result;
-	Result += "\n------------------Probe------------------";
-	Result += FString::Format(TEXT("\nHas {0} Device Models"), {DeviceModels.Num()});
-	if (Verbose)
-	{
-		for (int32 i = 0; i < DeviceModels.GetMaxIndex(); i++)
-		{
-			if (DeviceModels.IsValidIndex(i))
-			{
-				Result += FString::Format(TEXT("\nModel {0} has state: {1}"), { i, DeviceModels[i].GetDebugString()});
-			}
-		}
-	}
-	return Result;
+	Client_AddOrChangeDescriptor_Impl(DeviceAddress, Payload);
 }
 
-uint32 USLMDeviceSubsystemProbe::GetDebugHash()
+void USLMDeviceSubsystemProbe::Client_RemoveDescriptor(const FSLMDeviceAddress& DeviceAddress)
 {
-	uint32 Result = 0;
-	for (int32 i = 0; i < DeviceModels.GetMaxIndex(); i++)
-	{
-		if (DeviceModels.IsValidIndex(i))
-		{
-			Result =  Result ^ HashCombine(GetTypeHash(i), GetTypeHash(DeviceModels[i]));
-		}
-	}
-	return Result;
+	Client_RemoveDescriptor_Impl(DeviceAddress);
 }
 
-bool USLMDeviceSubsystemProbe::IsValidHandle(const FSLMDeviceHandleProbe Handle) const
+void USLMDeviceSubsystemProbe::Client_AddOrChangeState(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
 {
-	return DeviceModels.IsValidIndex(Handle.ID);
+	Client_AddOrChangeState_Impl(DeviceAddress, Payload);
 }
 
-
-ASLMDeviceReplicatorProbe::ASLMDeviceReplicatorProbe()
+void USLMDeviceSubsystemProbe::Client_RemoveState(const FSLMDeviceAddress& DeviceAddress)
 {
-	bReplicates = true;
-	bAlwaysRelevant = true;
-	SetReplicatingMovement(false);
+	Client_RemoveState_Impl(DeviceAddress);
 }
 
-void ASLMDeviceReplicatorProbe::PostInitializeComponents()
+void USLMDeviceSubsystemProbe::RegisterPorts(const FSLMPortSettingsProbe& PortSettings, FSLMModelStateProbe& ModelState, const FSLMPortAddressesProbe& Addresses) const
 {
-	RepArraySettings.Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>();
-	RepArrayState.Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>();
-	Super::PostInitializeComponents();
+	ModelState.PortID_Rotation = DomainRotation->AddPort(PortSettings.Port_Rotation, Addresses.Address_Rotation);
+	ModelState.PortID_Signal = DomainSignal->AddPort(PortSettings.Port_Signal, Addresses.Address_Signal);
 }
 
-void ASLMDeviceReplicatorProbe::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void USLMDeviceSubsystemProbe::RemovePorts(const FSLMPortAddressesProbe& Addresses) const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ASLMDeviceReplicatorProbe, RepArraySettings);
-	DOREPLIFETIME(ASLMDeviceReplicatorProbe, RepArrayState);
+	DomainRotation->RemovePort(Addresses.Address_Rotation);
+	DomainSignal->RemovePort(Addresses.Address_Signal);
 }
 
-void ASLMDeviceReplicatorProbe::AddItem(const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings)
+void USLMDeviceSubsystemProbe::DeviceIDToPortAddresses(const int32 DeviceID, FSLMPortAddressesProbe& Addresses) const
 {
-	FSLMRepItemSettingsProbe& Item = RepArraySettings.Items.AddDefaulted_GetRef();
-	Item.Handle = Handle;
-	Item.Settings = Settings;
-	RepArraySettings.MarkItemDirty(Item);
-	FSLMRepItemStateProbe& StateItem = RepArrayState.Items.AddDefaulted_GetRef();
-	StateItem.Handle = Handle;
-	StateItem.State.ProbeValue = Settings.DeviceModel.ProbeValue;
-	RepArrayState.MarkItemDirty(StateItem);
+	Addresses.Address_Rotation		= MakePortAddress(this, DomainRotation, DeviceID, 0);
+	Addresses.Address_Signal		= MakePortAddress(this, DomainSignal, DeviceID, 0);
 }
 
-void ASLMDeviceReplicatorProbe::RemoveItem(const FSLMDeviceHandleProbe Handle)
+void USLMDeviceSubsystemProbe::ModelToCosmeticState(const FSLMModelProbe& Model, FSLMCosmeticStateProbe& CosmeticState)
 {
-	for (int32 i = 0; i < RepArraySettings.Items.Num(); ++i)
-	{
-		if (RepArraySettings.Items[i].Handle.ID == Handle.ID)
-		{
-			RepArraySettings.Items.RemoveAt(i);
-			RepArraySettings.MarkArrayDirty();
-			break;
-		}
-	}
-	for (int32 i = 0; i < RepArrayState.Items.Num(); ++i)
-	{
-		if (RepArrayState.Items[i].Handle.ID == Handle.ID)
-		{
-			RepArrayState.Items.RemoveAt(i);
-			RepArrayState.MarkArrayDirty();
-			break;
-		}
-	}
+	CosmeticState.ProbeValue = Model.State.ProbeValue;
 }
 
-void ASLMDeviceReplicatorProbe::EditItem(const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings)
+void USLMDeviceSubsystemProbe::ModelToRepState(const FSLMModelProbe& Model, FSLMRepStateProbe& RepState)
 {
-	for (auto& Item : RepArraySettings.Items)
-	{
-		if (Item.Handle.ID == Handle.ID)
-		{
-			Item.Settings = Settings;
-			RepArraySettings.MarkItemDirty(Item);
-			break;
-		}
-	}
+	RepState.ProbeValue = Model.State.ProbeValue;
 }
 
-void ASLMDeviceReplicatorProbe::PullDynamicState(TSparseArray<FSLMDeviceModelProbe>& DeviceModels)
+void USLMDeviceSubsystemProbe::RepStateToModel(const FSLMRepStateProbe& RepState, FSLMModelProbe& Model)
 {
-	for (auto& Item : RepArrayState.Items)
-	{
-		const auto Handle = Item.Handle;
-		if (DeviceModels.IsValidIndex(Handle.ID))
-		{
-			auto& Model = DeviceModels[Handle.ID];
-			if (Model.bDirty)
-			{
-				Item.State.ProbeValue = Model.ProbeValue;
-				RepArrayState.MarkItemDirty(Item);
-				Model.bDirty = false;
-			}
-		}
-	}
+	Model.State.ProbeValue = RepState.ProbeValue;
 }
 
-FSLMDeviceHandleProbe USLMBPFLProbe::AddDeviceProbe(const UObject* WorldContextObject, const FSLMDeviceSettingsProbe& Settings)
+void USLMDeviceSubsystemProbe::InputToModel(const FSLMInputProbe& Input, FSLMModelProbe& Model)
 {
-	check(WorldContextObject);
-	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>()->AddDevice(Settings);
-}
-
-void USLMBPFLProbe::RemoveDevice(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle)
-{
-	check(WorldContextObject);
-	WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>()->RemoveDevice(Handle);
-}
-
-void USLMBPFLProbe::EditDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle, const FSLMDeviceSettingsProbe& Settings)
-{
-	check(WorldContextObject);
-	WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>()->EditDeviceSettings(Handle, Settings);
-}
-
-void USLMBPFLProbe::ApplyInput(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle, const FSLMDeviceInputProbe& Input)
-{
-	check(WorldContextObject);
-	WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>()->ApplyInput(Handle, Input);
-}
-
-FSLMDeviceCosmeticStateProbe USLMBPFLProbe::GetCosmeticState(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle)
-{
-	check(WorldContextObject);
-	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>()->GetCosmeticState(Handle);
-}
-
-FSLMDeviceSettingsProbe USLMBPFLProbe::GetDeviceSettings(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle)
-{
-	check(WorldContextObject);
-	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>()->GetDeviceSettings(Handle);
-}
-
-FSLMDevicePortAddressesProbe USLMBPFLProbe::GetPortAddresses(const UObject* WorldContextObject, const FSLMDeviceHandleProbe Handle)
-{
-	check(WorldContextObject);
-	return WorldContextObject->GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>()->GetPortAddresses(Handle);
+	Model.State.ProbeValue = Input.ProbeValue;
 }
 
 
-/*
-void USLMDeviceComponentProbe::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(USLMDeviceComponentProbe, Handle);
-}
 
-FSLMDeviceCosmeticStateProbe USLMDeviceComponentProbe::GetDeviceCosmeticState()
+
+USLMDeviceComponentProbe::USLMDeviceComponentProbe()
 {
-	return Subsystem->GetCosmeticState({Handle});
+	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
 }
 
 void USLMDeviceComponentProbe::BeginPlay()
@@ -400,7 +120,10 @@ void USLMDeviceComponentProbe::BeginPlay()
 	Subsystem = GetWorld()->GetSubsystem<USLMDeviceSubsystemProbe>();
 	if (GetOwner()->HasAuthority())
 	{
-		Handle = Subsystem->AddDevice(DeviceSettings);
+		const AActor* Owner = GetOwner();
+		DeviceDescriptor.PortSettings.Port_Rotation.PortMetaData.AssociatedActor = Owner;
+		DeviceDescriptor.PortSettings.Port_Signal.PortMetaData.AssociatedActor = Owner;
+		DeviceAddress = Subsystem->AddDevice(DeviceDescriptor);
 	}
 }
 
@@ -408,8 +131,38 @@ void USLMDeviceComponentProbe::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (GetOwner()->HasAuthority())
 	{
-		Subsystem->RemoveDevice({Handle});
+		Subsystem->RemoveDevice(DeviceAddress);
 	}
 	Super::EndPlay(EndPlayReason);
 }
-*/
+
+void USLMDeviceComponentProbe::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(USLMDeviceComponentProbe, DeviceAddress);
+}
+
+FSLMModelSettingsProbe USLMDeviceComponentProbe::GetDeviceSettings() const
+{
+	return Subsystem->GetModelSettings(DeviceAddress);
+}
+
+void USLMDeviceComponentProbe::SetDeviceSettings(const FSLMModelSettingsProbe& Settings) const
+{
+	Subsystem->SetModelSettings(DeviceAddress, Settings);
+}
+
+void USLMDeviceComponentProbe::ApplyInput(const FSLMInputProbe& Input) const
+{
+	Subsystem->ApplyInput(DeviceAddress, Input);
+}
+
+FSLMCosmeticStateProbe USLMDeviceComponentProbe::GetCosmeticState() const
+{
+	return Subsystem->GetCosmeticState(DeviceAddress);
+}
+
+FSLMPortAddressesProbe USLMDeviceComponentProbe::GetPortAddresses() const
+{
+	return Subsystem->GetPortAddresses(DeviceAddress);
+}

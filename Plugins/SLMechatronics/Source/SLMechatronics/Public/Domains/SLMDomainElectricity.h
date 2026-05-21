@@ -1,34 +1,31 @@
 ﻿// Copyright Spectrelight Studios, LLC
-#if 0
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "SLMDomainBase.h"
-#include "UObject/Object.h"
 #include "SLMDomainElectricity.generated.h"
-
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ELECTRICITY)
 
 USTRUCT(BlueprintType)
 struct FSLMDataElectricity
 {
     GENERATED_BODY()
 
-    FSLMDataElectricity()
-    {
-    }
-
-    FSLMDataElectricity(const float StoredJoules, const float CapacityJoules): StoredJoules(StoredJoules), CapacityJoules(CapacityJoules)
-    {
-    }
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Stored energy in Joules"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Energy stored in Joules"))
     float StoredJoules = 0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Energy capacity in Joules"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics", meta=(Tooltip="Energy Capacity in Joules"))
     float CapacityJoules = 1;
+	
+	float TransferEnergyClamped(const float EnergyToAdd)
+	{
+		const float EnergyTransferred = FMath::Clamp(EnergyToAdd, -StoredJoules, CapacityJoules - StoredJoules);
+		StoredJoules += EnergyTransferred;
+		return EnergyTransferred;
+	}
+  
+	FString GetDebugString() const;
+	uint32 GetDebugHash() const;
 };
-
 
 USTRUCT(BlueprintType)
 struct FSLMPortElectricity
@@ -37,40 +34,37 @@ struct FSLMPortElectricity
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
     FSLMDataElectricity PortData;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    FSLMPortMetaData PortMetaData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FSLMPortMetaData PortMetaData;
 };
-
 
 UCLASS(BlueprintType)
 class SLMECHATRONICS_API USLMDomainElectricity : public USLMDomainSubsystemBase
 {
     GENERATED_BODY()
+	
 public:
     USLMDomainElectricity();
+	
+	int32 AddPort(const FSLMPortElectricity& Port, const FSLMPortAddress& PortAddress);
+	
+	virtual void RunTests() override;
+	virtual void PreSimulate(const float DeltaTime) override;
+	virtual void Simulate(const float DeltaTime, const float SubstepScalar) override;
+	virtual void PostSimulate(const float DeltaTime) override;
+	virtual uint32 GetDebugHash() override;
+	virtual FString GetDebugString(const bool Verbose) override;
+	virtual FString GetPortDebugString(const FSLMPortAddress& Address) override;
+	
+	FSLMDataElectricity& GetParticleRef(const int32 PortID);
 
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    int32 AddPort(const FSLMPortElectricity& Port);
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    void RemovePort(const int32 PortIndex);
+protected:
+	virtual void CreateParticleForPorts(const TArray<int32> PortIDs) override;
+	virtual void DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID) override;
+	virtual void RemovePortAtAddress(const FSLMPortAddress& PortAddress) override;
+	virtual void RemoveParticleAtID(const int32 ParticleID) override;
 
-    UFUNCTION(BlueprintPure, Category = "SLMechatronics")
-    FSLMDataElectricity GetByPortIndex(const int32 PortIndex);
-    UFUNCTION(BlueprintCallable, Category = "SLMechatronics")
-    void SetJoulesByPortIndex(int32 PortIndex, float NewJoules);
-
-    virtual FString GetDebugString(const int32 PortIndex) override;
-private:
-    TSparseArray<FSLMDataElectricity> Ports;
-    TSparseArray<FSLMDataElectricity> Networks;
-
-    void CreateNetworkForPort(const int32 Port);
-
-    virtual void CreateNetworkForPorts(const TArray<int32> PortIndices) override;
-    virtual void DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex) override;
-    virtual void RemovePortAtIndex(const int32 PortIndex) override;
-    virtual void RemoveNetworkAtIndex(const int32 NetworkIndex) override;
+private:	
+	TSparseArray<FSLMDataElectricity> PortDefaults;
+	TSparseArray<FSLMDataElectricity> Particles;
 };
-
-
-#endif

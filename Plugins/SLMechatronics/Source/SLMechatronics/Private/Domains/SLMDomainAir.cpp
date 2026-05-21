@@ -1,62 +1,50 @@
 ﻿// Copyright Spectrelight Studios, LLC
-#if 0
+
 #include "Domains/SLMDomainAir.h"
 
-UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR, "SpectrelightDynamics.Domain.Air")
+FString FSLMDataAir::GetDebugString() const
+{
+	FString Result;
+	Result += FString::Printf(TEXT("Volume(m3) = %f\n"), Volume);
+	Result += FString::Printf(TEXT("Pressure(Pa) = %f\n"), GetPressure());
+	Result += FString::Printf(TEXT("Temperature(K) = %f\n"), GetTemperature());
+	Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * OxygenRatio);
+	Result += FString::Printf(TEXT("Connected To Atmosphere = %i\n"), bConnectedToAtmosphere);
+	return Result;
+}
+
+uint32 FSLMDataAir::GetDebugHash() const
+{
+	uint32 Hash = 0;
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Volume * 100.0f)));
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Energy * 100.0f)));
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Moles * 100.0f)));
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(OxygenRatio * 100.0f)));
+	Hash = HashCombine(Hash, GetTypeHash(bConnectedToAtmosphere));
+	return Hash;
+}
 
 USLMDomainAir::USLMDomainAir()
 {
 	DebugColor = FColor::Cyan;
-	DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN_AIR;
 }
 
-int32 USLMDomainAir::AddPort(const FSLMPortAir& Port)
+int32 USLMDomainAir::AddPort(const FSLMPortAir& Port, const FSLMPortAddress& PortAddress)
 {
-	const int32 PortIndex = Ports.Add(Port.PortData);
-	AddPortMetaData(Port.PortMetaData);
-	const int32 NetworkIndex = Networks.Add(Port.PortData);
-	PortIndexToNetworkIndex.Add(NetworkIndex);
-	return PortIndex;
-}
-
-void USLMDomainAir::RemovePort(const int32 PortIndex)
-{
-    PortsToRemove.Add(PortIndex);
-    bNeedsCleanup = true;
-}
-
-FSLMDataAir USLMDomainAir::GetData(const int32 PortIndex)
-{
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    return Networks[NetworkIndex];
-}
-
-
-
-void USLMDomainAir::SetData(const int32 PortIndex, const FSLMDataAir Data)
-{
-	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(Networks.IsValidIndex(NetworkIndex));
-	Networks[NetworkIndex] = Data;
-}
-
-void USLMDomainAir::AddEnergyAndMoles(const int32 PortIndex, const float Energy, const float Moles)
-{
-	check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-	const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-	check(Networks.IsValidIndex(NetworkIndex));
-	Networks[NetworkIndex].Energy += Energy;
-	Networks[NetworkIndex].Moles += Moles;
+	const int32 PortID = PortDefaults.Add(Port.PortData);
+	const int32 ParticleID = Particles.Add(Port.PortData);
+	PortIDToParticleID.EmplaceAt(PortID, ParticleID);
+	PortAddressToPortID.Add(PortAddress, PortID);
+	PortIDToPortAddress.EmplaceAt(PortID, PortAddress);
+	PortMetaData.EmplaceAt(PortID, Port.PortMetaData);
+	return PortID;
 }
 
 void USLMDomainAir::RunTests()
 {
-	const FSLMDataAir Original = FSLMDataAir();
-	FSLMDataAir A = Original;
-	FSLMDataAir B = Original;
+	//const FSLMDataAir Original = FSLMDataAir();
+	//FSLMDataAir A = Original;
+	//FSLMDataAir B = Original;
 	/*
 	check(A.NearlyEqualWith(B));		//null case
 	A.CompressOrExpandToVolume(Original.Volume / 10);
@@ -76,9 +64,12 @@ void USLMDomainAir::RunTests()
 	A.UpdateMoles();
 	check(A.NearlyEqualWith(B));
 	*/
-
 	
+	FSLMDataAir Original = FSLMDataAir();
+	Original.SetToSTP();
 	FSLMDataAir Air = Original;
+	Air.SetToSTP();
+	
 	FString Out;
 	
 	Out += "Air domain test results\n";
@@ -105,84 +96,125 @@ void USLMDomainAir::RunTests()
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *Out);
 }
 
+void USLMDomainAir::PreSimulate(const float DeltaTime)
+{
+	Super::PreSimulate(DeltaTime);
+}
+
 void USLMDomainAir::Simulate(const float DeltaTime, const float SubstepScalar)
 {
-	for (auto& Network : Networks)
+	for (auto& Particle : Particles)
 	{
-		if (Network.bConnectedToAtmosphere)
+		if (Particle.bConnectedToAtmosphere)
 		{
-			Network.SetToSTP();
+			Particle.SetToSTP();
 		}
 	}
 }
 
-FString USLMDomainAir::GetDebugString(const int32 PortIndex)
+void USLMDomainAir::PostSimulate(const float DeltaTime)
 {
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    const auto Network = Networks[NetworkIndex];
-    FString Result;
-    Result += "Air\n";
-    Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
-    Result += FString::Printf(TEXT("Pressure(Pa) = %f\n"), Network.GetPressure());
-    Result += FString::Printf(TEXT("Volume(m3) = %f\n"), Network.Volume);
-    Result += FString::Printf(TEXT("Temperature(K) = %f\n"), Network.GetTemperature());
-	Result += FString::Printf(TEXT("Moles = %f\n"), Network.Moles);
-	Result += FString::Printf(TEXT("Oxygen(percent) = %f\n"), 100 * Network.OxygenRatio);
-	Result += FString::Printf(TEXT("Connected To Atmosphere = %i\n"), Network.bConnectedToAtmosphere);
-    return Result;
+	Super::PostSimulate(DeltaTime);
 }
 
-void USLMDomainAir::CreateNetworkForPorts(const TArray<int32> PortIndices)
+uint32 USLMDomainAir::GetDebugHash()
 {
-    const int32 NetworkIndex = Networks.Add(FSLMDataAir());
-    float SumVolume = 0.0;
-    float SumEnergy = 0.0;
+	uint32 Result = 0;
+	Result = HashCombine(Result, GetTypeHash(PortDefaults.Num()));
+	Result = HashCombine(Result, GetTypeHash(PortIDToParticleID.Num()));
+	Result = HashCombine(Result, GetTypeHash(Particles.Num()));
+	for (const auto Entry : PortAddressToPortID)
+	{
+		const FSLMPortAddress PortAddress = Entry.Key;
+		const FSLMDataAir& PortDefault = PortDefaults[Entry.Value];
+		const FSLMDataAir& Particle = Particles[PortIDToParticleID[Entry.Value]];
+		Result = Result ^ HashCombine(GetTypeHash(PortAddress), PortDefault.GetDebugHash(), Particle.GetDebugHash());
+	}
+	return Result;}
+
+FString USLMDomainAir::GetDebugString(const bool Verbose)
+{
+	FString Result;
+	Result += "\n------------------DomainAir------------------";
+	Result += FString::Format(TEXT("\nHas {0} PortDefaults"), {PortDefaults.Num()});
+	Result += FString::Format(TEXT("\nHas {0} PortIDToParticleID"), {PortIDToParticleID.Num()});
+	Result += FString::Format(TEXT("\nHas {0} Particles"), {Particles.Num()});
+	if (Verbose)
+	{
+		for (int32 PortID = 0; PortID < PortIDToParticleID.Num(); PortID++)
+		{
+			if (PortIDToParticleID.IsValidIndex(PortID))
+			{
+				Result += FString::Format(TEXT("\nPort {0} maps to Particle {1} with state {2}"), {PortID, PortIDToParticleID[PortID], Particles[PortIDToParticleID[PortID]].GetDebugString()});
+			}
+		}
+	}
+	return Result;}
+
+FString USLMDomainAir::GetPortDebugString(const FSLMPortAddress& Address)
+{
+	FString Result;
+	if (const int32* PortIDPtr = PortAddressToPortID.Find(Address))
+	{
+		const int32 PortID = *PortIDPtr;
+		if (PortIDToParticleID.IsValidIndex(PortID))
+		{
+			const int32 ParticleID = PortIDToParticleID[PortID];
+			const FSLMDataAir& PortDefault = PortDefaults[PortID];
+			const FSLMDataAir& Particle = Particles[ParticleID];
+			Result += FString::Format(TEXT("\nPort {0} maps to Particle {1}"), {PortID, ParticleID});
+			Result += FString::Format(TEXT("\nPort Default: {0}"), {PortDefault.GetDebugString()});
+			Result += FString::Format(TEXT("\nParticle: {0}"), {Particle.GetDebugString()});			
+		}
+	}
+	return Result;}
+
+FSLMDataAir& USLMDomainAir::GetParticleRef(const int32 PortID)
+{
+	return Particles[PortIDToParticleID[PortID]];
+}
+
+void USLMDomainAir::CreateParticleForPorts(const TArray<int32> PortIDs)
+{
+	const int32 ParticleID = Particles.Add(FSLMDataAir());
+	float SumVolume = 0.0;
+	float SumEnergy = 0.0;
 	float SumMoles = 0.0;
 	float SumOxygen = 0.0;
-    for (const auto& PortIndex : PortIndices)
-    {
-        const auto Data = Ports[PortIndex];
-        SumVolume += Data.Volume;
-        SumEnergy += Data.Energy;
-    	SumMoles += Data.Moles;
-    	SumOxygen += Data.OxygenRatio * Data.Moles;
-        PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
-    }
-	FSLMDataAir Result;
-	Result.Energy = SumEnergy;
-	Result.Moles = SumMoles;
-	Result.Volume = SumVolume;
-	Result.OxygenRatio = SumOxygen / SumMoles;
-	Result.bConnectedToAtmosphere = PortIndices.Num() == 1;
-	Networks[NetworkIndex] = Result;
+	for (const auto& PortID : PortIDs)
+	{
+		SumVolume += PortDefaults[PortID].Volume;
+		SumEnergy += PortDefaults[PortID].Energy;
+		SumMoles += PortDefaults[PortID].Moles;
+		SumOxygen += PortDefaults[PortID].OxygenRatio * PortDefaults[PortID].Moles;
+		PortIDToParticleID[PortID] = ParticleID;
+	}
+	Particles[ParticleID].Energy = SumEnergy;
+	Particles[ParticleID].Moles = SumMoles;
+	Particles[ParticleID].Volume = SumVolume;
+	Particles[ParticleID].OxygenRatio = SumOxygen / SumMoles;
+	Particles[ParticleID].bConnectedToAtmosphere = PortIDs.Num() == 1;
 }
 
-void USLMDomainAir::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
+void USLMDomainAir::DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID)
 {
-    const FSLMDataAir Network = Networks[NetworkIndex];
-    FSLMDataAir& PortData = Ports[PortIndex];
-	const float Ratio = PortData.Volume / Network.Volume;
-	PortData.Energy = Ratio * Network.Energy;
-	PortData.Moles = Ratio * Network.Moles;
-    PortData.OxygenRatio = Network.OxygenRatio;
+	const float Ratio = PortDefaults[PortID].Volume / Particles[ParticleID].Volume;
+	PortDefaults[PortID].Energy = Ratio * Particles[ParticleID].Energy;
+	PortDefaults[PortID].Moles = Ratio * Particles[ParticleID].Moles;
+	PortDefaults[PortID].OxygenRatio = Particles[ParticleID].OxygenRatio;
 }
 
-void USLMDomainAir::RemovePortAtIndex(const int32 PortIndex)
+void USLMDomainAir::RemovePortAtAddress(const FSLMPortAddress& PortAddress)
 {
-    Ports.RemoveAt(PortIndex);
-}
+	const int32 PortID = PortAddressToPortID.FindChecked(PortAddress);
+	Particles.RemoveAt(PortIDToParticleID[PortID]);
+	PortIDToParticleID.RemoveAt(PortID);
+	PortDefaults.RemoveAt(PortID);
+	PortAddressToPortID.Remove(PortAddress);
+	PortMetaData.RemoveAt(PortID);
+	PortIDToPortAddress.RemoveAt(PortID);}
 
-void USLMDomainAir::RemoveNetworkAtIndex(const int32 NetworkIndex)
+void USLMDomainAir::RemoveParticleAtID(const int32 ParticleID)
 {
-    Networks.RemoveAt(NetworkIndex);
+	Particles.RemoveAt(ParticleID);
 }
-
-void USLMDomainAir::CreateNetworkForPort(const int32 Port)
-{
-    PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
-}
-
-
-#endif

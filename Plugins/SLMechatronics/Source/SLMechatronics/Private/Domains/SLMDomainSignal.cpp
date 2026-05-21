@@ -2,6 +2,21 @@
 
 #include "Domains/SLMDomainSignal.h"
 
+FString FSLMDataSignal::GetDebugString() const
+{
+	FString Result;
+	Result += FString::Printf(TEXT("%f,%f"), Read, Write);
+	return Result;
+}
+
+uint32 FSLMDataSignal::GetDebugHash() const
+{
+	uint32 Hash = 0;
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Read * 100.0f)));
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(Write * 100.0f)));
+	return Hash;
+}
+
 USLMDomainSignal::USLMDomainSignal()
 {
     DebugColor = FColor::White;
@@ -18,66 +33,25 @@ int32 USLMDomainSignal::AddPort(const FSLMPortSignal& Port, const FSLMPortAddres
 	return PortID;
 }
 
-void USLMDomainSignal::RemovePort(const FSLMPortAddress& PortAddress)
-{
-	PortsToRemove.Add(PortAddress);
-	bNeedsCleanup = true;
-}
-
-float USLMDomainSignal::ReadValue(const int32 PortID)
-{
-	if (PortIDToParticleID.IsValidIndex(PortID))
-	{
-		const int32 ParticleID = PortIDToParticleID[PortID];
-		check(Particles.IsValidIndex(ParticleID));
-		return Particles[ParticleID].Read;
-	}
-	return 0.0;
-}
-
-void USLMDomainSignal::WriteValue(const int32 PortID, const float Value)
-{
-	if (PortIDToParticleID.IsValidIndex(PortID))
-	{
-		const int32 ParticleID = PortIDToParticleID[PortID];
-		check(Particles.IsValidIndex(ParticleID));
-		Particles[ParticleID].Write += Value;
-	}
-}
-
 void USLMDomainSignal::RunTests()
 {
 }
 
-
-void USLMDomainSignal::CreateParticleForPorts(const TArray<int32> PortIDs)
+void USLMDomainSignal::PreSimulate(const float DeltaTime)
 {
-    const int32 ParticleID = Particles.Add(FSLMDataSignal());
-    for (const auto& PortID : PortIDs)
-    {        
-        PortIDToParticleID[PortID] = ParticleID;
-    }
 }
 
-void USLMDomainSignal::DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID)
+void USLMDomainSignal::Simulate(const float DeltaTime, const float SubstepScalar)
 {
-	PortDefaults[PortID] = FSLMDataSignal();
+	for (auto& Particle : Particles)
+	{
+		Particle.Read = Particle.Write;
+		Particle.Write = 0.0;
+	}
 }
 
-void USLMDomainSignal::RemovePortAtAddress(const FSLMPortAddress& PortAddress)
+void USLMDomainSignal::PostSimulate(const float DeltaTime)
 {
-	const int32 PortID = PortAddressToPortID.FindChecked(PortAddress);
-	Particles.RemoveAt(PortIDToParticleID[PortID]);
-	PortIDToParticleID.RemoveAt(PortID);
-	PortDefaults.RemoveAt(PortID);
-	PortAddressToPortID.Remove(PortAddress);
-	PortMetaData.RemoveAt(PortID);
-	PortIDToPortAddress.RemoveAt(PortID);
-}
-
-void USLMDomainSignal::RemoveParticleAtID(const int32 ParticleID)
-{
-	Particles.RemoveAt(ParticleID);
 }
 
 uint32 USLMDomainSignal::GetDebugHash()
@@ -91,7 +65,7 @@ uint32 USLMDomainSignal::GetDebugHash()
 		const FSLMPortAddress PortAddress = Entry.Key;
 		const FSLMDataSignal& PortDefault = PortDefaults[Entry.Value];
 		const FSLMDataSignal& Particle = Particles[PortIDToParticleID[Entry.Value]];
-		Result = Result ^ HashCombine(GetTypeHash(PortAddress), GetTypeHash(PortDefault), GetTypeHash(Particle));
+		Result = Result ^ HashCombine(GetTypeHash(PortAddress), PortDefault.GetDebugHash(), Particle.GetDebugHash());
 	}
 	return Result;
 }
@@ -133,4 +107,44 @@ FString USLMDomainSignal::GetPortDebugString(const FSLMPortAddress& Address)
 		}
 	}
 	return Result;
+}
+
+float USLMDomainSignal::ReadValue(const int32 PortID)
+{
+	return Particles[PortIDToParticleID[PortID]].Read;
+}
+
+void USLMDomainSignal::WriteValue(const int32 PortID, const float Value)
+{
+	Particles[PortIDToParticleID[PortID]].Write += Value;
+}
+
+void USLMDomainSignal::CreateParticleForPorts(const TArray<int32> PortIDs)
+{
+    const int32 ParticleID = Particles.Add(FSLMDataSignal());
+    for (const auto& PortID : PortIDs)
+    {        
+        PortIDToParticleID[PortID] = ParticleID;
+    }
+}
+
+void USLMDomainSignal::DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID)
+{
+	PortDefaults[PortID] = FSLMDataSignal();
+}
+
+void USLMDomainSignal::RemovePortAtAddress(const FSLMPortAddress& PortAddress)
+{
+	const int32 PortID = PortAddressToPortID.FindChecked(PortAddress);
+	Particles.RemoveAt(PortIDToParticleID[PortID]);
+	PortIDToParticleID.RemoveAt(PortID);
+	PortDefaults.RemoveAt(PortID);
+	PortAddressToPortID.Remove(PortAddress);
+	PortMetaData.RemoveAt(PortID);
+	PortIDToPortAddress.RemoveAt(PortID);
+}
+
+void USLMDomainSignal::RemoveParticleAtID(const int32 ParticleID)
+{
+	Particles.RemoveAt(ParticleID);
 }

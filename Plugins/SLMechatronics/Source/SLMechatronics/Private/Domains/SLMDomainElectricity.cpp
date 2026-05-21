@@ -1,96 +1,147 @@
 ﻿// Copyright Spectrelight Studios, LLC
-#if 0
+
 #include "Domains/SLMDomainElectricity.h"
 
-UE_DEFINE_GAMEPLAY_TAG(TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ELECTRICITY, "SpectrelightDynamics.Domain.Electricity")
+FString FSLMDataElectricity::GetDebugString() const
+{
+	FString Result;
+	Result += FString::Printf(TEXT("%f,%f"), StoredJoules, CapacityJoules);
+	return Result;
+}
+
+uint32 FSLMDataElectricity::GetDebugHash() const
+{
+	uint32 Hash = 0;
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(StoredJoules * 100.0f)));
+	Hash = HashCombine(Hash, GetTypeHash(FMath::RoundToInt(CapacityJoules * 100.0f)));
+	return Hash;
+}
 
 USLMDomainElectricity::USLMDomainElectricity()
 {
-    DebugColor = FColor::Yellow;
-	DomainTag = TAG_SPECTRELIGHTDYNAMICS_DOMAIN_ELECTRICITY;
+    DebugColor = FColor::Black;
 }
 
-int32 USLMDomainElectricity::AddPort(const FSLMPortElectricity& Port)
+int32 USLMDomainElectricity::AddPort(const FSLMPortElectricity& Port, const FSLMPortAddress& PortAddress)
 {
-	const int32 PortIndex = Ports.Add(Port.PortData);
-	AddPortMetaData(Port.PortMetaData);
-	const int32 NetworkIndex = Networks.Add(Port.PortData);
-	PortIndexToNetworkIndex.Add(NetworkIndex);
-	return PortIndex;
+	const int32 PortID = PortDefaults.Add(Port.PortData);
+	const int32 ParticleID = Particles.Add(Port.PortData);
+	PortIDToParticleID.EmplaceAt(PortID, ParticleID);
+	PortAddressToPortID.Add(PortAddress, PortID);
+	PortIDToPortAddress.EmplaceAt(PortID, PortAddress);
+	PortMetaData.EmplaceAt(PortID, Port.PortMetaData);
+	return PortID;
 }
 
-void USLMDomainElectricity::RemovePort(const int32 PortIndex)
+void USLMDomainElectricity::RunTests()
 {
-    PortsToRemove.Add(PortIndex);
-    bNeedsCleanup = true;
 }
 
-FSLMDataElectricity USLMDomainElectricity::GetByPortIndex(const int32 PortIndex)
+void USLMDomainElectricity::PreSimulate(const float DeltaTime)
 {
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    return Networks[NetworkIndex];
 }
 
-void USLMDomainElectricity::SetJoulesByPortIndex(int32 PortIndex, float NewJoules)
+void USLMDomainElectricity::Simulate(const float DeltaTime, const float SubstepScalar)
 {
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    Networks[NetworkIndex].StoredJoules = NewJoules;
 }
 
-FString USLMDomainElectricity::GetDebugString(const int32 PortIndex)
+void USLMDomainElectricity::PostSimulate(const float DeltaTime)
 {
-    check(PortIndexToNetworkIndex.IsValidIndex(PortIndex));
-    const int32 NetworkIndex = PortIndexToNetworkIndex[PortIndex];
-    check(Networks.IsValidIndex(NetworkIndex));
-    const auto Network = Networks[NetworkIndex];
-    FString Result;
-    Result += "Electricity\n";
-    Result += FString::Printf(TEXT("Port %i : Network %i\n"), PortIndex, NetworkIndex);
-    Result += FString::Printf(TEXT("Stored = %f\n"), Network.StoredJoules);
-    Result += FString::Printf(TEXT("Capacity = %f\n"), Network.CapacityJoules);
-    return Result;
 }
 
-void USLMDomainElectricity::CreateNetworkForPorts(const TArray<int32> PortIndices)
+uint32 USLMDomainElectricity::GetDebugHash()
 {
-    const int32 NetworkIndex = Networks.Add(FSLMDataElectricity());
+	uint32 Result = 0;
+	Result = HashCombine(Result, GetTypeHash(PortDefaults.Num()));
+	Result = HashCombine(Result, GetTypeHash(PortIDToParticleID.Num()));
+	Result = HashCombine(Result, GetTypeHash(Particles.Num()));
+	for (const auto Entry : PortAddressToPortID)
+	{
+		const FSLMPortAddress PortAddress = Entry.Key;
+		const FSLMDataElectricity& PortDefault = PortDefaults[Entry.Value];
+		const FSLMDataElectricity& Particle = Particles[PortIDToParticleID[Entry.Value]];
+		Result = Result ^ HashCombine(GetTypeHash(PortAddress), PortDefault.GetDebugHash(), Particle.GetDebugHash());
+	}
+	return Result;
+}
+
+FString USLMDomainElectricity::GetDebugString(const bool Verbose)
+{
+	FString Result;
+	Result += "\n------------------DomainElectricity------------------";
+	Result += FString::Format(TEXT("\nHas {0} PortDefaults"), {PortDefaults.Num()});
+	Result += FString::Format(TEXT("\nHas {0} PortIDToParticleID"), {PortIDToParticleID.Num()});
+	Result += FString::Format(TEXT("\nHas {0} Particles"), {Particles.Num()});
+	if (Verbose)
+	{
+		for (int32 PortID = 0; PortID < PortIDToParticleID.Num(); PortID++)
+		{
+			if (PortIDToParticleID.IsValidIndex(PortID))
+			{
+				Result += FString::Format(TEXT("\nPort {0} maps to Particle {1} with state {2}"), {PortID, PortIDToParticleID[PortID], Particles[PortIDToParticleID[PortID]].GetDebugString()});
+			}
+		}
+	}
+	return Result;
+}
+
+FString USLMDomainElectricity::GetPortDebugString(const FSLMPortAddress& Address)
+{
+	FString Result;
+	if (const int32* PortIDPtr = PortAddressToPortID.Find(Address))
+	{
+		const int32 PortID = *PortIDPtr;
+		if (PortIDToParticleID.IsValidIndex(PortID))
+		{
+			const int32 ParticleID = PortIDToParticleID[PortID];
+			const FSLMDataElectricity& PortDefault = PortDefaults[PortID];
+			const FSLMDataElectricity& Particle = Particles[ParticleID];
+			Result += FString::Format(TEXT("\nPort {0} maps to Particle {1}"), {PortID, ParticleID});
+			Result += FString::Format(TEXT("\nPort Default: {0}"), {PortDefault.GetDebugString()});
+			Result += FString::Format(TEXT("\nParticle: {0}"), {Particle.GetDebugString()});			
+		}
+	}
+	return Result;
+}
+
+FSLMDataElectricity& USLMDomainElectricity::GetParticleRef(const int32 PortID)
+{
+	return Particles[PortIDToParticleID[PortID]];
+}
+
+void USLMDomainElectricity::CreateParticleForPorts(const TArray<int32> PortIDs)
+{
+    const int32 ParticleID = Particles.Add(FSLMDataElectricity());
     float SumStored = 0;
     float SumCapacity = 0;
-    for (const auto& PortIndex : PortIndices)
+    for (const auto& PortID : PortIDs)
     {
-        SumStored += Ports[PortIndex].StoredJoules;
-        SumCapacity += Ports[PortIndex].CapacityJoules;
-        PortIndexToNetworkIndex[PortIndex] = NetworkIndex;
+        SumStored += PortDefaults[PortID].StoredJoules;
+        SumCapacity += PortDefaults[PortID].CapacityJoules;
+        PortIDToParticleID[PortID] = ParticleID;
     }
-    Networks[NetworkIndex].StoredJoules = SumStored;
-    Networks[NetworkIndex].CapacityJoules = SumCapacity;
+    Particles[ParticleID].StoredJoules = SumStored;
+    Particles[ParticleID].CapacityJoules = SumCapacity;
 }
 
-void USLMDomainElectricity::DissolveNetworkIntoPort(const int32 NetworkIndex, const int32 PortIndex)
+void USLMDomainElectricity::DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID)
 {
-    const FSLMDataElectricity Network = Networks[NetworkIndex];
-    const float NetworkPercent = Network.StoredJoules / Network.CapacityJoules;
-    Ports[PortIndex].StoredJoules = NetworkPercent * Ports[PortIndex].CapacityJoules;
+	const float PercentStored = Particles[ParticleID].StoredJoules / Particles[ParticleID].CapacityJoules;
+	PortDefaults[PortID].StoredJoules = PercentStored * Particles[ParticleID].CapacityJoules;
 }
 
-void USLMDomainElectricity::RemovePortAtIndex(const int32 PortIndex)
+void USLMDomainElectricity::RemovePortAtAddress(const FSLMPortAddress& PortAddress)
 {
-    Ports.RemoveAt(PortIndex);
+	const int32 PortID = PortAddressToPortID.FindChecked(PortAddress);
+	Particles.RemoveAt(PortIDToParticleID[PortID]);
+	PortIDToParticleID.RemoveAt(PortID);
+	PortDefaults.RemoveAt(PortID);
+	PortAddressToPortID.Remove(PortAddress);
+	PortMetaData.RemoveAt(PortID);
+	PortIDToPortAddress.RemoveAt(PortID);
 }
 
-void USLMDomainElectricity::RemoveNetworkAtIndex(const int32 NetworkIndex)
+void USLMDomainElectricity::RemoveParticleAtID(const int32 ParticleID)
 {
-    Networks.RemoveAt(NetworkIndex);
+	Particles.RemoveAt(ParticleID);
 }
-
-void USLMDomainElectricity::CreateNetworkForPort(const int32 Port)
-{
-    PortIndexToNetworkIndex[Port] = Networks.Add(Ports[Port]);
-}
-
-
-#endif

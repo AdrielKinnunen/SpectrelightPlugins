@@ -4,10 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "SLMSubsystemBase.h"
+#include "SLMTypes.h"
 #include "SLMDomainBase.generated.h"
 
 class USLMDeviceSubsystemBase;
 class USLMDomainSubsystemBase;
+
+
+
+
+
+/*
+
+
 
 //Address
 USTRUCT(BlueprintType)
@@ -94,22 +103,38 @@ struct FSLMPortMetaData
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "SLMechatronics")
 	const USceneComponent* AssociatedSceneComponent;
 };
-
+*/
 
 UCLASS(Abstract, BlueprintType)
 class SLMECHATRONICS_API USLMDomainSubsystemBase : public USLMSubsystemBase
 {
     GENERATED_BODY()
 	
-	friend class USLMManager;
-	
-protected:
+public:
 	virtual void RunTests();
+
+	virtual void DebugDraw() override;
+	virtual FString GetPortDebugString(const FSLMPortAddress& Address);
+
+	bool DoesConnectionExist(const FSLMConnection& Connection);
+	void AddConnection(const FSLMConnection& Connection);
+	void RemoveConnection(const FSLMConnection& Connection);
+	void CheckForCleanUp();
+	
+	bool WorldLocationToPortAddress(const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress);
+	bool PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation);
+	
+	void RemovePort(const FSLMPortAddress& PortAddress);
+
+protected:
 	virtual void CreateParticleForPorts(const TArray<int32> PortIDs);
 	virtual void DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID);
 	virtual void RemovePortAtAddress(const FSLMPortAddress& PortAddress);
 	virtual void RemoveParticleAtID(const int32 ParticleID);
 	void AddPortMetaData(FSLMPortMetaData MetaData);
+	
+	FVector PortIDToWorldLocation(const int32 PortID);
+	int32 WorldLocationToPortID(const FSLMPortMetaData& Filter, const FVector& WorldLocation);
 
 	TMap<FSLMPortAddress, int32> PortAddressToPortID;
 	TSparseArray<FSLMPortAddress> PortIDToPortAddress;
@@ -117,16 +142,8 @@ protected:
 	TSparseArray<FSLMPortMetaData> PortMetaData;
 	TSet<FSLMPortAddress> PortsToRemove;
 	bool bNeedsCleanup = false;
-	
 
 private:
-	virtual void DebugDraw() override;
-	virtual FString GetPortDebugString(const FSLMPortAddress& Address);
-	bool DoesConnectionExist(const FSLMConnection& Connection);
-	void AddConnection(const FSLMConnection& Connection);
-	void RemoveConnection(const FSLMConnection& Connection);
-	void CheckForCleanUp();
-
 	void CleanUpGraph();
 	void CleanContainers();
 	void ProcessPortsToRemove();
@@ -141,8 +158,7 @@ private:
 	TSet<int32> GetConnectedPortIDs(const TSet<int32>& Roots) const;
 	bool ArePortsConnected(const int32 FirstPortID, const int32 SecondPortID);
 
-	FVector PortIDToWorldLocation(const int32 PortID);
-	int32 WorldLocationToPortID(const FSLMPortMetaData& Filter, const FVector& WorldLocation);
+	
 	FTransform PortMetaDataToWorldTransform(const FSLMPortMetaData& MetaData);
 	TMultiMap<const AActor*, int32> ActorToPortIDs;
 	
