@@ -188,7 +188,7 @@ struct FSLMRepArrayStateSimpleGearbox : public FFastArraySerializer
 	USLMDeviceSubsystemSimpleGearbox* Subsystem = nullptr;
 	void PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize) const;
 	void PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize) const;
-	void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize) const;
+	static void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize);
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return FastArrayDeltaSerialize<FSLMRepItemStateSimpleGearbox, FSLMRepArrayStateSimpleGearbox>(Items, DeltaParms, *this);
@@ -205,10 +205,19 @@ struct TStructOpsTypeTraits<FSLMRepArrayStateSimpleGearbox> : public TStructOpsT
 
 //Core Subsystem
 UCLASS()
-class SLMECHATRONICS_API USLMDeviceSubsystemSimpleGearbox : public USLMDeviceSubsystemBase
+class SLMECHATRONICS_API USLMDeviceSubsystemSimpleGearbox : public USLMDeviceSubsystemBase, public TSLMDeviceSystem<
+	USLMDeviceSubsystemSimpleGearbox,
+	FSLMDeviceHandleSimpleGearbox,
+	FSLMDeviceModelSimpleGearbox,
+	FSLMDeviceSettingsSimpleGearbox,
+	FSLMDeviceCosmeticStateSimpleGearbox,
+	FSLMDeviceInputSimpleGearbox,
+	FSLMDeviceRepStateSimpleGearbox,
+	FSLMDevicePortAddressesSimpleGearbox>
 {
     GENERATED_BODY()
 	
+	friend class TSLMDeviceSystem;
 	friend struct FSLMRepArraySettingsSimpleGearbox;
 	friend struct FSLMRepArrayStateSimpleGearbox;
 	
@@ -217,13 +226,15 @@ public:
 	virtual void PostInitialize() override;
 	
 	FSLMDeviceHandleSimpleGearbox AddDevice(const FSLMDeviceSettingsSimpleGearbox& Settings, const FSLMDeviceHandleSimpleGearbox ExplicitHandle = FSLMDeviceHandleSimpleGearbox());
-	FSLMDeviceCosmeticStateSimpleGearbox GetCosmeticState(const FSLMDeviceHandleSimpleGearbox Handle) const;
-	FSLMDeviceSettingsSimpleGearbox GetDeviceSettings(const FSLMDeviceHandleSimpleGearbox Handle) const;
-	FSLMDevicePortAddressesSimpleGearbox GetPortAddresses(const FSLMDeviceHandleSimpleGearbox Handle) const;
-	void EditDeviceSettings(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceSettingsSimpleGearbox& Settings);
 	void ApplyReplicatedState(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceRepStateSimpleGearbox& State);
-	void ApplyInput(const FSLMDeviceHandleSimpleGearbox Handle, const FSLMDeviceInputSimpleGearbox& Input);
-	void RemoveDevice(const FSLMDeviceHandleSimpleGearbox Handle);
+
+private:
+	void RemovePorts(const FSLMDevicePortAddressesSimpleGearbox& Addresses) const;
+	void WritePortAddresses(const FSLMDeviceHandleSimpleGearbox Handle, FSLMDevicePortAddressesSimpleGearbox& Addresses) const;
+	void WriteModelToCosmeticState(const FSLMDeviceModelSimpleGearbox& Model, FSLMDeviceCosmeticStateSimpleGearbox& CosmeticStateSimpleGearbox) const;
+	static void WriteModelToSettings(const FSLMDeviceModelSimpleGearbox& Model, FSLMDeviceSettingsSimpleGearbox& Settings);
+	static void WriteSettingsToModel(FSLMDeviceModelSimpleGearbox& Model, const FSLMDeviceSettingsSimpleGearbox& Settings);
+	static void WriteInputToModel(FSLMDeviceModelSimpleGearbox& Model, const FSLMDeviceInputSimpleGearbox& Input);
 
 private:
 	virtual void PreSimulate(const float DeltaTime) override;
@@ -232,16 +243,12 @@ private:
 	virtual FString GetDebugString(const bool Verbose) override;
 	virtual uint32 GetDebugHash() override;
 	
-	bool IsValidHandle(const FSLMDeviceHandleSimpleGearbox Handle) const;
-	
 	UPROPERTY()
     USLMDomainRotation* DomainRotation;
 	UPROPERTY()
 	USLMDomainSignal* DomainSignal;
 	UPROPERTY()
 	ASLMDeviceReplicatorSimpleGearbox* Replicator;
-	TSparseArray<FSLMDeviceModelSimpleGearbox> DeviceModels;
-	TSparseArray<FSLMDeviceRepStateSimpleGearbox> OrphanedRepStates;
 };
 
 //Replicator Actor
