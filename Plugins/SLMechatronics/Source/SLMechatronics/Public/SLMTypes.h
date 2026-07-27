@@ -3,15 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "StructUtils/InstancedStruct.h"
 #include "SLMTypes.generated.h"
 
 
-class USLMDomainSubsystemBase;
-class USLMDeviceSubsystemBase;
-
-
-
+class FSLMDomainSystemBase;
+class FSLMDeviceSystemBase;
 
 
 USTRUCT(BlueprintType)
@@ -20,16 +18,18 @@ struct FSLMDeviceAddress
 	GENERATED_BODY()
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	TSubclassOf<USLMDeviceSubsystemBase> DeviceClass;
+	FGameplayTag DeviceTag;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 DeviceID = INDEX_NONE;
 	
 	FString GetDebugString() const;
 	bool IsValid() const;
 };
-uint32 GetTypeHash(const FSLMDeviceAddress& Address);
-bool operator==(const FSLMDeviceAddress& A, const FSLMDeviceAddress& B);
-FSLMDeviceAddress MakeDeviceAddress(const USLMDeviceSubsystemBase* Device, const int32 DeviceID);
+SLMECHATRONICS_API uint32 GetTypeHash(const FSLMDeviceAddress& Address);
+SLMECHATRONICS_API bool operator==(const FSLMDeviceAddress& A, const FSLMDeviceAddress& B);
+SLMECHATRONICS_API FSLMDeviceAddress MakeDeviceAddress(const FSLMDeviceSystemBase* DeviceSystem, const int32 DeviceID);
+
+
 
 
 
@@ -38,23 +38,22 @@ struct FSLMPortAddress
 {
 	GENERATED_BODY()
 	
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	//TSubclassOf<USLMDeviceSubsystemBase> DeviceClass;
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	//int32 DeviceID = INDEX_NONE;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	FSLMDeviceAddress DeviceAddress;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	TSubclassOf<USLMDomainSubsystemBase> DomainClass;
+	FGameplayTag DomainTag;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
 	int32 PortID = INDEX_NONE;
 	
 	FString GetDebugString() const;
 	bool IsValid() const;
 };
-uint32 GetTypeHash(const FSLMPortAddress& Address);
-bool operator==(const FSLMPortAddress& A, const FSLMPortAddress& B);
-FSLMPortAddress MakePortAddress(const USLMDeviceSubsystemBase* Device, const USLMDomainSubsystemBase* Domain, const int32 DeviceID, const int32 PortID);
+SLMECHATRONICS_API uint32 GetTypeHash(const FSLMPortAddress& Address);
+SLMECHATRONICS_API bool operator==(const FSLMPortAddress& A, const FSLMPortAddress& B);
+SLMECHATRONICS_API FSLMPortAddress MakePortAddress(const FSLMDeviceSystemBase* DeviceSystem, const int32 DeviceID, const FSLMDomainSystemBase* DomainSystem, const int32 PortID);
+
+
+
 
 
 USTRUCT(BlueprintType)
@@ -69,55 +68,60 @@ struct FSLMConnection
 	FString GetDebugString() const;
 	bool IsValid() const;
 };
-uint32 GetTypeHash(const FSLMConnection& Connection);
-bool operator==(const FSLMConnection& A, const FSLMConnection& B);
+SLMECHATRONICS_API uint32 GetTypeHash(const FSLMConnection& Connection);
+SLMECHATRONICS_API bool operator==(const FSLMConnection& A, const FSLMConnection& B);
+
+
+
+
 
 
 
 USTRUCT(BlueprintType)
-struct FSLMPortMetaData
+struct SLMECHATRONICS_API FSLMSpatialContextAuthored
 {
-    GENERATED_BODY()
-
-	FSLMPortMetaData()
-    {
-		DeviceName = NAME_None;
-		PortName = NAME_None;
-		SceneComponentName = NAME_None;
-		SocketName = NAME_None;
-		OffsetLocal = FVector::ZeroVector;
-		AssociatedActor = nullptr;
-		AssociatedSceneComponent = nullptr;
-	}
-
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SLMechatronics")
-	FName DeviceName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	FName PortName;
+	GENERATED_BODY()
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FName SceneComponentName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-    FName SocketName;
+	FName SocketName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
 	FVector OffsetLocal;
 
+	FString GetDebugString() const;
+	uint32 GetDebugHash(const bool bVerbose) const;
+};
+
+USTRUCT(BlueprintType)
+struct SLMECHATRONICS_API FSLMSpatialContextRuntime
+{
+	GENERATED_BODY()
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
-	const AActor* AssociatedActor;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "SLMechatronics")
-	const USceneComponent* AssociatedSceneComponent;
+	TWeakObjectPtr<AActor> AssociatedActor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	TWeakObjectPtr<USceneComponent> AssociatedSceneComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FName SocketName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SLMechatronics")
+	FVector OffsetLocal;
+
+	FTransform GetWorldTransform() const;
+	static FSLMSpatialContextRuntime MakeFromContextAuthored(const FSLMSpatialContextAuthored& ContextAuthored, AActor* AssociatedActor);
 };
 
 
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSLMDeviceSnapshot
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	FSLMDeviceAddress Address;
-
-	UPROPERTY()
-	FInstancedStruct Descriptor;
+	UPROPERTY(BlueprintReadOnly)
+	FName DeviceComponentName;
+	UPROPERTY(BlueprintReadOnly)
+	FSLMDeviceAddress DeviceAddress;
+	UPROPERTY(BlueprintReadOnly)
+	FInstancedStruct DeviceDescriptor;
 };

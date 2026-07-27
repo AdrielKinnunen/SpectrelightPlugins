@@ -2,89 +2,49 @@
 
 #include "SLMDomainBase.h"
 #include "SLMDeviceBase.h"
+#include "SLMManager.h"
 
 
-void USLMDomainSubsystemBase::RunTests()
+
+bool FSLMDomainSystemBase::DoesConnectionExist(const FSLMConnection& Connection)
 {
-}
-
-void USLMDomainSubsystemBase::CreateParticleForPorts(const TArray<int32> PortIDs)
-{
-}
-
-void USLMDomainSubsystemBase::DissolveParticleIntoPort(const int32 ParticleID, const int32 PortID)
-{
-}
-
-void USLMDomainSubsystemBase::RemovePortAtAddress(const FSLMPortAddress& PortAddress)
-{
-}
-
-void USLMDomainSubsystemBase::RemoveParticleAtID(const int32 ParticleID)
-{
-}
-
-void USLMDomainSubsystemBase::AddPortMetaData(FSLMPortMetaData MetaData)
-{
-	const AActor* Actor = MetaData.AssociatedActor;
-	const USceneComponent* SceneComp = nullptr;
-	for (UActorComponent* Component : MetaData.AssociatedActor->GetComponents())
+	const int32* FirstPortIDPtr = PortAddressToPortID.Find(Connection.First);
+	const int32* SecondPortIDPtr = PortAddressToPortID.Find(Connection.Second);
+	if (!FirstPortIDPtr || !SecondPortIDPtr)
 	{
-		if (Component->GetFName() == MetaData.SceneComponentName)
-		{
-			SceneComp = Cast<USceneComponent>(Component);
-		}
+		return false;
 	}
-
-	if (SceneComp)
-	{
-		MetaData.AssociatedSceneComponent = SceneComp;
-	}
-	const int32 ID = PortMetaData.Add(MetaData);
-	ActorToPortIDs.Add(Actor, ID);
+	return ArePortsConnected(*FirstPortIDPtr, *SecondPortIDPtr);
 }
 
-void USLMDomainSubsystemBase::AddConnection(const FSLMConnection& Connection)
+void FSLMDomainSystemBase::AddConnection(const FSLMConnection& Connection)
 {
-	if (Connection.First.DomainClass != Connection.Second.DomainClass) return;
+	if (Connection.First.DomainTag != Connection.Second.DomainTag) return;
 	if (Connection.First == Connection.Second) return;
 	ConnectionsToAdd.Add(Connection);
-	bNeedsCleanup = true;
+	bNeedsCleanUp = true;
 }
 
-void USLMDomainSubsystemBase::RemoveConnection(const FSLMConnection& Connection)
+void FSLMDomainSystemBase::RemoveConnection(const FSLMConnection& Connection)
 {
-	if (Connection.First.DomainClass != Connection.Second.DomainClass) return;
+	if (Connection.First.DomainTag != Connection.Second.DomainTag) return;
 	if (Connection.First == Connection.Second) return;
 	ConnectionsToRemove.Add(Connection);
-	bNeedsCleanup = true;
+	bNeedsCleanUp = true;
 }
 
-void USLMDomainSubsystemBase::CheckForCleanUp()
-{
-    if (bNeedsCleanup)
-    {
-    	CleanUpGraph();
-    	bNeedsCleanup = false;
-    }
-    //Sanity checks
-    check(PortsToRemove.Num() == 0);
-    check(ConnectionsToAdd.Num() == 0);
-    check(ConnectionsToRemove.Num() == 0);
-}
-
-bool USLMDomainSubsystemBase::WorldLocationToPortAddress(const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress)
+bool FSLMDomainSystemBase::WorldLocationToPortAddress(const FSLMSpatialContextRuntime& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress)
 {
 	const int32 PortID = WorldLocationToPortID(Filter, WorldLocation);
 	if (PortID != INDEX_NONE)
 	{
 		OutAddress = PortIDToPortAddress[PortID];
-		return true;				
+		return true;
 	}
 	return false;
 }
 
-bool USLMDomainSubsystemBase::PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation)
+bool FSLMDomainSystemBase::PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation)
 {
 	if (const int32* PortIDPtr = PortAddressToPortID.Find(PortAddress))
 	{
@@ -94,13 +54,97 @@ bool USLMDomainSubsystemBase::PortAddressToWorldLocation(const FSLMPortAddress& 
 	return false;
 }
 
-void USLMDomainSubsystemBase::RemovePort(const FSLMPortAddress& PortAddress)
+void FSLMDomainSystemBase::AppendPortAddressesForDevices(const TArray<FSLMDeviceAddress>& DeviceAddresses, TArray<FSLMPortAddress>& PortAddresses) const
 {
-	PortsToRemove.Add(PortAddress);
-	bNeedsCleanup = true;
+	for (const auto& DeviceAddress : DeviceAddresses)
+	{
+		DeviceAddressToPortAddresses.MultiFind(DeviceAddress, PortAddresses);
+	}
 }
 
-void USLMDomainSubsystemBase::CleanUpGraph()
+void FSLMDomainSystemBase::AppendConnectionsForPortAddresses(const TArray<FSLMPortAddress>& PortAddresses, TArray<FSLMConnection>& Connections) const
+{
+	const TSet<FSLMPortAddress> PortAddressSet(PortAddresses);
+	for (const auto& PortAddress : PortAddresses)
+	{
+		if (const int32* PortIDPtr = PortAddressToPortID.Find(PortAddress))
+		{
+			const int32 PortID = *PortIDPtr;
+			TArray<int32, TInlineAllocator<16>> NeighborIDs;
+			AdjacencyList.MultiFind(PortID, NeighborIDs);
+			for (const auto NeighborID : NeighborIDs)
+			{
+				const FSLMPortAddress NeighborAddress = PortIDToPortAddress[NeighborID];
+				if (PortAddressSet.Contains(NeighborAddress) && PortID < NeighborID)
+				{
+					Connections.Add({PortAddress, NeighborAddress});
+				}
+			}
+		}
+	}
+}
+
+void FSLMDomainSystemBase::DebugDraw()
+{
+	for (const auto Pair : AdjacencyList)
+	{
+		const FVector Start = PortIDToWorldLocation(Pair.Key);
+		const FVector End = PortIDToWorldLocation(Pair.Value);
+		DrawDebugLine(Manager->GetWorld(), Start, End, DebugColor, false, -1, 0, 2);
+	}
+}
+
+FString FSLMDomainSystemBase::GetPortDebugString(const FSLMPortAddress& Address)
+{
+	return FString();
+}
+
+void FSLMDomainSystemBase::RunTests()
+{
+}
+
+
+
+
+
+
+
+
+
+TSet<int32> FSLMDomainSystemBase::GetConnectedPortIDs(const TSet<int32>& Roots) const
+{
+	TSet<int32> Visited;
+	//TSet<int32> Connected;
+	TArray<int32> Stack;
+	Visited.Append(Roots);
+	//Connected.Append(Roots);
+	Stack.Append(Roots.Array());
+
+	TArray<int32> Neighbors;
+	while (!Stack.IsEmpty())
+	{
+		const int32 ID = Stack.Pop(EAllowShrinking::No);
+		AdjacencyList.MultiFind(ID, Neighbors);
+		for (auto& Neighbor : Neighbors)
+		{
+			if (!Visited.Contains(Neighbor))
+			{
+				Visited.Add(Neighbor);
+				Stack.Add(Neighbor);
+				//Connected.Add(Neighbor);
+			}
+		}
+		Neighbors.Empty();
+	}
+	return Visited;
+}
+
+bool FSLMDomainSystemBase::ArePortsConnected(const int32 FirstPortID, const int32 SecondPortID)
+{
+	return AdjacencyList.FindPair(FirstPortID, SecondPortID) || AdjacencyList.FindPair(SecondPortID, FirstPortID);
+}
+
+void FSLMDomainSystemBase::CleanUp()
 {
 	CleanContainers();
 	ProcessPortsToRemove();
@@ -111,9 +155,13 @@ void USLMDomainSubsystemBase::CleanUpGraph()
 	GatherDirtyPortIDs();
 	DissolveAndRebuildParticles();
 	DestroyPorts();
+	
+	check(PortsToRemove.Num() == 0);
+	check(ConnectionsToAdd.Num() == 0);
+	check(ConnectionsToRemove.Num() == 0);
 }
 
-void USLMDomainSubsystemBase::CleanContainers()
+void FSLMDomainSystemBase::CleanContainers()
 {
 	ConnectionsToAdd = ConnectionsToAdd.Difference(ConnectionsToRemove);
 	ConnectionsPending = ConnectionsPending.Difference(ConnectionsToRemove);
@@ -122,13 +170,11 @@ void USLMDomainSubsystemBase::CleanContainers()
 	DirtyPortIDs.Empty(16);
 }
 
-void USLMDomainSubsystemBase::ProcessPortsToRemove()
+void FSLMDomainSystemBase::ProcessPortsToRemove()
 {
 	TSet<int32> PortIDsToRemove;
 	for (const auto& Address : PortsToRemove)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ProcessPortsToRemove: NetMode=%d"), (int32)GetWorld()->GetNetMode());
-		UE_LOG(LogTemp, Warning, TEXT("ProcessPortsToRemove: Address %s"), *Address.GetDebugString());
 		if (!PortAddressToPortID.Contains(Address))
 		{
 			check(false);
@@ -146,13 +192,13 @@ void USLMDomainSubsystemBase::ProcessPortsToRemove()
 	}
 }
 
-void USLMDomainSubsystemBase::ProcessConnectionsPending()
+void FSLMDomainSystemBase::ProcessConnectionsPending()
 {
 	ConnectionsToAdd.Append(ConnectionsPending);
 	ConnectionsPending.Empty(16);
 }
 
-void USLMDomainSubsystemBase::ProcessConnectionsToAdd()
+void FSLMDomainSystemBase::ProcessConnectionsToAdd()
 {
 	for (const FSLMConnection& Connection : ConnectionsToAdd)
 	{
@@ -172,7 +218,7 @@ void USLMDomainSubsystemBase::ProcessConnectionsToAdd()
 	ConnectionsToAdd.Empty(16);
 }
 
-void USLMDomainSubsystemBase::ProcessConnectionsToRemove()
+void FSLMDomainSystemBase::ProcessConnectionsToRemove()
 {
 	for (const FSLMConnection& Connection : ConnectionsToRemove)
 	{
@@ -192,7 +238,7 @@ void USLMDomainSubsystemBase::ProcessConnectionsToRemove()
 	ConnectionsToRemove.Empty(16);
 }
 
-void USLMDomainSubsystemBase::UpdateAdjacencyList()
+void FSLMDomainSystemBase::UpdateAdjacencyList()
 {
 	for (const auto Entry : ConnectionsToAddByID)
 	{
@@ -206,7 +252,7 @@ void USLMDomainSubsystemBase::UpdateAdjacencyList()
 	}
 }
 
-void USLMDomainSubsystemBase::GatherDirtyPortIDs()
+void FSLMDomainSystemBase::GatherDirtyPortIDs()
 {
 	for (const auto Entry : ConnectionsToAddByID)
 	{
@@ -221,106 +267,32 @@ void USLMDomainSubsystemBase::GatherDirtyPortIDs()
 	DirtyPortIDs = GetConnectedPortIDs(DirtyPortIDs);
 }
 
-void USLMDomainSubsystemBase::DissolveAndRebuildParticles()
+FVector FSLMDomainSystemBase::PortIDToWorldLocation(const int32 PortID)
 {
-	//Dissolve all Particle values back into port data
-	TSet<int32> ParticleIDsToRemove;
-	for (const auto& PortID : DirtyPortIDs)
+	if (PortSpatialContextRuntime.IsValidIndex(PortID))
 	{
-		const int32 ParticleID = PortIDToParticleID[PortID];
-		DissolveParticleIntoPort(ParticleID, PortID);
-		ParticleIDsToRemove.Add(ParticleID);
-	}
-
-	//Remove all dirty port's Particles
-	for (const auto& ParticleID : ParticleIDsToRemove)
-	{
-		RemoveParticleAtID(ParticleID);
-	}
-
-	//Create a Particle for each set of connected dirty ports
-	TSet<int32> VisitedIDs;
-	for (const auto& PortID : DirtyPortIDs)
-	{
-		if (!VisitedIDs.Contains(PortID))
-		{
-			auto ConnectedIDs = GetConnectedPortIDs({PortID});
-			VisitedIDs.Append(ConnectedIDs);
-			CreateParticleForPorts(ConnectedIDs.Array());
-		}
-	}
-}
-
-void USLMDomainSubsystemBase::DestroyPorts()
-{
-	for (const auto& Address : PortsToRemove)
-	{
-		RemovePortAtAddress(Address);
-	}
-	PortsToRemove.Empty(16);
-}
-
-TSet<int32> USLMDomainSubsystemBase::GetConnectedPortIDs(const TSet<int32>& Roots) const
-{
-    TSet<int32> Visited;
-    //TSet<int32> Connected;
-    TArray<int32> Stack;
-    Visited.Append(Roots);
-    //Connected.Append(Roots);
-    Stack.Append(Roots.Array());
-
-    TArray<int32> Neighbors;
-    while (!Stack.IsEmpty())
-    {
-    	const int32 ID = Stack.Pop(EAllowShrinking::No);
-        AdjacencyList.MultiFind(ID, Neighbors);
-        for (auto& Neighbor : Neighbors)
-        {
-            if (!Visited.Contains(Neighbor))
-            {
-                Visited.Add(Neighbor);
-                Stack.Add(Neighbor);
-                //Connected.Add(Neighbor);
-            }
-        }
-        Neighbors.Empty();
-    }
-    return Visited;
-}
-
-bool USLMDomainSubsystemBase::ArePortsConnected(const int32 FirstPortID, const int32 SecondPortID)
-{
-	return AdjacencyList.FindPair(FirstPortID, SecondPortID) || AdjacencyList.FindPair(SecondPortID, FirstPortID);
-}
-
-FVector USLMDomainSubsystemBase::PortIDToWorldLocation(const int32 PortID)
-{
-	if (PortMetaData.IsValidIndex(PortID))
-	{
-		return PortMetaDataToWorldTransform(PortMetaData[PortID]).GetLocation();
+		return PortSpatialContextRuntime[PortID].GetWorldTransform().GetLocation();
 	}
 	return FVector();
 }
 
-int32 USLMDomainSubsystemBase::WorldLocationToPortID(const FSLMPortMetaData& Filter, const FVector& WorldLocation)
+int32 FSLMDomainSystemBase::WorldLocationToPortID(const FSLMSpatialContextRuntime& Filter, const FVector& WorldLocation)
 {
 	int32 PortID = INDEX_NONE;
 	float DistanceSquared = UE_BIG_NUMBER;
 	
-	for (int32 i = 0; i < PortMetaData.GetMaxIndex(); i++)
+	for (int32 i = 0; i < PortSpatialContextRuntime.GetMaxIndex(); i++)
 	{
-		if (PortMetaData.IsValidIndex(i))
+		if (PortSpatialContextRuntime.IsValidIndex(i))
 		{
-			const FSLMPortMetaData& PortData = PortMetaData[i];
+			const auto& PortContext = PortSpatialContextRuntime[i];
 			
-			const bool bActor = Filter.AssociatedActor == PortData.AssociatedActor || Filter.AssociatedActor == nullptr;
-			const bool bScene = Filter.AssociatedSceneComponent == PortData.AssociatedSceneComponent || Filter.AssociatedSceneComponent == nullptr;
-			const bool bDevice = Filter.DeviceName == PortData.DeviceName || Filter.DeviceName.IsNone();
-			const bool bName = Filter.PortName == PortData.PortName || Filter.PortName.IsNone();
+			const bool bActor = Filter.AssociatedActor == PortContext.AssociatedActor || !Filter.AssociatedActor.IsValid();
+			const bool bScene = Filter.AssociatedSceneComponent == PortContext.AssociatedSceneComponent || !Filter.AssociatedSceneComponent.IsValid();
 			
-			if (bActor && bScene && bDevice && bName)
+			if (bActor && bScene)
 			{
-				const FVector PortLocation = PortMetaDataToWorldTransform(PortMetaData[i]).GetLocation();
+				const FVector PortLocation = PortContext.GetWorldTransform().GetLocation();
 				const float ThisPortDistanceSquared = FVector::DistSquared(WorldLocation, PortLocation);
 				if (ThisPortDistanceSquared < DistanceSquared)
 				{
@@ -331,51 +303,4 @@ int32 USLMDomainSubsystemBase::WorldLocationToPortID(const FSLMPortMetaData& Fil
 		}
 	}
 	return PortID;
-}
-
-FTransform USLMDomainSubsystemBase::PortMetaDataToWorldTransform(const FSLMPortMetaData& MetaData)
-{
-	FTransform Result;
-	if (const USceneComponent* Scene = MetaData.AssociatedSceneComponent)
-	{
-		Result = Scene->GetSocketTransform(MetaData.SocketName);
-		Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
-		return Result;
-	}
-	if (const AActor* Actor = MetaData.AssociatedActor)
-	{
-		Result = Actor->GetTransform();
-		Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
-		return Result;
-	}
-	Result.SetLocation(Result.TransformPosition(MetaData.OffsetLocal));
-	return Result;
-}
-
-
-
-void USLMDomainSubsystemBase::DebugDraw()
-{
-	for (const auto Pair : AdjacencyList)
-	{
-		const FVector Start = PortIDToWorldLocation(Pair.Key);
-		const FVector End = PortIDToWorldLocation(Pair.Value);
-		DrawDebugLine(GetWorld(), Start, End, DebugColor, false, -1, 0, 2);
-	}
-}
-
-FString USLMDomainSubsystemBase::GetPortDebugString(const FSLMPortAddress& Address)
-{
-	return FString();
-}
-
-bool USLMDomainSubsystemBase::DoesConnectionExist(const FSLMConnection& Connection)
-{
-	const int32* FirstPortIDPtr = PortAddressToPortID.Find(Connection.First);
-	const int32* SecondPortIDPtr = PortAddressToPortID.Find(Connection.Second);
-	if (!FirstPortIDPtr || !SecondPortIDPtr)
-	{
-		return false;
-	}
-	return ArePortsConnected(*FirstPortIDPtr, *SecondPortIDPtr);
 }

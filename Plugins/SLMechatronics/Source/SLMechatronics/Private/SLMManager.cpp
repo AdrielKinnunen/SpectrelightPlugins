@@ -7,6 +7,11 @@
 #include "Net/UnrealNetwork.h"
 
 
+DECLARE_CYCLE_STAT(TEXT("SLM Tick"), STAT_SLMTick, STATGROUP_SLMechatronics);
+
+
+
+
 void FSLMechatronicsSubsystemTickFunction::ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionEventGraph)
 {
 	if (Target && IsValid(Target) && TickType != LEVELTICK_ViewportsOnly)
@@ -51,7 +56,7 @@ void FSLMRepArrayDeviceDescriptors::PostReplicatedAdd(const TArrayView<int32>& A
 	{
 		auto& Item = Items[Index];
 		check(Manager);
-		Manager->Client_AddOrChangeDescriptor(Item.DeviceAddress, Item.DeviceDescriptor);
+		Manager->OnRepSetDescriptor(Item.DeviceAddress, Item.DeviceDescriptor);
 	}
 }
 
@@ -61,7 +66,7 @@ void FSLMRepArrayDeviceDescriptors::PostReplicatedChange(const TArrayView<int32>
 	{
 		auto& Item = Items[Index];
 		check(Manager);
-		Manager->Client_AddOrChangeDescriptor(Item.DeviceAddress, Item.DeviceDescriptor);
+		Manager->OnRepSetDescriptor(Item.DeviceAddress, Item.DeviceDescriptor);
 	}
 }
 
@@ -71,7 +76,7 @@ void FSLMRepArrayDeviceDescriptors::PreReplicatedRemove(const TArrayView<int32>&
 	{
 		auto& Item = Items[Index];
 		check(Manager);
-		Manager->Client_RemoveDescriptor(Item.DeviceAddress);
+		Manager->OnRepRemoveDescriptor(Item.DeviceAddress);
 	}
 }
 
@@ -81,7 +86,7 @@ void FSLMRepArrayDeviceState::PostReplicatedAdd(const TArrayView<int32>& AddedIn
 	{
 		auto& Item = Items[Index];
 		check(Manager);
-		Manager->Client_AddOrChangeState(Item.DeviceAddress, Item.DeviceState);
+		Manager->OnRepSetState(Item.DeviceAddress, Item.DeviceState);
 	}
 }
 
@@ -91,7 +96,7 @@ void FSLMRepArrayDeviceState::PostReplicatedChange(const TArrayView<int32>& Chan
 	{
 		auto& Item = Items[Index];
 		check(Manager);
-		Manager->Client_AddOrChangeState(Item.DeviceAddress, Item.DeviceState);
+		Manager->OnRepSetState(Item.DeviceAddress, Item.DeviceState);
 	}
 }
 
@@ -101,7 +106,7 @@ void FSLMRepArrayDeviceState::PreReplicatedRemove(const TArrayView<int32>& Remov
 	{
 		auto& Item = Items[Index];
 		check(Manager);
-		Manager->Client_RemoveState(Item.DeviceAddress);
+		Manager->OnRepRemoveState(Item.DeviceAddress);
 	}
 }
 
@@ -157,49 +162,80 @@ void USLMManager::Initialize(FSubsystemCollectionBase& Collection)
 	PrimarySystemTick.TickGroup = TG_PostPhysics;
 	PrimarySystemTick.TickInterval = 0.0;
 	PrimarySystemTick.RegisterTickFunction(GetWorld()->PersistentLevel);
+	
+	for (const auto& Prototype : DomainSystemPrototypes)
+	{
+		DomainSystems.Add(Prototype->CreateInstance());
+	}
+	
+	for (const auto& Prototype : DeviceSystemPrototypes)
+	{
+		DeviceSystems.Add(Prototype->CreateInstance());
+	}
+	
+	for (const auto& DomainSystem : DomainSystems)
+	{
+		DomainSystem->Manager = this;
+		DomainSystem->Initialize();
+	}
+	for (const auto& DeviceSystem : DeviceSystems)
+	{
+		DeviceSystem->Manager = this;
+		DeviceSystem->Initialize();
+	}
 
 	Super::Initialize(Collection);
 }
 
 void USLMManager::OnWorldBeginPlay(UWorld& InWorld)
 {
-	DeviceSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDeviceSubsystemBase>();
-	DomainSubsystems = GetWorld()->GetSubsystemArrayCopy<USLMDomainSubsystemBase>();
-	UE_LOG(LogTemp, Warning, TEXT("There are %i Device Subsystems and %i Domain Subsystems"), DeviceSubsystems.Num(), DomainSubsystems.Num());
-	for (const auto DomainSubsystem : DomainSubsystems)
-	{
-		DomainSubsystem->RunTests();
-	}
-	if (GetWorld()->GetNetMode() != NM_Client)
+	bIsServer = GetWorld()->GetNetMode() != NM_Client;
+	
+	if (bIsServer)
 	{
 		Replicator = InWorld.SpawnActor<ASLMManagerReplicator>();
 	}
+	
+	for (const auto& DomainSystem : DomainSystems)
+	{
+		DomainSystem->bIsServer = bIsServer;
+	}
+	for (const auto& DeviceSystem : DeviceSystems)
+	{
+		DeviceSystem->bIsServer = bIsServer;
+	}
+	
 	Super::OnWorldBeginPlay(InWorld);
 }
 
 void USLMManager::Tick(const float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick);
+	SCOPE_CYCLE_COUNTER(STAT_SLMTick);
 
 	//Graph maintenance
 	{
-		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::Cleanup); 
-		for (const auto DomainSubsystem : DomainSubsystems)
+		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::Cleanup);
+		for (const auto& DeviceSystem : DeviceSystems)
 		{
-			DomainSubsystem->CheckForCleanUp();
+			DeviceSystem->CheckForCleanUp();
+		}
+		for (const auto& DomainSystem : DomainSystems)
+		{
+			DomainSystem->CheckForCleanUp();
 		}
 	}
 
 	//PreSimulate, runs once per frame, sets up state for calculations
 	{
 		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::PreSimulate);
-		for (const auto DomainSubsystem : DomainSubsystems)
+		for (const auto& DomainSystem : DomainSystems)
 		{
-			DomainSubsystem->PreSimulate(DeltaTime);
+			DomainSystem->PreSimulate(DeltaTime);
 		}
-		for (const auto DeviceSubsystem : DeviceSubsystems)
+		for (const auto& DeviceSystem : DeviceSystems)
 		{
-			DeviceSubsystem->PreSimulate(DeltaTime);
+			DeviceSystem->PreSimulate(DeltaTime);
 		}
 	}
 
@@ -210,13 +246,13 @@ void USLMManager::Tick(const float DeltaTime)
 		const float SubstepScalar = 1.0 / StepCount;
 		for (int32 i = 0; i < StepCount; i++)
 		{
-			for (const auto DomainSubsystem : DomainSubsystems)
+			for (const auto& DomainSystem : DomainSystems)
 			{
-				DomainSubsystem->Simulate(SubstepDeltaTime, SubstepScalar);
+				DomainSystem->Simulate(SubstepDeltaTime, SubstepScalar);
 			}
-			for (const auto DeviceSubsystem : DeviceSubsystems)
+			for (const auto& DeviceSystem : DeviceSystems)
 			{
-				DeviceSubsystem->Simulate(SubstepDeltaTime, SubstepScalar);
+				DeviceSystem->Simulate(SubstepDeltaTime, SubstepScalar);
 			}
 		}
 	}
@@ -224,13 +260,13 @@ void USLMManager::Tick(const float DeltaTime)
 	//PostSimulate, this is where results are ready for usage outside of SLMechatronics
 	{
 		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::PostSimulate);
-		for (const auto DomainSubsystem : DomainSubsystems)
+		for (const auto& DomainSystem : DomainSystems)
 		{
-			DomainSubsystem->PostSimulate(DeltaTime);
+			DomainSystem->PostSimulate(DeltaTime);
 		}
-		for (const auto DeviceSubsystem : DeviceSubsystems)
+		for (const auto& DeviceSystem : DeviceSystems)
 		{
-			DeviceSubsystem->PostSimulate(DeltaTime);
+			DeviceSystem->PostSimulate(DeltaTime);
 		}
 	}
 
@@ -239,13 +275,13 @@ void USLMManager::Tick(const float DeltaTime)
 		TRACE_CPUPROFILER_EVENT_SCOPE(SLMSubsystem::Tick::Debug);
 		if (bDebugDraw)
 		{
-			for (const auto DomainSubsystem : DomainSubsystems)
+			for (const auto& DomainSystem : DomainSystems)
 			{
-				DomainSubsystem->DebugDraw();
+				DomainSystem->DebugDraw();
 			}
-			for (const auto DeviceSubsystem : DeviceSubsystems)
+			for (const auto& DeviceSystem : DeviceSystems)
 			{
-				DeviceSubsystem->DebugDraw();
+				DeviceSystem->DebugDraw();
 			}			
 		}
 	}
@@ -253,61 +289,129 @@ void USLMManager::Tick(const float DeltaTime)
 
 void USLMManager::OpenRemappingContext()
 {
+	check(bIsServer);
 	check(!bRemappingContextOpen)
-	check(RemappingContext.Num() == 0)
+	check(OldAddressToNewAddress.Num() == 0)
+	
 	bRemappingContextOpen = true;
 }
 
 void USLMManager::CloseRemappingContext()
 {
-	RemappingContext.Empty();
+	check(bIsServer);
+	check(bRemappingContextOpen)
+	
+	OldAddressToNewAddress.Empty();
 	bRemappingContextOpen = false;
+}
+
+FSLMDeviceSnapshot USLMManager::GetDeviceSnapshot(const FSLMDeviceAddress& DeviceAddress)
+{
+	check(bIsServer);
+	
+	const FSLMDeviceSystemBase* System = GetDeviceSystemByTag(DeviceAddress.DeviceTag);
+	check(System);
+	
+	return System->GetDeviceSnapshot(DeviceAddress);
+}
+
+FSLMDeviceAddress USLMManager::AddDeviceBySnapshot(const FSLMDeviceSnapshot& Snapshot, AActor* AssociatedActor)
+{
+	check(bIsServer);
+	check(bRemappingContextOpen);
+	
+	FSLMDeviceSystemBase* System = GetDeviceSystemByTag(Snapshot.DeviceAddress.DeviceTag);
+	check(System);
+	
+	return System->AddDeviceBySnapshot(Snapshot, AssociatedActor);
+}
+
+TArray<FSLMDeviceSnapshot> USLMManager::GetDeviceSnapshotsByActor(AActor* Actor)
+{
+	check(bIsServer);
+	check(Actor);
+	
+	TArray<FSLMDeviceSnapshot> Snapshots;
+	TArray<USLMDeviceComponentBase*> DeviceComponents;
+	Actor->GetComponents<USLMDeviceComponentBase>(DeviceComponents);
+	
+	for (const USLMDeviceComponentBase* DeviceComponent : DeviceComponents)
+	{
+		check(DeviceComponent->bDeviceResolved);
+		FSLMDeviceSnapshot Snapshot = GetDeviceSnapshot(DeviceComponent->DeviceAddress);
+		Snapshot.DeviceComponentName = DeviceComponent->GetFName();
+		Snapshots.Add(Snapshot);
+	}
+	return Snapshots;
+}
+
+void USLMManager::ApplyDeviceSnapshotsByActor(const TArray<FSLMDeviceSnapshot>& Snapshots, AActor* Actor)
+{
+	check(bIsServer);
+	check(bRemappingContextOpen);
+	check(Actor);
+	
+	TArray<USLMDeviceComponentBase*> DeviceComponents;
+	Actor->GetComponents<USLMDeviceComponentBase>(DeviceComponents);
+	
+	TMap<FName, USLMDeviceComponentBase*> ComponentsByName;
+	for (USLMDeviceComponentBase* Comp : DeviceComponents)
+	{
+		ComponentsByName.Add(Comp->GetFName(), Comp);
+	}
+
+	for (const FSLMDeviceSnapshot& Snapshot : Snapshots)
+	{
+		USLMDeviceComponentBase** CompPtr = ComponentsByName.Find(Snapshot.DeviceComponentName);
+		check(CompPtr);
+		USLMDeviceComponentBase* Component = *CompPtr;
+		Component->DeviceAddress = AddDeviceBySnapshot(Snapshot, Actor);
+		Component->bDeviceResolved = true;
+	}
 }
 
 void USLMManager::AddConnection(const FSLMConnection& Connection)
 {
-	if (GetWorld()->GetNetMode() < NM_Client)
+	check (bIsServer);
+	
+	if (bRemappingContextOpen)
 	{
-		if (bRemappingContextOpen)
+		FSLMConnection RemappedConnection = Connection;
+		const FSLMDeviceAddress FirstDeviceAddress = Connection.First.DeviceAddress;
+		if (OldAddressToNewAddress.Contains(FirstDeviceAddress))
 		{
-			FSLMConnection RemappedConnection = Connection;
-			const FSLMDeviceAddress FirstDeviceAddress = Connection.First.DeviceAddress;
-			if (RemappingContext.Contains(FirstDeviceAddress))
-			{
-				RemappedConnection.First.DeviceAddress = RemappingContext.FindChecked(FirstDeviceAddress);
-			}
-			const FSLMDeviceAddress SecondDeviceAddress = Connection.Second.DeviceAddress;
-			if (RemappingContext.Contains(SecondDeviceAddress))
-			{
-				RemappedConnection.Second.DeviceAddress = RemappingContext.FindChecked(SecondDeviceAddress);
-			}
-			Local_AddConnection(RemappedConnection);
-			Replicator->AddConnection(RemappedConnection);
+			RemappedConnection.First.DeviceAddress = OldAddressToNewAddress.FindChecked(FirstDeviceAddress);
 		}
-		else
+		const FSLMDeviceAddress SecondDeviceAddress = Connection.Second.DeviceAddress;
+		if (OldAddressToNewAddress.Contains(SecondDeviceAddress))
 		{
-			Local_AddConnection(Connection);
-			Replicator->AddConnection(Connection);			
+			RemappedConnection.Second.DeviceAddress = OldAddressToNewAddress.FindChecked(SecondDeviceAddress);
 		}
+		Local_AddConnection(RemappedConnection);
+		Replicator->AddConnection(RemappedConnection);
+	}
+	else
+	{
+		Local_AddConnection(Connection);
+		Replicator->AddConnection(Connection);			
 	}
 }
 
 void USLMManager::RemoveConnection(const FSLMConnection& Connection)
 {
-	if (GetWorld()->GetNetMode() < NM_Client)
-	{
-		Local_RemoveConnection(Connection);
-		Replicator->RemoveConnection(Connection);
-	}
+	check (bIsServer);
+	
+	Local_RemoveConnection(Connection);
+	Replicator->RemoveConnection(Connection);
 }
 
-bool USLMManager::WorldLocationToPortAddress(const TSubclassOf<USLMDomainSubsystemBase> DomainClass, const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress)
+bool USLMManager::WorldLocationToPortAddress(const FGameplayTag DomainTag, const FSLMSpatialContextRuntime& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress)
 {
-	for (const auto DomainSubsystem : DomainSubsystems)
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		if (DomainSubsystem->GetClass() == DomainClass)
+		if (DomainSystem->SystemTag == DomainTag)
 		{
-			return DomainSubsystem->WorldLocationToPortAddress(Filter, WorldLocation, OutAddress);
+			return DomainSystem->WorldLocationToPortAddress(Filter, WorldLocation, OutAddress);
 		}
 	}
 	return false;
@@ -315,11 +419,11 @@ bool USLMManager::WorldLocationToPortAddress(const TSubclassOf<USLMDomainSubsyst
 
 bool USLMManager::PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation)
 {
-	for (const auto DomainSubsystem : DomainSubsystems)
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		if (DomainSubsystem->GetClass() == PortAddress.DomainClass)
+		if (DomainSystem->SystemTag == PortAddress.DomainTag)
 		{
-			return DomainSubsystem->PortAddressToWorldLocation(PortAddress, OutWorldLocation);
+			return DomainSystem->PortAddressToWorldLocation(PortAddress, OutWorldLocation);
 		}
 	}
 	return false;
@@ -327,51 +431,81 @@ bool USLMManager::PortAddressToWorldLocation(const FSLMPortAddress& PortAddress,
 
 bool USLMManager::DoesConnectionExist(const FSLMConnection& Connection)
 {
-	for (const auto DomainSubsystem : DomainSubsystems)
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		if (DomainSubsystem->GetClass() == Connection.First.DomainClass)
+		if (DomainSystem->SystemTag == Connection.First.DomainTag)
 		{
-			return DomainSubsystem->DoesConnectionExist(Connection);
+			return DomainSystem->DoesConnectionExist(Connection);
 		}
 	}
 	return false;
 }
 
+TArray<FSLMPortAddress> USLMManager::GetPortAddressesForDevices(const TArray<FSLMDeviceAddress>& DeviceAddresses) const
+{
+	TArray<FSLMPortAddress> Result;
+	for (const auto& DomainSystem : DomainSystems)
+	{
+		DomainSystem->AppendPortAddressesForDevices(DeviceAddresses, Result);
+	}
+	return Result;
+	
+}
+
+TArray<FSLMConnection> USLMManager::GetConnectionsWithinPortAddresses(const TArray<FSLMPortAddress>& PortAddresses) const
+{
+	const TSet<FSLMPortAddress> PortAddressSet(PortAddresses);
+	TArray<FSLMConnection> Result;
+	for (const auto& DomainSystem : DomainSystems)
+	{
+		DomainSystem->AppendConnectionsForPortAddresses(PortAddresses, Result);
+	}
+	
+	return Result;
+}
+
+TArray<FSLMConnection> USLMManager::GetConnectionsWithinDevices(const TArray<FSLMDeviceAddress>& DeviceAddresses) const
+{
+	const TArray<FSLMPortAddress>& PortAddresses = GetPortAddressesForDevices(DeviceAddresses);
+	TArray<FSLMConnection> Result = GetConnectionsWithinPortAddresses(PortAddresses);
+	return Result;
+}
+
 FString USLMManager::GetGlobalDebugString(const bool Verbose)
 {
 	FString Result;
-	for (const auto DomainSubsystem : DomainSubsystems)
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		Result.Append(DomainSubsystem->GetDebugString(Verbose));
+		Result.Append(DomainSystem->GetDebugString(Verbose));
 	}
-	for (const auto DeviceSubsystem : DeviceSubsystems)
+	for (const auto& DeviceSystem : DeviceSystems)
 	{
-		Result.Append(DeviceSubsystem->GetDebugString(Verbose));
+		Result.Append(DeviceSystem->GetDebugString(Verbose));
 	}
 	return Result;
 }
 
-int32 USLMManager::GetGlobalDebugHash()
+int32 USLMManager::GetGlobalDebugHash(const bool bVerbose)
 {
 	int32 Hash = 0;
-	for (const auto DomainSubsystem : DomainSubsystems)
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		Hash = Hash ^ DomainSubsystem->GetDebugHash();
+		Hash = Hash ^ DomainSystem->GetDebugHash(bVerbose);
 	}
-	for (const auto DeviceSubsystem : DeviceSubsystems)
+	for (const auto& DeviceSystem : DeviceSystems)
 	{
-		Hash = Hash ^ DeviceSubsystem->GetDebugHash();
+		Hash = Hash ^ DeviceSystem->GetDebugHash(bVerbose);
 	}
 	return Hash;
 }
 
 FString USLMManager::GetPortDebugString(const FSLMPortAddress& Address)
 {
-	for (const auto DomainSubsystem : DomainSubsystems)
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		if (DomainSubsystem->GetClass() == Address.DomainClass)
+		if (DomainSystem->SystemTag == Address.DomainTag)
 		{
-			return DomainSubsystem->GetPortDebugString(Address);
+			return DomainSystem->GetPortDebugString(Address);
 		}
 	}
 	return FString();
@@ -384,68 +518,68 @@ FString USLMManager::GetDeviceDebugString(const FSLMPortAddress& Address)
 
 void USLMManager::Local_AddConnection(const FSLMConnection& Connection)
 {
-	check(Connection.First.DomainClass == Connection.Second.DomainClass);
-	for (const auto DomainSubsystem : DomainSubsystems)
+	check(Connection.First.DomainTag == Connection.Second.DomainTag);
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		if (DomainSubsystem->GetClass() == Connection.First.DomainClass)
+		if (DomainSystem->SystemTag == Connection.First.DomainTag)
 		{
-			DomainSubsystem->AddConnection(Connection);
+			DomainSystem->AddConnection(Connection);
 		}
 	}
 }
 
 void USLMManager::Local_RemoveConnection(const FSLMConnection& Connection)
 {
-	check(Connection.First.DomainClass == Connection.Second.DomainClass);
-	for (const auto DomainSubsystem : DomainSubsystems)
+	check(Connection.First.DomainTag == Connection.Second.DomainTag);
+	for (const auto& DomainSystem : DomainSystems)
 	{
-		if (DomainSubsystem->GetClass() == Connection.First.DomainClass)
+		if (DomainSystem->SystemTag == Connection.First.DomainTag)
 		{
-			DomainSubsystem->RemoveConnection(Connection);
+			DomainSystem->RemoveConnection(Connection);
 		}
 	}
 }
 
-void USLMManager::Client_AddOrChangeDescriptor(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
+void USLMManager::OnRepSetDescriptor(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
 {
-	for (const auto DeviceSubsystem : DeviceSubsystems)
+	for (const auto& DeviceSystem : DeviceSystems)
 	{
-		if (DeviceSubsystem->GetClass() == DeviceAddress.DeviceClass)
+		if (DeviceSystem->SystemTag == DeviceAddress.DeviceTag)
 		{
-			DeviceSubsystem->Client_AddOrChangeDescriptor(DeviceAddress, Payload);
+			DeviceSystem->OnRepSetDescriptor(DeviceAddress, Payload);
 		}
 	}
 }
 
-void USLMManager::Client_RemoveDescriptor(const FSLMDeviceAddress& DeviceAddress) const
+void USLMManager::OnRepRemoveDescriptor(const FSLMDeviceAddress& DeviceAddress) const
 {
-	for (const auto DeviceSubsystem : DeviceSubsystems)
+	for (const auto& DeviceSystem : DeviceSystems)
 	{
-		if (DeviceSubsystem->GetClass() == DeviceAddress.DeviceClass)
+		if (DeviceSystem->SystemTag == DeviceAddress.DeviceTag)
 		{
-			DeviceSubsystem->Client_RemoveDescriptor(DeviceAddress);
+			DeviceSystem->OnRepRemoveDescriptor(DeviceAddress);
 		}
 	}
 }
 
-void USLMManager::Client_AddOrChangeState(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
+void USLMManager::OnRepSetState(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload)
 {
-	for (const auto DeviceSubsystem : DeviceSubsystems)
+	for (const auto& DeviceSystem : DeviceSystems)
 	{
-		if (DeviceSubsystem->GetClass() == DeviceAddress.DeviceClass)
+		if (DeviceSystem->SystemTag == DeviceAddress.DeviceTag)
 		{
-			DeviceSubsystem->Client_AddOrChangeState(DeviceAddress, Payload);
+			DeviceSystem->OnRepSetState(DeviceAddress, Payload);
 		}
 	}	
 }
 
-void USLMManager::Client_RemoveState(const FSLMDeviceAddress& DeviceAddress) const
+void USLMManager::OnRepRemoveState(const FSLMDeviceAddress& DeviceAddress) const
 {
-	for (const auto DeviceSubsystem : DeviceSubsystems)
+	for (const auto& DeviceSystem : DeviceSystems)
 	{
-		if (DeviceSubsystem->GetClass() == DeviceAddress.DeviceClass)
+		if (DeviceSystem->SystemTag == DeviceAddress.DeviceTag)
 		{
-			DeviceSubsystem->Client_RemoveState(DeviceAddress);
+			DeviceSystem->OnRepRemoveState(DeviceAddress);
 		}
 	}
 }
@@ -454,12 +588,28 @@ void USLMManager::Client_RemoveState(const FSLMDeviceAddress& DeviceAddress) con
 
 
 
+void USLMManager::RegisterDomainSystem(TUniquePtr<FSLMDomainSystemBase> Prototype)
+{
+	DomainSystemPrototypes.Add(MoveTemp(Prototype));
+}
+void USLMManager::RegisterDeviceSystem(TUniquePtr<FSLMDeviceSystemBase> Prototype)
+{
+	DeviceSystemPrototypes.Add(MoveTemp(Prototype));
+}
 
+FSLMDeviceSystemBase* USLMManager::GetDeviceSystemByTag(const FGameplayTag& Tag)
+{
+	for (const auto& System : DeviceSystems)
+	{
+		if (System->SystemTag == Tag) return System.Get();
+	}
+	checkNoEntry();
+	return nullptr;
+}
 
+TArray<TUniquePtr<FSLMDomainSystemBase>> USLMManager::DomainSystemPrototypes;
 
-
-
-
+TArray<TUniquePtr<FSLMDeviceSystemBase>> USLMManager::DeviceSystemPrototypes;
 
 
 
@@ -522,7 +672,7 @@ void ASLMManagerReplicator::RemoveConnection(const FSLMConnection& Connection)
 	}
 }
 
-void ASLMManagerReplicator::AddOrChangeDescriptor(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload)
+void ASLMManagerReplicator::SetDescriptor(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload)
 {
 	if (const int32* IndexPtr = DeviceAddressToDescriptorIndex.Find(Address))
 	{
@@ -555,7 +705,7 @@ void ASLMManagerReplicator::RemoveDescriptor(const FSLMDeviceAddress& Address)
 	}
 }
 
-void ASLMManagerReplicator::AddOrChangeState(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload)
+void ASLMManagerReplicator::SetState(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload)
 {
 	if (const int32* IndexPtr = DeviceAddressToStateIndex.Find(Address))
 	{
@@ -604,10 +754,10 @@ bool USLMBlueprintFunctionLibrary::DoesConnectionExist(const UObject* WorldConte
 	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->DoesConnectionExist(Connection);
 }
 
-bool USLMBlueprintFunctionLibrary::WorldLocationToPortAddress(const UObject* WorldContextObject, const TSubclassOf<USLMDomainSubsystemBase> Domain, const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress)
+bool USLMBlueprintFunctionLibrary::WorldLocationToPortAddress(const UObject* WorldContextObject, const FGameplayTag DomainTag, const FSLMSpatialContextRuntime& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress)
 {
 	check(WorldContextObject);
-	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->WorldLocationToPortAddress(Domain, Filter, WorldLocation, OutAddress);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->WorldLocationToPortAddress(DomainTag, Filter, WorldLocation, OutAddress);
 }
 
 bool USLMBlueprintFunctionLibrary::PortAddressToWorldLocation(const UObject* WorldContextObject, const FSLMPortAddress& PortAddress, FVector& OutWorldLocation)
@@ -628,16 +778,22 @@ void USLMBlueprintFunctionLibrary::RemoveConnection(const UObject* WorldContextO
 	WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->RemoveConnection(Connection);
 }
 
-int32 USLMBlueprintFunctionLibrary::GetGlobalDebugHash(const UObject* WorldContextObject)
+TArray<FSLMConnection> USLMBlueprintFunctionLibrary::GetConnectionsWithinDevices(const UObject* WorldContextObject, const TArray<FSLMDeviceAddress>& DeviceAddresses)
 {
 	check(WorldContextObject);
-	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->GetGlobalDebugHash();
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->GetConnectionsWithinDevices(DeviceAddresses);
 }
 
-FString USLMBlueprintFunctionLibrary::GetGlobalDebugString(const UObject* WorldContextObject, const bool Verbose)
+int32 USLMBlueprintFunctionLibrary::GetGlobalDebugHash(const UObject* WorldContextObject, const bool bVerbose)
 {
 	check(WorldContextObject);
-	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->GetGlobalDebugString(Verbose);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->GetGlobalDebugHash(bVerbose);
+}
+
+FString USLMBlueprintFunctionLibrary::GetGlobalDebugString(const UObject* WorldContextObject, const bool bVerbose)
+{
+	check(WorldContextObject);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->GetGlobalDebugString(bVerbose);
 }
 
 FString USLMBlueprintFunctionLibrary::GetPortDebugString(const UObject* WorldContextObject, const FSLMPortAddress& Address)
@@ -682,5 +838,23 @@ FString USLMBlueprintFunctionLibrary::DiffDebugStrings(const FString Server, con
 void USLMBlueprintFunctionLibrary::OpenRemappingContext(const UObject* WorldContextObject)
 {
 	check(WorldContextObject);
-	//return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->WorldLocationToPortAddress(Domain, Filter, WorldLocation, OutAddress);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->OpenRemappingContext();
+}
+
+void USLMBlueprintFunctionLibrary::CloseRemappingContext(const UObject* WorldContextObject)
+{
+	check(WorldContextObject);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->CloseRemappingContext();
+}
+
+TArray<FSLMDeviceSnapshot> USLMBlueprintFunctionLibrary::GetDeviceSnapshotsByActor(const UObject* WorldContextObject, AActor* Actor)
+{
+	check(WorldContextObject);
+	return WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->GetDeviceSnapshotsByActor(Actor);
+}
+
+void USLMBlueprintFunctionLibrary::ApplyDeviceSnapshotsByActor(const UObject* WorldContextObject, AActor* Actor, const TArray<FSLMDeviceSnapshot>& Snapshots)
+{
+	check(WorldContextObject);
+	WorldContextObject->GetWorld()->GetSubsystem<USLMManager>()->ApplyDeviceSnapshotsByActor(Snapshots, Actor);
 }

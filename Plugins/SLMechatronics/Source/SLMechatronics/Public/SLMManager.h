@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SLMDeviceBase.h"
+#include "SLMDomainBase.h"
 #include "SLMTypes.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "StructUtils/InstancedStruct.h"
@@ -11,8 +13,6 @@
 
 class USLMManager;
 class ASLMManagerReplicator;
-class USLMDeviceSubsystemBase;
-class USLMDomainSubsystemBase;
 
 DECLARE_STATS_GROUP(TEXT("SLMechatronics"), STATGROUP_SLMechatronics, STATCAT_Advanced);
 
@@ -122,12 +122,6 @@ struct TStructOpsTypeTraits<FSLMRepArrayDeviceState> : public TStructOpsTypeTrai
 
 
 
-
-
-
-
-
-
 USTRUCT()
 struct FSLMRepItemConnection : public FFastArraySerializerItem
 {
@@ -167,6 +161,17 @@ struct TStructOpsTypeTraits<FSLMRepArrayConnections> : public TStructOpsTypeTrai
 
 
 
+USTRUCT()
+struct FSLMRemappingContext
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FSLMDeviceAddress Address;
+	UPROPERTY()
+	FInstancedStruct Descriptor;
+};
+
 
 
 
@@ -191,50 +196,96 @@ class SLMECHATRONICS_API USLMManager : public UWorldSubsystem
 public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	
+	//Tick
     void Tick(const float DeltaTime);
-	
-	void OpenRemappingContext();
-	void CloseRemappingContext();
-	
-	void AddConnection(const FSLMConnection& Connection);
-	void RemoveConnection(const FSLMConnection& Connection);
-	
-	bool WorldLocationToPortAddress(const TSubclassOf<USLMDomainSubsystemBase> DomainClass, const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress);
-	bool PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation);
-	bool DoesConnectionExist(const FSLMConnection& Connection);
-	
-	FString GetGlobalDebugString(const bool Verbose);
-	int32 GetGlobalDebugHash();
-	FString GetPortDebugString(const FSLMPortAddress& Address);
-	FString GetDeviceDebugString(const FSLMPortAddress& Address);
-	
+	FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
 	UPROPERTY(BlueprintReadWrite, Category="SLMechatronics")
 	int32 StepCount = 10;
+	
+	//Remapping Context
+	void OpenRemappingContext();
+	void CloseRemappingContext();
+	bool bRemappingContextOpen = false;
+	TMap<FSLMDeviceAddress, FSLMDeviceAddress> OldAddressToNewAddress;
+	TMap<FName, FName> OldActorNameToNewActorName;
+	
+	//Device Snapshots
+	FSLMDeviceSnapshot GetDeviceSnapshot(const FSLMDeviceAddress& DeviceAddress);
+	FSLMDeviceAddress AddDeviceBySnapshot(const FSLMDeviceSnapshot& Snapshot, AActor* AssociatedActor);
+	TArray<FSLMDeviceSnapshot> GetDeviceSnapshotsByActor(AActor* Actor);
+	void ApplyDeviceSnapshotsByActor(const TArray<FSLMDeviceSnapshot>& Snapshots, AActor* Actor);
+	
+	
+	//Ports and Connections
+	void AddConnection(const FSLMConnection& Connection);
+	void RemoveConnection(const FSLMConnection& Connection);
+	bool WorldLocationToPortAddress(FGameplayTag DomainTag, const FSLMSpatialContextRuntime& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress);
+	bool PortAddressToWorldLocation(const FSLMPortAddress& PortAddress, FVector& OutWorldLocation);
+	bool DoesConnectionExist(const FSLMConnection& Connection);
+	TArray<FSLMPortAddress> GetPortAddressesForDevices(const TArray<FSLMDeviceAddress>& DeviceAddresses) const;
+	TArray<FSLMConnection> GetConnectionsWithinPortAddresses(const TArray<FSLMPortAddress>& PortAddresses) const;
+	TArray<FSLMConnection> GetConnectionsWithinDevices(const TArray<FSLMDeviceAddress>& DeviceAddresses) const;
+	
+	//Debug
+	FString GetGlobalDebugString(const bool bVerbose);
+	int32 GetGlobalDebugHash(const bool bVerbose);
+	FString GetPortDebugString(const FSLMPortAddress& Address);
+	FString GetDeviceDebugString(const FSLMPortAddress& Address);
 	UPROPERTY(BlueprintReadWrite, Category="SLMechatronics")
 	bool bDebugDraw = true;
 
-private:
+
+	//Network Stuff
 	void Local_AddConnection(const FSLMConnection& Connection);
 	void Local_RemoveConnection(const FSLMConnection& Connection);
-	
-	void Client_AddOrChangeDescriptor(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload);
-	void Client_RemoveDescriptor(const FSLMDeviceAddress& DeviceAddress) const;
-	
-	void Client_AddOrChangeState(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload);
-	void Client_RemoveState(const FSLMDeviceAddress& DeviceAddress) const;
+	void OnRepSetDescriptor(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload);
+	void OnRepRemoveDescriptor(const FSLMDeviceAddress& DeviceAddress) const;
+	void OnRepSetState(const FSLMDeviceAddress& DeviceAddress, const FInstancedStruct& Payload);
+	void OnRepRemoveState(const FSLMDeviceAddress& DeviceAddress) const;
+	bool bIsServer = false;
+	//UPROPERTY()
+	//ASLMManagerReplicator* Replicator;
+	TWeakObjectPtr<ASLMManagerReplicator> Replicator;
 
+	//Systems
+	static void RegisterDomainSystem(TUniquePtr<FSLMDomainSystemBase> Prototype);
+	static void RegisterDeviceSystem(TUniquePtr<FSLMDeviceSystemBase> Prototype);
+	FSLMDeviceSystemBase* GetDeviceSystemByTag(const FGameplayTag& Tag);
+	static TArray<TUniquePtr<FSLMDomainSystemBase>> DomainSystemPrototypes;
+	static TArray<TUniquePtr<FSLMDeviceSystemBase>> DeviceSystemPrototypes;
+	TArray<TUniquePtr<FSLMDomainSystemBase>> DomainSystems;
+	TArray<TUniquePtr<FSLMDeviceSystemBase>> DeviceSystems;
 	
+	template<typename DomainSystemType>
+	DomainSystemType* GetDomainSystem()
+	{
+		static_assert(std::is_base_of_v<FSLMDomainSystemBase, DomainSystemType>, "DomainSystemType must derive from FSLMDomainSystemBase");
+		for (const auto& DomainSystem : DomainSystems)
+		{
+			if (DomainSystem->SystemTag == DomainSystemType::GetSystemTagStatic())
+			{
+				return static_cast<DomainSystemType*>(DomainSystem.Get());
+			}
+		}
+		checkNoEntry();
+		return nullptr;
+	}
 
-	FSLMechatronicsSubsystemTickFunction PrimarySystemTick;
-	UPROPERTY()
-	TArray<USLMDeviceSubsystemBase*> DeviceSubsystems;
-	UPROPERTY()
-    TArray<USLMDomainSubsystemBase*> DomainSubsystems;
-	UPROPERTY()
-	ASLMManagerReplicator* Replicator;
-	
-	bool bRemappingContextOpen = false;
-	TMap<FSLMDeviceAddress, FSLMDeviceAddress> RemappingContext;
+	template<typename DeviceSystemType>
+	DeviceSystemType* GetDeviceSystem()
+	{
+		static_assert(std::is_base_of_v<FSLMDeviceSystemBase, DeviceSystemType>, "DeviceSystemType must derive from FSLMDeviceSystemBase");
+		for (const auto& DeviceSystem : DeviceSystems)
+		{
+			if (DeviceSystem->SystemTag == DeviceSystemType::GetSystemTagStatic())
+			{
+				return static_cast<DeviceSystemType*>(DeviceSystem.Get());
+			}
+		}
+		checkNoEntry();
+		return nullptr;
+	}
 };
 
 
@@ -250,12 +301,12 @@ public:
 	ASLMManagerReplicator();
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	void AddConnection(const FSLMConnection& Connection);
-	void RemoveConnection(const FSLMConnection& Connection);
-	void AddOrChangeDescriptor(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload);
-	void RemoveDescriptor(const FSLMDeviceAddress& Address);
-	void AddOrChangeState(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload);
-	void RemoveState(const FSLMDeviceAddress& Address);
+	SLMECHATRONICS_API void AddConnection(const FSLMConnection& Connection);
+	SLMECHATRONICS_API void RemoveConnection(const FSLMConnection& Connection);
+	SLMECHATRONICS_API void SetDescriptor(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload);
+	SLMECHATRONICS_API void RemoveDescriptor(const FSLMDeviceAddress& Address);
+	SLMECHATRONICS_API void SetState(const FSLMDeviceAddress& Address, const FInstancedStruct& Payload);
+	SLMECHATRONICS_API void RemoveState(const FSLMDeviceAddress& Address);
 	
 private:
 	UPROPERTY(Replicated)
@@ -290,17 +341,24 @@ class SLMECHATRONICS_API USLMBlueprintFunctionLibrary : public UBlueprintFunctio
 	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
 	static bool DoesConnectionExist(const UObject* WorldContextObject, const FSLMConnection Connection);
 	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static bool WorldLocationToPortAddress(const UObject* WorldContextObject, const TSubclassOf<USLMDomainSubsystemBase> Domain, const FSLMPortMetaData& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress);
+	static bool WorldLocationToPortAddress(const UObject* WorldContextObject, const FGameplayTag DomainTag, const FSLMSpatialContextRuntime& Filter, const FVector& WorldLocation, FSLMPortAddress& OutAddress);
 	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
 	static bool PortAddressToWorldLocation(const UObject* WorldContextObject, const FSLMPortAddress& PortAddress, FVector& OutWorldLocation);
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
 	static void AddConnection(const UObject* WorldContextObject, const FSLMConnection Connection);
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
 	static void RemoveConnection(const UObject* WorldContextObject, const FSLMConnection Connection);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static TArray<FSLMConnection> GetConnectionsWithinDevices(const UObject* WorldContextObject, const TArray<FSLMDeviceAddress>& DeviceAddresses);
+
+	
+	
+	
+	
 	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static int32 GetGlobalDebugHash(const UObject* WorldContextObject);
+	static int32 GetGlobalDebugHash(const UObject* WorldContextObject, const bool bVerbose);
 	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
-	static FString GetGlobalDebugString(const UObject* WorldContextObject, const bool Verbose);
+	static FString GetGlobalDebugString(const UObject* WorldContextObject, const bool bVerbose);
 	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
 	static FString GetPortDebugString(const UObject* WorldContextObject, const FSLMPortAddress& Address);
 	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
@@ -309,7 +367,13 @@ class SLMECHATRONICS_API USLMBlueprintFunctionLibrary : public UBlueprintFunctio
 	static FString DiffDebugStrings(const FString Server, const FString Client);
 	
 	
-	UFUNCTION(BlueprintCallable, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
 	static void OpenRemappingContext(const UObject* WorldContextObject);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static void CloseRemappingContext(const UObject* WorldContextObject);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static TArray<FSLMDeviceSnapshot> GetDeviceSnapshotsByActor(const UObject* WorldContextObject, AActor* Actor);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="SLMechatronics", meta=(WorldContext="WorldContextObject"))
+	static void ApplyDeviceSnapshotsByActor(const UObject* WorldContextObject, AActor* Actor, const TArray<FSLMDeviceSnapshot>& Snapshots);
 };
 

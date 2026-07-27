@@ -1,0 +1,29 @@
+﻿{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "SLMechatronicsDemo",
+	"Description": "",
+	"Category": "Spectrelight Plugins",
+	"CreatedBy": "Spectrelight Studios",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "SLMechatronicsDemo",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+  "Plugins": [
+    {
+      "Name": "SLMechatronics",
+      "Enabled": true
+    }
+  ]
+}
